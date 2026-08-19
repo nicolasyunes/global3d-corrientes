@@ -1,0 +1,15 @@
+# generated / vendored
+node_modules/
+dist/
+dist-ssr/
+coverage/
+package-lock.json
+
+# SDD planning artifacts and skill registry (not Prettier-managed)
+openspec/
+.atl/
+
+# files without a Prettier parser
+.env.example
+.nvmrc
+.gitignore

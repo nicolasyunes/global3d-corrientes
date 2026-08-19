@@ -58,8 +58,8 @@ Chain strategy: pending
 
 ## Phase 5: Quality Tooling
 
-- [ ] 5.1 Create `eslint.config.js` (flat: typescript-eslint, react-hooks, react-refresh) + `.prettierrc` with eslint-config-prettier
-- [ ] 5.2 Verify: `npm run lint` + `npm run format:check` exit zero; seeded lint violation exits non-zero
+- [x] 5.1 Create `eslint.config.js` (flat: typescript-eslint, react-hooks, react-refresh) + `.prettierrc` with eslint-config-prettier
+- [x] 5.2 Verify: `npm run lint` + `npm run format:check` exit zero; seeded lint violation exits non-zero
 
 ## Phase 6: Smoke + Config
 

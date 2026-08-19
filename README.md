@@ -22,16 +22,16 @@ cp .env.example .env   # then fill in VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
 
 ## Scripts
 
-| Script          | Command                                   |
-| --------------- | ----------------------------------------- |
-| `npm run dev`   | Vite dev server                           |
-| `npm run build` | Production build                          |
-| `npm run preview` | Preview the production build             |
-| `npm test`      | Run vitest (unit + smoke tests)           |
-| `npm run typecheck` | `tsc --noEmit` (app + config files)    |
-| `npm run lint`  | ESLint (flat config)                      |
-| `npm run format` | Prettier write                           |
-| `npm run format:check` | Prettier check                     |
+| Script                 | Command                             |
+| ---------------------- | ----------------------------------- |
+| `npm run dev`          | Vite dev server                     |
+| `npm run build`        | Production build                    |
+| `npm run preview`      | Preview the production build        |
+| `npm test`             | Run vitest (unit + smoke tests)     |
+| `npm run typecheck`    | `tsc --noEmit` (app + config files) |
+| `npm run lint`         | ESLint (flat config)                |
+| `npm run format`       | Prettier write                      |
+| `npm run format:check` | Prettier check                      |
 
 ## Structure
 
