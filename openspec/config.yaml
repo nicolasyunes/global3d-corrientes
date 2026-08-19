@@ -2,33 +2,37 @@
 schema: spec-driven
 
 context: |
-  Project: web-global-3d (greenfield — directory contains only .atl/ skill registry)
-  Planned stack: Vite + TypeScript + Supabase (PostgreSQL), mobile-first web UI
+  Project: web-global-3d (single Vite + React + TypeScript app, route-split public / + lazy /admin)
+  Planned stack: Vite + React + TypeScript + Supabase (PostgreSQL), mobile-first web UI
   Deliverables: (1) internal workshop management app for a 3D printing business,
   (2) public catalog web with WhatsApp checkout
-  Architecture: not yet defined (no source code scaffolded)
-  Testing: no test runner installed yet — capabilities pending scaffolding
-  Style: no conventions established yet
+  Architecture: feature-area layout under src/ with @/ alias; Supabase RLS is the security boundary
+  Testing: vitest (jsdom) + tsc --noEmit + ESLint (flat) + Prettier
+  Style: 4-color palette as CSS custom properties; mobile-first; clean UI (no nested boxes)
 
 strict_tdd: false
-# strict_tdd is false because no test runner exists in this greenfield repo.
-# MUST be re-evaluated after project scaffolding (Vite + TypeScript) lands.
+# Re-evaluated 2026-08-19 after project-foundation landed a test runner (vitest).
+# Decision: keep standard mode — test-first remains optional per change, not a
+# hard gate. strict_tdd MAY be flipped to true on a future change if the team
+# opts into RED-GREEN-REFACTOR; unit + smoke tests now exist as the baseline.
 
 testing:
-  detected: 2026-08-14
-  runner: none
+  detected: 2026-08-19
+  runner: vitest
   layers:
-    unit: false
-    integration: false
+    unit: true
+    integration: true
     e2e: false
   coverage: false
   quality:
-    linter: none
-    type_checker: none
-    formatter: none
+    linter: eslint
+    type_checker: tsc
+    formatter: prettier
   note: >
-    Greenfield repository — no package.json, no test runner, no quality tools.
-    Re-run detection after scaffolding (expected: vitest, tsc, eslint/prettier).
+    Tooling landed with project-foundation: vitest (jsdom), tsc --noEmit,
+    ESLint (flat config), Prettier. Unit tests (env validation) and an opt-in
+    connectivity smoke test (skipIf when env is absent) are present. E2E remains
+    out of scope until a business slice exists.
 
 rules:
   proposal:
@@ -49,8 +53,8 @@ rules:
     tdd: false
     test_command: ""
   verify:
-    test_command: ""
-    build_command: ""
+    test_command: "npm test"
+    build_command: "npm run build"
     coverage_threshold: 0
   archive:
     - Warn before merging destructive deltas

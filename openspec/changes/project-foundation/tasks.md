@@ -63,7 +63,7 @@ Chain strategy: pending
 
 ## Phase 6: Smoke + Config
 
-- [ ] 6.1 Create `src/lib/supabase.smoke.test.ts`: `skipIf(!env)`, one typed query (RPC or table count), fails on bad creds/unreachable, tolerates empty result
-- [ ] 6.2 Verify: valid env passes; invalid key surfaces auth error
-- [ ] 6.3 Update `openspec/config.yaml`: testing re-detection (vitest/tsc/eslint/prettier), record re-evaluated `strict_tdd`
-- [ ] 6.4 Final gate: dev/build/test/lint/typecheck/format clean; chunk check re-run
+- [x] 6.1 Create `src/lib/supabase.smoke.test.ts`: `skipIf(!env)`, one typed query (RPC or table count), fails on bad creds/unreachable, tolerates empty result
+- [x] 6.2 Verify: valid env passes; invalid key surfaces auth error
+- [x] 6.3 Update `openspec/config.yaml`: testing re-detection (vitest/tsc/eslint/prettier), record re-evaluated `strict_tdd`
+- [x] 6.4 Final gate: dev/build/test/lint/typecheck/format clean; chunk check re-run
