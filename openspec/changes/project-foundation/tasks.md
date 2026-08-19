@@ -51,10 +51,10 @@ Chain strategy: pending
 
 ## Phase 4: Supabase Client
 
-- [ ] 4.1 Create `src/vite-env.d.ts` (ImportMetaEnv) + `src/lib/env.ts` fail-fast validation (throws naming missing/malformed var)
-- [ ] 4.2 Create `src/lib/supabase.ts`: singleton `createClient` typed against placeholder `Database`
-- [ ] 4.3 Write `src/lib/env.test.ts`: missing URL, missing key, malformed URL, valid pass
-- [ ] 4.4 Verify: `npm test` passes; import without env throws naming var
+- [x] 4.1 Create `src/vite-env.d.ts` (ImportMetaEnv) + `src/lib/env.ts` fail-fast validation (throws naming missing/malformed var)
+- [x] 4.2 Create `src/lib/supabase.ts`: singleton `createClient` typed against placeholder `Database`
+- [x] 4.3 Write `src/lib/env.test.ts`: missing URL, missing key, malformed URL, valid pass
+- [x] 4.4 Verify: `npm test` passes; import without env throws naming var
 
 ## Phase 5: Quality Tooling
 
