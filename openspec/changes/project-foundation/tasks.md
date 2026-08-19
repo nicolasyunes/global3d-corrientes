@@ -38,10 +38,10 @@ Chain strategy: pending
 
 ## Phase 2: Router Shell
 
-- [ ] 2.1 Create `src/main.tsx` (mount RouterProvider, import base.css) + `src/app/App.tsx`
-- [ ] 2.2 Create `src/app/router.tsx`: `/` public eager, `/admin/*` route-object `lazy()`, ProtectedRoute seam, catch-all → not-found
-- [ ] 2.3 Create `src/features/catalog/CatalogPage.tsx` + `src/features/admin/AdminPage.tsx`
-- [ ] 2.4 Verify: separate `admin-*.js` chunk; entry chunk free of admin modules; `/admin` on-demand
+- [x] 2.1 Create `src/main.tsx` (mount RouterProvider, import base.css) + `src/app/App.tsx`
+- [x] 2.2 Create `src/app/router.tsx`: `/` public eager, `/admin/*` route-object `lazy()`, ProtectedRoute seam, catch-all → not-found
+- [x] 2.3 Create `src/features/catalog/CatalogPage.tsx` + `src/features/admin/AdminPage.tsx`
+- [x] 2.4 Verify: separate `admin-*.js` chunk; entry chunk free of admin modules; `/admin` on-demand
 
 ## Phase 3: Design Tokens
 
