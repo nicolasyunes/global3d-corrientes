@@ -1,0 +1,56 @@
+# SDD project configuration — web-global-3d
+schema: spec-driven
+
+context: |
+  Project: web-global-3d (greenfield — directory contains only .atl/ skill registry)
+  Planned stack: Vite + TypeScript + Supabase (PostgreSQL), mobile-first web UI
+  Deliverables: (1) internal workshop management app for a 3D printing business,
+  (2) public catalog web with WhatsApp checkout
+  Architecture: not yet defined (no source code scaffolded)
+  Testing: no test runner installed yet — capabilities pending scaffolding
+  Style: no conventions established yet
+
+strict_tdd: false
+# strict_tdd is false because no test runner exists in this greenfield repo.
+# MUST be re-evaluated after project scaffolding (Vite + TypeScript) lands.
+
+testing:
+  detected: 2026-08-14
+  runner: none
+  layers:
+    unit: false
+    integration: false
+    e2e: false
+  coverage: false
+  quality:
+    linter: none
+    type_checker: none
+    formatter: none
+  note: >
+    Greenfield repository — no package.json, no test runner, no quality tools.
+    Re-run detection after scaffolding (expected: vitest, tsc, eslint/prettier).
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - State which deliverable (workshop app, public catalog, or shared) the change affects
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+    - Record Supabase schema/RLS decisions explicitly
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing code patterns
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
