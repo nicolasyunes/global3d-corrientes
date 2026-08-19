@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dist-ssr/
+
+# env files (example is committed)
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+
+# editor / OS
+.DS_Store
+Thumbs.db
+
+# test coverage
+coverage/
+
+# vite cache
+.vite/
+
+# typescript build info
+*.tsbuildinfo

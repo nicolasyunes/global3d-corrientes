@@ -31,10 +31,10 @@ Chain strategy: pending
 
 ## Phase 1: Scaffold
 
-- [ ] 1.1 Create `package.json` (Vite+React+TS deps; scripts dev/build/preview/test/typecheck/lint/format/format:check); `npm install` (lockfile excluded)
-- [ ] 1.2 Create `vite.config.ts` (react plugin, `@/` alias), `tsconfig.json`/`tsconfig.node.json` (strict, `paths`), `index.html`, `.gitignore`, `.env.example`, `README.md`
-- [ ] 1.3 Create `vitest.config.ts` (jsdom) + `src/test/setup.ts`
-- [ ] 1.4 Verify: `npm run build` + `npm run typecheck` exit zero
+- [x] 1.1 Create `package.json` (Vite+React+TS deps; scripts dev/build/preview/test/typecheck/lint/format/format:check); `npm install` (lockfile excluded)
+- [x] 1.2 Create `vite.config.ts` (react plugin, `@/` alias), `tsconfig.json`/`tsconfig.node.json` (strict, `paths`), `index.html`, `.gitignore`, `.env.example`, `README.md`
+- [x] 1.3 Create `vitest.config.ts` (jsdom) + `src/test/setup.ts`
+- [x] 1.4 Verify: `npm run build` + `npm run typecheck` exit zero
 
 ## Phase 2: Router Shell
 
