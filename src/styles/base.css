@@ -1,0 +1,61 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+  background-color: var(--color-gray);
+  color: var(--color-black);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+picture,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Layout: mobile-first. Base rules above target the smallest viewport;
+   wider viewports only ever ADD rules via min-width queries. */
+.page {
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: 1.5rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .page {
+    padding: 2rem 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .page {
+    padding: 2.5rem 2rem;
+  }
+}

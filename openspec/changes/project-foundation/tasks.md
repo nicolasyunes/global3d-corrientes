@@ -45,9 +45,9 @@ Chain strategy: pending
 
 ## Phase 3: Design Tokens
 
-- [ ] 3.1 Create `src/styles/tokens.css`: `--color-black:#000000`, `--color-orange:#FF6800`, `--color-gray:#F0F0F0`, `--color-white:#FFFFFF`
-- [ ] 3.2 Create `src/styles/base.css`: reset/box-sizing/typography from tokens, `min-width` queries only, imports tokens.css
-- [ ] 3.3 Verify: hex literals only in tokens.css; all queries `min-width`; no horizontal scroll at 320px
+- [x] 3.1 Create `src/styles/tokens.css`: `--color-black:#000000`, `--color-orange:#FF6800`, `--color-gray:#F0F0F0`, `--color-white:#FFFFFF`
+- [x] 3.2 Create `src/styles/base.css`: reset/box-sizing/typography from tokens, `min-width` queries only, imports tokens.css
+- [x] 3.3 Verify: hex literals only in tokens.css; all queries `min-width`; no horizontal scroll at 320px
 
 ## Phase 4: Supabase Client
 
