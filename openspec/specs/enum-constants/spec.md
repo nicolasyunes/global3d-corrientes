@@ -26,9 +26,13 @@ The system MUST define `TRANSACTION_TYPE` mirroring `3d_service` and `supplies_s
 
 ### Requirement: Open-List Constants
 
+> **DEFERRED (accepted, design-sanctioned)**: TypeScript constants for `payment_method` (`cash`, `transfer`, `uala`, `brubank`, `mercadopago`, `other`) and `product_type` (`cup`, `trophy`, `keychain`, `other`) are intentionally deferred to `orders-core` / finance forms (design Non-Goal). The underlying `text` + CHECK constraints on these columns ARE delivered in this change (see `database-schema`); only the form/filter-facing TS constants are deferred. This deferral is recorded here so the source of truth does not claim these constants as delivered.
+
 The system MUST define constants for `payment_method` (`cash`, `transfer`, `uala`, `brubank`, `mercadopago`, `other`) and `product_type` (`cup`, `trophy`, `keychain`, `other`) matching the CHECK constraints, for use in forms and filters.
 
 #### Scenario: Payment methods match the CHECK list
+
+> **DEFERRED (accepted)** — lands with `orders-core`.
 
 - GIVEN `src/lib/domain-constants.ts`
 - WHEN the payment method constant is inspected

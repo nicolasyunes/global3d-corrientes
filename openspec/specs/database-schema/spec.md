@@ -103,7 +103,9 @@ The system MUST define indexes on `orders.due_date` and `orders.status` to suppo
 
 ### Requirement: Triggers
 
-The system MUST provide a `set_updated_at()` trigger that refreshes `updated_at` on update for every table carrying the column, and an `on_auth_user_created()` trigger that auto-creates a `profiles` row with `role = 'operator'` for each new auth user.
+The system MUST provide a `set_updated_at()` trigger that refreshes `updated_at` on update for every table carrying the column.
+
+> **DEFERRED (accepted, design-sanctioned)**: The `on_auth_user_created()` trigger that auto-creates a `profiles` row with `role = 'operator'` for each new auth user — and its backing `handle_new_user()` function — is intentionally deferred to the future auth change (design decision #4). No auth flow exists yet to verify against; profiles are seedable manually for local RLS tests until this lands. This deferral is recorded here so the source of truth does not claim an unbuilt trigger as delivered.
 
 #### Scenario: Updated timestamp auto-refreshes
 
@@ -112,6 +114,8 @@ The system MUST provide a `set_updated_at()` trigger that refreshes `updated_at`
 - THEN `updated_at` reflects the update time
 
 #### Scenario: New auth user gets a profile
+
+> **DEFERRED (accepted)** — `on_auth_user_created()` / `handle_new_user()` land in the future auth change; not implemented in this change.
 
 - GIVEN a new auth user is created
 - WHEN the trigger fires
