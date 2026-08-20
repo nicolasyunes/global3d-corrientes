@@ -57,5 +57,5 @@ Chain strategy: feature-branch-chain
 
 ## Phase 5: Verify
 
-- [ ] 5.1 `npm test`, `npm run typecheck`, `npm run build`, `npm run lint` pass.
-- [ ] 5.2 NOTE (manual, not code): add Vercel prod URL to Supabase Auth → URL Configuration → Redirect URLs.
+- [x] 5.1 `npm test` (62/62, incl. live cloud integration tests), `npm run typecheck`, `npm run build`, `npm run lint` pass. *(Tick at archive: proven by verify-report — PASS WITH WARNINGS, 0 CRITICAL.)*
+- [ ] 5.2 DEPLOYMENT-TIME (manual, out of repo scope — tracked as deploy follow-up in archive report): add Vercel prod URL to Supabase Auth → URL Configuration → Redirect URLs.

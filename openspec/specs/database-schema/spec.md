@@ -111,9 +111,7 @@ The system MUST define indexes on `orders.due_date` and `orders.status` to suppo
 
 ### Requirement: Triggers
 
-The system MUST provide a `set_updated_at()` trigger that refreshes `updated_at` on update for every table carrying the column.
-
-> **DEFERRED (accepted, design-sanctioned)**: The `on_auth_user_created()` trigger that auto-creates a `profiles` row with `role = 'operator'` for each new auth user — and its backing `handle_new_user()` function — is intentionally deferred to the future auth change (design decision #4). No auth flow exists yet to verify against; profiles are seedable manually for local RLS tests until this lands. This deferral is recorded here so the source of truth does not claim an unbuilt trigger as delivered.
+The system MUST provide a `set_updated_at()` trigger that refreshes `updated_at` on update for every table carrying the column. The system MUST provide an `on_auth_user_created` trigger backed by a `handle_new_user()` function that inserts a `profiles` row for each new `auth.users` row. The trigger MUST assign `role = 'operator'` by default, and MUST assign `role = 'admin'` to the first signup when the `profiles` table is empty; it MUST NOT overwrite an existing profile row (`on conflict do nothing`).
 
 #### Scenario: Updated timestamp auto-refreshes
 
@@ -123,8 +121,18 @@ The system MUST provide a `set_updated_at()` trigger that refreshes `updated_at`
 
 #### Scenario: New auth user gets a profile
 
-> **DEFERRED (accepted)** — `on_auth_user_created()` / `handle_new_user()` land in the future auth change; not implemented in this change.
-
-- GIVEN a new auth user is created
-- WHEN the trigger fires
+- GIVEN at least one `profiles` row already exists
+- WHEN a new auth user is created
 - THEN a `profiles` row is created referencing the user with `role = 'operator'`
+
+#### Scenario: First signup bootstraps admin
+
+- GIVEN the `profiles` table is empty
+- WHEN a new auth user is created
+- THEN a `profiles` row is created referencing the user with `role = 'admin'`
+
+#### Scenario: Existing profile is not overwritten
+
+- GIVEN a `profiles` row already exists for an auth user
+- WHEN the trigger fires for that same user
+- THEN the existing profile row is preserved
