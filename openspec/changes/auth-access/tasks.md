@@ -36,10 +36,10 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: Auth context + route protection (PR 2)
 
-- [ ] 2.1 Create `src/features/auth/AuthProvider.tsx` — context (`session`/`user`/`loading`/`signOut`); `getSession()` + `onAuthStateChange`.
-- [ ] 2.2 Create `src/features/auth/useAuth.ts` — `useAuth()` hook (throws outside provider).
-- [ ] 2.3 Create `src/features/auth/ProtectedRoute.tsx` — loading state; redirect `/admin/login` with `state.from`.
-- [ ] 2.4 Unit test `src/features/auth/ProtectedRoute.test.tsx`: no-session→login, session→children, unresolved→loading.
+- [x] 2.1 Create `src/features/auth/AuthProvider.tsx` — context (`session`/`user`/`loading`/`signOut`); `getSession()` + `onAuthStateChange`.
+- [x] 2.2 Create `src/features/auth/useAuth.ts` — `useAuth()` hook (throws outside provider).
+- [x] 2.3 Create `src/features/auth/ProtectedRoute.tsx` — loading state; redirect `/admin/login` with `state.from`.
+- [x] 2.4 Unit test `src/features/auth/ProtectedRoute.test.tsx`: no-session→login, session→children, unresolved→loading. *(Also `AuthProvider.test.tsx`: context restore/events/sign-out + useAuth-throws-outside-provider.)*
 
 ## Phase 3: Login UI (PR 3)
 
