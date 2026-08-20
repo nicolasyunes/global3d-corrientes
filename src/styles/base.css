@@ -22,8 +22,8 @@ body {
     Helvetica,
     Arial,
     sans-serif;
-  background-color: var(--color-gray);
-  color: var(--color-black);
+  background-color: var(--color-white);
+  color: var(--color-carbon);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }

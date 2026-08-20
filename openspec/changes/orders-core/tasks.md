@@ -29,13 +29,13 @@ Chain strategy: feature-branch-chain
 
 ## Phase 1: Foundation (migration + constants + tokens)
 
-- [ ] 1.1 Create `supabase/migrations/20260820000000_orders_origin_channel.sql` — `alter table public.orders add column origin_channel text check (origin_channel in ('facebook','whatsapp','instagram','other'))`.
-- [ ] 1.2 Apply migration (`supabase db reset`) then regenerate types: `npm run gen:types` (excluded from review).
-- [ ] 1.3 `src/lib/domain-constants.ts`: add `PAYMENT_METHOD`, `PRODUCT_TYPE`, `ORIGIN_CHANNEL` (`as const` arrays + derived unions) + label maps.
-- [ ] 1.4 Replace `ORDER_STATUS_COLORS` dead tokens (`--color-gray`/`--color-black`): new→amber, in_queue/printing/post_processing→orange, finished→teal, cancelled→carbon; add `URGENCY_COLORS` (red/amber/green/teal).
-- [ ] 1.5 Reconcile `src/styles/tokens.css`: `--color-orange:#F37021`, `--color-carbon:#1D1D1B`, `--color-white:#FFFFFF`, `--color-teal:#0E7C66`, functional red/amber/green + carbon-soft/muted; remove gray/black.
-- [ ] 1.6 Fix remaining hex literals / dead-token refs in `base.css` + components (grep `#` and `--color-gray|--color-black`).
-- [ ] 1.7 Unit test: constants match CHECK lists; color maps reference tokens, not hex.
+- [x] 1.1 Create `supabase/migrations/20260820000000_orders_origin_channel.sql` — `alter table public.orders add column origin_channel text check (origin_channel in ('facebook','whatsapp','instagram','other'))`.
+- [x] 1.2 Apply migration (`supabase db reset`) then regenerate types: `npm run gen:types` (excluded from review).
+- [x] 1.3 `src/lib/domain-constants.ts`: add `PAYMENT_METHOD`, `PRODUCT_TYPE`, `ORIGIN_CHANNEL` (`as const` arrays + derived unions) + label maps.
+- [x] 1.4 Replace `ORDER_STATUS_COLORS` dead tokens (`--color-gray`/`--color-black`): new→amber, in_queue/printing/post_processing→orange, finished→teal, cancelled→carbon; add `URGENCY_COLORS` (red/amber/green/teal).
+- [x] 1.5 Reconcile `src/styles/tokens.css`: `--color-orange:#F37021`, `--color-carbon:#1D1D1B`, `--color-white:#FFFFFF`, `--color-teal:#0E7C66`, functional red/amber/green + carbon-soft/muted; remove gray/black.
+- [x] 1.6 Fix remaining hex literals / dead-token refs in `base.css` + components (grep `#` and `--color-gray|--color-black`).
+- [x] 1.7 Unit test: constants match CHECK lists; color maps reference tokens, not hex.
 
 ## Phase 2: Order entry (form + quick-order + data layer)
 

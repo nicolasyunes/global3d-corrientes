@@ -1,7 +1,16 @@
 :root {
   /* Global3D official palette — the single source of color truth. */
-  --color-black: #000000;
-  --color-orange: #ff6800;
-  --color-gray: #f0f0f0;
+  --color-orange: #f37021;
+  --color-carbon: #1d1d1b;
   --color-white: #ffffff;
+  --color-teal: #0e7c66;
+
+  /* Derived tokens (no raw hex anywhere else). */
+  --color-carbon-soft: rgba(29, 29, 27, 0.06);
+  --color-carbon-muted: rgba(29, 29, 27, 0.6);
+
+  /* Status / urgency semaphore — warm and desaturated. */
+  --status-red: #c63d3d;
+  --status-amber: #c77d12;
+  --status-green: #2e7d4f;
 }
