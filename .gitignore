@@ -26,3 +26,5 @@ coverage/
 
 # typescript build info
 *.tsbuildinfo
+# Local AI runtime state
+.atl/
