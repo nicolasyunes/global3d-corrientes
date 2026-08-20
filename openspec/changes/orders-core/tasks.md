@@ -39,12 +39,12 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: Order entry (form + quick-order + data layer)
 
-- [ ] 2.1 Create `src/features/orders/validation.ts` — required customer/product_type/due_date; numeric total/deposit; default `pending_balance = total − deposit`.
-- [ ] 2.2 Create `src/features/orders/orders.api.ts` — typed helpers: upsert customer (match phone, else create), insert/update order, list `select('*, customers(name)')`.
-- [ ] 2.3 Create `src/features/orders/OrderForm.tsx` — single mobile-first form + quick-order toggle; smart defaults (status=new, order_date=now, color_spec={}, due_date=lead time); sticky CTA; ≥44px targets; `inputmode`.
-- [ ] 2.4 Create `src/features/admin/dev-session.ts` — env-gated dev-only seeded operator sign-in (service-role `auth.admin.createUser` + `signInWithPassword`).
-- [ ] 2.5 Mount `/admin/orders/new` via internal `<Routes>` in `admin.route.tsx`; invoke dev-session seam.
-- [ ] 2.6 Unit tests: validation + smart defaults (vitest/jsdom, no DB).
+- [x] 2.1 Create `src/features/orders/validation.ts` — required customer/product_type/due_date; numeric total/deposit; default `pending_balance = total − deposit`.
+- [x] 2.2 Create `src/features/orders/orders.api.ts` — typed helpers: upsert customer (match phone, else create), insert/update order, list `select('*, customers(name)')`.
+- [x] 2.3 Create `src/features/orders/OrderForm.tsx` — single mobile-first form + quick-order toggle; smart defaults (status=new, order_date=now, color_spec={}, due_date=lead time); sticky CTA; ≥44px targets; `inputmode`.
+- [x] 2.4 Create `src/features/admin/dev-session.ts` — env-gated dev-only seeded operator sign-in (service-role `auth.admin.createUser` + `signInWithPassword`).
+- [x] 2.5 Mount `/admin/orders/new` via internal `<Routes>` in `admin.route.tsx`; invoke dev-session seam.
+- [x] 2.6 Unit tests: validation + smart defaults (vitest/jsdom, no DB).
 
 ## Phase 3: List + detail
 
