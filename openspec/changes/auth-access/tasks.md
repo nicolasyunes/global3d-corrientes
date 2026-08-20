@@ -28,11 +28,11 @@ Chain strategy: feature-branch-chain
 
 ## Phase 1: Foundation — trigger + test-seam (PR 1)
 
-- [ ] 1.1 Create `supabase/migrations/20260820120000_handle_new_user.sql` — `handle_new_user()` (`security definer set search_path=''`) inserting `profiles` (`role`: first signup `admin`, else `operator`; `on conflict do nothing`) + `on_auth_user_created` trigger on `auth.users`.
-- [ ] 1.2 Apply via `npm run db:reset`. No type regen (function+trigger only; no table/column change).
-- [ ] 1.3 Create `src/test/seed-operator.ts` — relocate `seedOperatorSession` + helpers from `dev-session.ts`, DROP the manual `profiles` upsert (trigger creates it).
-- [ ] 1.4 Slim `src/features/admin/dev-session.ts` to `ensureDevOperatorSession` + `DEV_SESSION_ENABLED` only.
-- [ ] 1.5 Update `src/lib/operator-session.integration.test.ts` — import from `src/test/seed-operator`; assert `profiles` row exists with `role ∈ {admin, operator}`.
+- [x] 1.1 Create `supabase/migrations/20260820120000_handle_new_user.sql` — `handle_new_user()` (`security definer set search_path=''`) inserting `profiles` (`role`: first signup `admin`, else `operator`; `on conflict do nothing`) + `on_auth_user_created` trigger on `auth.users`.
+- [x] 1.2 Apply via `npm run db:reset`. No type regen (function+trigger only; no table/column change). *(Dev machine has no Docker/access token: applied via `supabase db push --db-url <session-pooler>` to the cloud project instead.)*
+- [x] 1.3 Create `src/test/seed-operator.ts` — relocate `seedOperatorSession` + helpers from `dev-session.ts`, DROP the manual `profiles` upsert (trigger creates it).
+- [x] 1.4 Slim `src/features/admin/dev-session.ts` to `ensureDevOperatorSession` + `DEV_SESSION_ENABLED` only.
+- [x] 1.5 Update `src/lib/operator-session.integration.test.ts` — import from `src/test/seed-operator`; assert `profiles` row exists with `role ∈ {admin, operator}`. *(Also updated `src/features/orders/orders.integration.test.ts` import — same relocated helper.)*
 
 ## Phase 2: Auth context + route protection (PR 2)
 

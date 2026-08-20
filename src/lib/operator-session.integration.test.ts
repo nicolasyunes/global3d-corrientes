@@ -1,10 +1,12 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { describe, expect, it } from 'vitest'
-import { seedOperatorSession } from '@/features/admin/dev-session'
+import { seedOperatorSession } from '@/test/seed-operator'
 
 // Cloud RLS integration test: proves an authenticated operator can create an
-// order (RLS `to authenticated`) while anon remains blocked. Env-gated so the
-// suite stays green without credentials (mirrors rls.integration.test.ts).
+// order (RLS `to authenticated`) while anon remains blocked. Also proves the
+// handle_new_user trigger end-to-end: the seed helper no longer upserts a
+// profile manually — the createUser call must have fired the trigger. Env-gated
+// so the suite stays green without credentials (mirrors rls.integration.test.ts).
 
 function loadServiceRoleKey(): string | undefined {
   try {
@@ -29,6 +31,18 @@ describe.skipIf(!hasEnv)('operator session (cloud integration)', () => {
     let customerId: string | undefined
 
     try {
+      // The handle_new_user trigger must have created the profile row during
+      // the seed user's createUser (no manual upsert anymore). Role is 'admin'
+      // for the very first signup ever (empty profiles table) and 'operator'
+      // for every later signup.
+      const { data: profile, error: profileError } = await seeded.service
+        .from('profiles')
+        .select('role')
+        .eq('id', seeded.userId)
+        .single()
+      expect(profileError).toBeNull()
+      expect(['admin', 'operator']).toContain(profile?.role)
+
       // Operator: create a customer, then an order (RLS `to authenticated`).
       const { data: customer, error: customerError } = await seeded.client
         .from('customers')

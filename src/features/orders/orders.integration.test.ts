@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { describe, expect, it } from 'vitest'
-import { seedOperatorSession } from '@/features/admin/dev-session'
+import { seedOperatorSession } from '@/test/seed-operator'
 
 // Cloud integration test for the orders data layer: a seeded operator can CRUD
 // an order, the `origin_channel` CHECK rejects unknown values, and anon stays
