@@ -256,8 +256,9 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Orders list — the /admin landing view. Sticky wordmark + tabs, flat due-date
-   queue, sticky "Quick order" CTA. Tokens only.
+   Orders list — the /admin landing view. Sticky tabs under the shell header,
+   flat due-date queue, sticky "Quick order" CTA. Tokens only. The wordmark
+   header is owned by AdminLayout (auth.css), never by this view.
 --------------------------------------------------------------------------- */
 
 .orders-list {
@@ -265,25 +266,9 @@
   padding-bottom: 6rem; /* clears the sticky CTA */
 }
 
-.orders-list__header {
-  max-width: 72rem;
-  margin-inline: auto;
-  padding: 1rem 1rem 0;
-}
-
-.orders-list__wordmark {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-}
-
-.orders-list__wordmark-accent {
-  color: var(--color-orange);
-}
-
 .tabs {
   position: sticky;
-  top: 0;
+  top: var(--shell-header-h, 0);
   z-index: 1;
   display: flex;
   gap: 1.5rem;

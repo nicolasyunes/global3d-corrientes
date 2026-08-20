@@ -43,17 +43,17 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: Login UI (PR 3)
 
-- [ ] 3.1 Create `src/features/auth/LoginPage.tsx` — email → `signInWithOtp({ email, emailRedirectTo })` → "check your email" (resend + change email); redirect if already signed in.
-- [ ] 3.2 Unit test `src/features/auth/LoginPage.test.tsx`: check-email transition, resend, change-email, already-signed-in redirect.
+- [x] 3.1 Create `src/features/auth/LoginPage.tsx` — email → `signInWithOtp({ email, emailRedirectTo })` → "check your email" (resend + change email); redirect if already signed in.
+- [x] 3.2 Unit test `src/features/auth/LoginPage.test.tsx`: check-email transition, resend, change-email, already-signed-in redirect.
 
 ## Phase 4: Admin shell + dev-seam retirement (PR 3)
 
-- [ ] 4.1 Create `src/features/admin/AdminLayout.tsx` — wordmark header + sign-out (`signOut()`), `<Outlet/>`.
-- [ ] 4.2 Create `src/features/auth/auth.css` — login + shell styles (tokens only, ≥44px, no cards).
-- [ ] 4.3 `src/features/orders/OrdersList.tsx` — remove wordmark header (now owned by `AdminLayout`).
-- [ ] 4.4 `src/features/admin/admin.route.tsx` — mount `AuthProvider`; add `login` route; wrap orders in `ProtectedRoute`→`AdminLayout`; drop `ensureDevOperatorSession()` call.
-- [ ] 4.5 Delete `src/features/admin/dev-session.ts`; remove `VITE_ENABLE_DEV_SESSION` from `.env.example`.
-- [ ] 4.6 Unit test `src/features/admin/AdminLayout.test.tsx`: header + sign-out render; sign-out clears session.
+- [x] 4.1 Create `src/features/admin/AdminLayout.tsx` — wordmark header + sign-out (`signOut()`), `<Outlet/>`.
+- [x] 4.2 Create `src/features/auth/auth.css` — login + shell styles (tokens only, ≥44px, no cards).
+- [x] 4.3 `src/features/orders/OrdersList.tsx` — remove wordmark header (now owned by `AdminLayout`).
+- [x] 4.4 `src/features/admin/admin.route.tsx` — mount `AuthProvider`; add `login` route; wrap orders in `ProtectedRoute`→`AdminLayout`; drop `ensureDevOperatorSession()` call.
+- [x] 4.5 Delete `src/features/admin/dev-session.ts`; remove `VITE_ENABLE_DEV_SESSION` from `.env.example`.
+- [x] 4.6 Unit test `src/features/admin/AdminLayout.test.tsx`: header + sign-out render; sign-out clears session.
 
 ## Phase 5: Verify
 

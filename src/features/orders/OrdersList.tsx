@@ -10,7 +10,8 @@ import './orders.css'
 
 // The `/admin/orders` landing view: a flat due-date queue split into Today /
 // Upcoming tabs, sorted by due_date ascending, hiding cancelled orders. Rows are
-// full-width tap targets that open the order detail.
+// full-width tap targets that open the order detail. The wordmark header lives
+// in AdminLayout (single source); this view keeps only its sticky tabs.
 export default function OrdersList() {
   const [orders, setOrders] = useState<OrderWithCustomer[]>([])
   const [tab, setTab] = useState<ListTab>('today')
@@ -43,12 +44,6 @@ export default function OrdersList() {
 
   return (
     <main className="orders-list">
-      <header className="orders-list__header">
-        <h1 className="orders-list__wordmark">
-          Global<span className="orders-list__wordmark-accent">3D</span>
-        </h1>
-      </header>
-
       <nav className="tabs" aria-label="Due date">
         <button
           type="button"

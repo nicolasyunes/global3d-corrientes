@@ -15,7 +15,11 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation()
 
   if (loading) {
-    return <p role="status">Loading…</p>
+    return (
+      <p role="status" className="auth-status">
+        Loading…
+      </p>
+    )
   }
 
   if (!session) {

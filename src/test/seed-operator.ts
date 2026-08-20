@@ -3,8 +3,10 @@ import type { Database } from '@/lib/database.types'
 
 // ---------------------------------------------------------------------------
 // Node-only seeded operator session for tests/scripts. Relocated out of
-// `features/admin/dev-session.ts` (which now owns only the browser dev seam)
-// by the auth-access change so the seed seam lives with the test-only code.
+// `features/admin/dev-session.ts` by the auth-access change; the file also
+// owned a browser-only dev seam (`ensureDevOperatorSession` +
+// `VITE_ENABLE_DEV_SESSION`) which was DELETED once the real magic-link login
+// UI landed (PR3). This Node helper survives for automated tests only.
 //
 // The `profiles` row is created by the `handle_new_user` trigger on
 // auth.users insert (see supabase/migrations/20260820120000_handle_new_user.sql)
@@ -13,17 +15,10 @@ import type { Database } from '@/lib/database.types'
 // helper fails loudly instead of returning an operator that silently reads zero
 // rows under RLS.
 //
-// Two halves, both env-gated:
-//
-//   seedOperatorSession()       Node seam (tests/scripts). Uses the service role
-//                               (SUPABASE_SERVICE_ROLE_KEY, non-VITE) to create a
-//                               THROWAWAY operator with a runtime-generated
-//                               password, then signs in with the anon client so
-//                               RLS applies. The password is discarded — never
-//                               committed and never read from .env.
-//
-//   ensureDevOperatorSession()  Remained in features/admin/dev-session.ts (browser
-//                               seam, VITE_ENABLE_DEV_SESSION — irrelevant to tests).
+// Env-gated: uses the service role (SUPABASE_SERVICE_ROLE_KEY, non-VITE) to
+// create a THROWAWAY operator with a runtime-generated password, then signs in
+// with the anon client so RLS applies. The password is discarded — never
+// committed and never read from .env.
 //
 // Deliberately avoids top-level imports of `@/lib/env` / `@/lib/supabase` (both
 // throw at import time when credentials are absent), so an integration test can
