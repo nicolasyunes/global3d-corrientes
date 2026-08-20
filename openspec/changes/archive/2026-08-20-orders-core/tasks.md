@@ -56,5 +56,5 @@ Chain strategy: feature-branch-chain
 
 ## Phase 4: Verify + cleanup
 
-- [ ] 4.1 `npm test`, `npm run typecheck`, `npm run build`, `npm run lint` all pass.
-- [ ] 4.2 Confirm no raw hex outside `tokens.css`; `--color-gray`/`--color-black` fully removed.
+- [x] 4.1 `npm test`, `npm run typecheck`, `npm run build`, `npm run lint` all pass.
+- [x] 4.2 Confirm no raw hex outside `tokens.css`; `--color-gray`/`--color-black` fully removed.

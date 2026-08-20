@@ -6,13 +6,14 @@ Official Global3D visual identity as code: 4-color palette as CSS custom propert
 
 ### Requirement: Official Palette as CSS Custom Properties
 
-The system MUST define the official palette as CSS custom properties in a single shared tokens stylesheet: black `#000000` (structure, main text), Global3D orange `#FF6800` (actions, key accents), light gray `#F0F0F0` (backgrounds), and white `#FFFFFF` (cards, containers). All component and layout styles MUST consume these tokens instead of hard-coded color literals.
+The system MUST define the official palette as CSS custom properties in a single shared tokens stylesheet: Global3D orange `#F37021` (actions, key accents), carbon `#1D1D1B` (structure, main text), white `#FFFFFF` (backgrounds, cards, containers), and teal accent `#0E7C66` (success/in-progress status; the added accent token). The light-gray `#F0F0F0` token SHALL be removed; backgrounds SHALL use white/neutral tones. All component and layout styles MUST consume these tokens instead of hard-coded color literals.
 
 #### Scenario: Tokens are defined and available globally
 
 - GIVEN the application is built
 - WHEN the tokens stylesheet is loaded
-- THEN custom properties for black, orange, light gray, and white exist with the exact hex values above
+- THEN custom properties for orange `#F37021`, carbon `#1D1D1B`, white `#FFFFFF`, and teal `#0E7C66` exist with the exact hex values above
+- AND the light-gray token no longer exists
 
 #### Scenario: No raw color literals outside the tokens file
 

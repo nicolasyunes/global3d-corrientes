@@ -13,24 +13,24 @@ The committed visual world for the internal workshop app. Mode: **Operate** — 
 
 Light surface (operator works outdoors in bright ambient light — white grounds maximize contrast).
 
-| Token | Hex | Role |
-|-------|-----|------|
-| `--color-orange` | `#F37021` | Primary actions, focus rings, in-progress states |
-| `--color-carbon` | `#1D1D1B` | Structure, headings, body text, primary buttons |
-| `--color-white` | `#FFFFFF` | Backgrounds and surfaces |
-| `--color-teal` | `#0E7C66` | Success / finished status; the one semantic accent |
+| Token            | Hex       | Role                                               |
+| ---------------- | --------- | -------------------------------------------------- |
+| `--color-orange` | `#F37021` | Primary actions, focus rings, in-progress states   |
+| `--color-carbon` | `#1D1D1B` | Structure, headings, body text, primary buttons    |
+| `--color-white`  | `#FFFFFF` | Backgrounds and surfaces                           |
+| `--color-teal`   | `#0E7C66` | Success / finished status; the one semantic accent |
 
-**Color strategy**: Restrained (neutral ground + one accent) with a single *semantic* second accent (teal) reserved for "finished/success". Orange is earned, not scattered.
+**Color strategy**: Restrained (neutral ground + one accent) with a single _semantic_ second accent (teal) reserved for "finished/success". Orange is earned, not scattered.
 
 Derived + functional tokens (also defined in `tokens.css` — no raw hex anywhere else):
 
-| Token | Value | Role |
-|-------|-------|------|
-| `--color-carbon-soft` | `rgba(29,29,27,0.06)` | Hairline separators, subtle fills |
-| `--color-carbon-muted` | `rgba(29,29,27,0.60)` | Secondary text on white |
-| `--status-red` | `#C63D3D` | Overdue / urgent |
-| `--status-amber` | `#C77D12` | Upcoming / attention / new |
-| `--status-green` | `#2E7D4F` | Comfortable / on-track |
+| Token                  | Value                 | Role                              |
+| ---------------------- | --------------------- | --------------------------------- |
+| `--color-carbon-soft`  | `rgba(29,29,27,0.06)` | Hairline separators, subtle fills |
+| `--color-carbon-muted` | `rgba(29,29,27,0.60)` | Secondary text on white           |
+| `--status-red`         | `#C63D3D`             | Overdue / urgent                  |
+| `--status-amber`       | `#C77D12`             | Upcoming / attention / new        |
+| `--status-green`       | `#2E7D4F`             | Comfortable / on-track            |
 
 Status/urgency colors are **warm and desaturated** so they sit beside orange/carbon rather than reading as default CSS red/green. `amber`/`green`/`teal` carry the future urgency semaphore (agenda-view); only `teal` (finished) maps to an order status today.
 
@@ -71,7 +71,7 @@ Every interactive component ships all states: default, hover, focus (orange ring
 
 - **Mobile-first, single column.** 320px and up with zero horizontal scroll.
 - Sticky bottom primary action on the form; sticky top wordmark + tabs on the list.
-- **Desktop** (≥1280px): content constrained and centered (max ~72rem); the list may widen to a table-like two-line row, the form may add a wider measure — but structure stays one logical column. Wider viewports only ever *add* rules via `min-width` media queries.
+- **Desktop** (≥1280px): content constrained and centered (max ~72rem); the list may widen to a table-like two-line row, the form may add a wider measure — but structure stays one logical column. Wider viewports only ever _add_ rules via `min-width` media queries.
 
 ## Logo
 
