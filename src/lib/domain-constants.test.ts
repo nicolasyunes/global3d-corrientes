@@ -61,6 +61,17 @@ describe('color mappings', () => {
     }
   })
 
+  it('ORDER_STATUS_COLORS maps each status to its assigned token', () => {
+    expect(ORDER_STATUS_COLORS).toEqual({
+      new: 'var(--status-amber)',
+      in_queue: 'var(--color-orange)',
+      printing: 'var(--color-orange)',
+      post_processing: 'var(--color-orange)',
+      finished: 'var(--color-teal)',
+      cancelled: 'var(--color-carbon)',
+    })
+  })
+
   it('ORDER_STATUS_COLORS does not reference the removed gray/black tokens', () => {
     for (const value of Object.values(ORDER_STATUS_COLORS)) {
       expect(value).not.toMatch(/--color-(gray|black)/)

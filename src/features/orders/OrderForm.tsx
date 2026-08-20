@@ -10,32 +10,29 @@ import {
   type PaymentMethod,
   type ProductType,
 } from '@/lib/domain-constants'
-import { createOrder, upsertCustomer } from './orders.api'
 import {
+  createOrder,
+  updateCustomer,
+  updateOrder,
+  upsertCustomer,
+  type OrderRow,
+  type OrderWithCustomer,
+} from './orders.api'
+import {
+  buildColorSpec,
+  colorPartsFromSpec,
+  draftFromOrder,
   emptyDraft,
   parseMoney,
   resolvedPendingBalance,
   validateOrder,
+  type ColorPart,
   type FieldErrors,
   type OrderDraft,
 } from './validation'
 import './orders.css'
 
 type Mode = 'quick' | 'full'
-
-interface ColorPart {
-  key: string
-  value: string
-}
-
-function buildColorSpec(parts: ColorPart[]): Record<string, string> {
-  const spec: Record<string, string> = {}
-  for (const part of parts) {
-    const key = part.key.trim()
-    if (key !== '') spec[key] = part.value.trim()
-  }
-  return spec
-}
 
 interface ChipGroupProps<T extends string> {
   label: string
@@ -75,12 +72,27 @@ function ChipGroup<T extends string>({
   )
 }
 
-export default function OrderForm() {
-  const [mode, setMode] = useState<Mode>('quick')
-  const [draft, setDraft] = useState<OrderDraft>(() => emptyDraft())
-  const [colorParts, setColorParts] = useState<ColorPart[]>([
-    { key: '', value: '' },
-  ])
+interface OrderFormProps {
+  // When provided, the form edits this existing order (detail flow) instead of
+  // creating a new one. Status is managed separately (the detail progression
+  // buttons), never through this form.
+  initialOrder?: OrderWithCustomer
+  // Called after a successful save with the persisted order (create or edit).
+  onSaved?: (order: OrderRow) => void
+}
+
+export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
+  const editing = initialOrder !== undefined
+
+  const [mode, setMode] = useState<Mode>(editing ? 'full' : 'quick')
+  const [draft, setDraft] = useState<OrderDraft>(() =>
+    editing && initialOrder ? draftFromOrder(initialOrder) : emptyDraft(),
+  )
+  const [colorParts, setColorParts] = useState<ColorPart[]>(() =>
+    editing && initialOrder
+      ? colorPartsFromSpec(initialOrder.color_spec)
+      : [{ key: '', value: '' }],
+  )
   const [errors, setErrors] = useState<FieldErrors>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -127,35 +139,61 @@ export default function OrderForm() {
     setSubmitError(null)
     setSavedName(null)
 
+    const colorSpec = buildColorSpec(colorParts)
+
     try {
-      const customer = await upsertCustomer({
-        name: draft.customerName.trim(),
-        phone: draft.customerPhone.trim() || null,
-      })
+      if (editing && initialOrder) {
+        // Edit flow: update the linked customer contact, then the order fields.
+        // Status is deliberately untouched — the detail view owns progression.
+        await updateCustomer(initialOrder.customer_id, {
+          name: draft.customerName.trim(),
+          phone: draft.customerPhone.trim() || null,
+        })
 
-      const colorSpec = buildColorSpec(colorParts)
+        const updated = await updateOrder(initialOrder.id, {
+          product_type: draft.productType as ProductType,
+          due_date: draft.dueDate,
+          total_amount: parseMoney(draft.totalAmount),
+          deposit: parseMoney(draft.deposit),
+          pending_balance: resolvedPendingBalance(draft),
+          payment_method: (draft.paymentMethod || null) as PaymentMethod | null,
+          origin_channel: (draft.originChannel || null) as OriginChannel | null,
+          color_spec: colorSpec,
+          personalization: draft.personalization.trim() || null,
+          measurements: draft.measurements.trim() || null,
+          observations: draft.observations.trim() || null,
+        })
 
-      await createOrder({
-        customer_id: customer.id,
-        product_type: draft.productType as ProductType,
-        due_date: draft.dueDate,
-        total_amount: parseMoney(draft.totalAmount),
-        deposit: parseMoney(draft.deposit),
-        pending_balance: resolvedPendingBalance(draft),
-        payment_method: (draft.paymentMethod || null) as PaymentMethod | null,
-        origin_channel: (draft.originChannel || null) as OriginChannel | null,
-        color_spec: colorSpec,
-        personalization: draft.personalization.trim() || null,
-        measurements: draft.measurements.trim() || null,
-        observations: draft.observations.trim() || null,
-        status: 'new',
-      })
+        onSaved?.(updated)
+      } else {
+        const customer = await upsertCustomer({
+          name: draft.customerName.trim(),
+          phone: draft.customerPhone.trim() || null,
+        })
 
-      setSavedName(customer.name)
-      // Reset for the next capture — quick order is a repeat flow.
-      setDraft(emptyDraft())
-      setColorParts([{ key: '', value: '' }])
-      setMode('quick')
+        const created = await createOrder({
+          customer_id: customer.id,
+          product_type: draft.productType as ProductType,
+          due_date: draft.dueDate,
+          total_amount: parseMoney(draft.totalAmount),
+          deposit: parseMoney(draft.deposit),
+          pending_balance: resolvedPendingBalance(draft),
+          payment_method: (draft.paymentMethod || null) as PaymentMethod | null,
+          origin_channel: (draft.originChannel || null) as OriginChannel | null,
+          color_spec: colorSpec,
+          personalization: draft.personalization.trim() || null,
+          measurements: draft.measurements.trim() || null,
+          observations: draft.observations.trim() || null,
+          status: 'new',
+        })
+
+        onSaved?.(created)
+        setSavedName(customer.name)
+        // Reset for the next capture — quick order is a repeat flow.
+        setDraft(emptyDraft())
+        setColorParts([{ key: '', value: '' }])
+        setMode('quick')
+      }
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : 'Could not save the order.',
@@ -170,30 +208,36 @@ export default function OrderForm() {
       <form onSubmit={handleSubmit} noValidate>
         <div className="order-form__content">
           <header className="order-form__header">
-            <h1 className="order-form__title">New order</h1>
+            <h1 className="order-form__title">
+              {editing ? 'Edit order' : 'New order'}
+            </h1>
             <p className="order-form__subtitle">
-              Capture a job from an inquiry — details can wait.
+              {editing
+                ? 'Refine the details, then advance the status.'
+                : 'Capture a job from an inquiry — details can wait.'}
             </p>
           </header>
 
-          <div className="mode-toggle" aria-label="Form mode">
-            <button
-              type="button"
-              className="mode-toggle__button"
-              aria-pressed={mode === 'quick'}
-              onClick={() => setMode('quick')}
-            >
-              Quick order
-            </button>
-            <button
-              type="button"
-              className="mode-toggle__button"
-              aria-pressed={mode === 'full'}
-              onClick={() => setMode('full')}
-            >
-              Full form
-            </button>
-          </div>
+          {!editing && (
+            <div className="mode-toggle" aria-label="Form mode">
+              <button
+                type="button"
+                className="mode-toggle__button"
+                aria-pressed={mode === 'quick'}
+                onClick={() => setMode('quick')}
+              >
+                Quick order
+              </button>
+              <button
+                type="button"
+                className="mode-toggle__button"
+                aria-pressed={mode === 'full'}
+                onClick={() => setMode('full')}
+              >
+                Full form
+              </button>
+            </div>
+          )}
 
           <section className="form-section">
             <h2 className="form-section__heading">Customer</h2>
@@ -441,7 +485,7 @@ export default function OrderForm() {
         <div className="sticky-cta">
           <div className="sticky-cta__inner">
             <button type="submit" className="primary-btn" disabled={submitting}>
-              {submitting ? 'Saving…' : 'Save order'}
+              {submitting ? 'Saving…' : editing ? 'Save changes' : 'Save order'}
             </button>
           </div>
         </div>

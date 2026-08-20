@@ -6,13 +6,13 @@ import type { Database } from '@/lib/database.types'
 // to the query they run.
 
 type CustomerRow = Database['public']['Tables']['customers']['Row']
-type OrderRow = Database['public']['Tables']['orders']['Row']
+export type OrderRow = Database['public']['Tables']['orders']['Row']
 
 export type OrderInsert = Database['public']['Tables']['orders']['Insert']
 export type OrderUpdate = Database['public']['Tables']['orders']['Update']
 
 export type OrderWithCustomer = OrderRow & {
-  customers: Pick<CustomerRow, 'name'> | null
+  customers: Pick<CustomerRow, 'name' | 'phone'> | null
 }
 
 export interface CustomerInput {
@@ -80,10 +80,39 @@ export async function updateOrder(
   return data
 }
 
+// Update the linked customer's contact in place (rename / phone change) during
+// detail editing. Never re-upserts — a re-match by phone could create a new
+// customer and orphan the existing order link.
+export async function updateCustomer(
+  id: string,
+  patch: { name?: string; phone?: string | null },
+): Promise<CustomerRow> {
+  const { data, error } = await supabase
+    .from('customers')
+    .update(patch)
+    .eq('id', id)
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}
+
+// Load a single order with its customer relation for the detail view.
+export async function getOrder(id: string): Promise<OrderWithCustomer | null> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, customers(name, phone)')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) throw error
+  return (data ?? null) as OrderWithCustomer | null
+}
+
 export async function listOrders(): Promise<OrderWithCustomer[]> {
   const { data, error } = await supabase
     .from('orders')
-    .select('*, customers(name)')
+    .select('*, customers(name, phone)')
+    .neq('status', 'cancelled')
     .order('due_date', { ascending: true })
   if (error) throw error
   return (data ?? []) as OrderWithCustomer[]

@@ -7,6 +7,7 @@ import {
   PAYMENT_METHOD,
   PRODUCT_TYPE,
 } from '@/lib/domain-constants'
+import type { OrderWithCustomer } from './orders.api'
 
 // Raw form state. Numeric and multi-select fields stay as strings so the form
 // can hold an empty (unset) value without coercing to 0 or ''; parsing happens
@@ -162,5 +163,60 @@ export function emptyDraft(): OrderDraft {
     personalization: '',
     measurements: '',
     observations: '',
+  }
+}
+
+// --- color spec (per-part) --------------------------------------------------
+
+export interface ColorPart {
+  key: string
+  value: string
+}
+
+// Collapses the per-part rows into the stored `color_spec` map, dropping blank
+// part names. Pure so create and edit share one serialization path.
+export function buildColorSpec(parts: ColorPart[]): Record<string, string> {
+  const spec: Record<string, string> = {}
+  for (const part of parts) {
+    const key = part.key.trim()
+    if (key !== '') spec[key] = part.value.trim()
+  }
+  return spec
+}
+
+// Expands a stored `color_spec` back into editable rows. Tolerates null, a
+// non-object, or non-string values defensively; an empty spec yields one blank
+// row so the operator always has somewhere to type.
+export function colorPartsFromSpec(spec: unknown): ColorPart[] {
+  if (spec === null || typeof spec !== 'object' || Array.isArray(spec)) {
+    return [{ key: '', value: '' }]
+  }
+  const parts = Object.entries(spec as Record<string, unknown>)
+    .filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+    .map(([key, value]) => ({ key, value }))
+  return parts.length > 0 ? parts : [{ key: '', value: '' }]
+}
+
+// --- edit-mode prefill ------------------------------------------------------
+
+// Maps a persisted order back into raw form state. Numeric columns become
+// strings so the form renders them without coercing null to 0. `pending_balance`
+// is copied verbatim from the stored row — the stored value is the source of
+// truth and is never recomputed from total − deposit here.
+export function draftFromOrder(order: OrderWithCustomer): OrderDraft {
+  return {
+    customerName: order.customers?.name ?? '',
+    customerPhone: order.customers?.phone ?? '',
+    productType: order.product_type,
+    dueDate: order.due_date,
+    totalAmount: order.total_amount === null ? '' : String(order.total_amount),
+    deposit: order.deposit === null ? '' : String(order.deposit),
+    pendingBalance:
+      order.pending_balance === null ? '' : String(order.pending_balance),
+    paymentMethod: order.payment_method ?? '',
+    originChannel: order.origin_channel ?? '',
+    personalization: order.personalization ?? '',
+    measurements: order.measurements ?? '',
+    observations: order.observations ?? '',
   }
 }

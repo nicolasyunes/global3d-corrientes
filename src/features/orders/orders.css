@@ -221,6 +221,9 @@
 }
 
 .primary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: 44px;
   padding: 0.75rem 1rem;
@@ -229,6 +232,7 @@
   background: var(--color-orange);
   color: var(--color-carbon);
   font-weight: 700;
+  text-decoration: none;
   cursor: pointer;
   transition: filter 150ms ease-out;
 }
@@ -251,9 +255,269 @@
   cursor: not-allowed;
 }
 
+/* ---------------------------------------------------------------------------
+   Orders list — the /admin landing view. Sticky wordmark + tabs, flat due-date
+   queue, sticky "Quick order" CTA. Tokens only.
+--------------------------------------------------------------------------- */
+
+.orders-list {
+  min-height: 100vh;
+  padding-bottom: 6rem; /* clears the sticky CTA */
+}
+
+.orders-list__header {
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: 1rem 1rem 0;
+}
+
+.orders-list__wordmark {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.orders-list__wordmark-accent {
+  color: var(--color-orange);
+}
+
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  gap: 1.5rem;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: 0.75rem 1rem 0;
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-carbon-soft);
+}
+
+.tab {
+  min-height: 44px;
+  padding: 0.25rem 0.25rem 0.75rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--color-carbon-muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color 150ms ease-out,
+    border-color 150ms ease-out;
+}
+
+.tab[aria-pressed='true'] {
+  color: var(--color-carbon);
+  border-bottom-color: var(--color-orange);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
+.orders-list__status {
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: 1rem;
+  color: var(--color-carbon-muted);
+}
+
+.orders-list__rows {
+  list-style: none;
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+.order-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  min-height: 56px;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--color-carbon-soft);
+  background: transparent;
+  text-align: left;
+  text-decoration: none;
+  color: var(--color-carbon);
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.order-row:hover {
+  background: var(--color-carbon-soft);
+}
+
+.order-row:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: -2px;
+}
+
+.order-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.order-row__customer {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-row__product {
+  font-size: 0.875rem;
+  color: var(--color-carbon-muted);
+}
+
+.order-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.order-row__due {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.order-row__pending {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status badge — semantic token as text over a ~12% tint (set inline via
+   color-mix). No colored side borders. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Empty state — teaches, not blames. */
+.empty-state {
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.empty-state__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.empty-state__hint {
+  margin-top: 0.375rem;
+  color: var(--color-carbon-muted);
+  font-size: 0.875rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Order detail — view/edit + status progression.
+--------------------------------------------------------------------------- */
+
+.order-detail {
+  min-height: 100vh;
+  padding-bottom: 6rem; /* clears the form's sticky CTA */
+}
+
+.order-detail__header {
+  max-width: 44rem;
+  margin-inline: auto;
+  padding: 1.5rem 1rem 0;
+}
+
+.order-detail__title {
+  margin-top: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.order-detail__status-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.order-detail__pending {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.back-link {
+  margin-top: 0;
+}
+
+.status-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 44rem;
+  margin-inline: auto;
+  padding: 1rem 1rem 0;
+}
+
+.status-actions__done {
+  font-size: 0.875rem;
+  color: var(--color-carbon-muted);
+}
+
+/* Destructive secondary action — quiet red text, no heavy fill. */
+.danger-btn {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-carbon-soft);
+  border-radius: 0.75rem;
+  background: var(--color-white);
+  color: var(--status-red);
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 150ms ease-out;
+}
+
+.danger-btn:hover {
+  filter: brightness(0.96);
+}
+
+.danger-btn:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
+.danger-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Wider viewports only ever ADD structure. */
 @media (min-width: 1280px) {
   .order-form__content {
+    max-width: 48rem;
+  }
+
+  .orders-list__rows {
+    max-width: 56rem;
+  }
+
+  .order-detail__header,
+  .status-actions {
     max-width: 48rem;
   }
 }

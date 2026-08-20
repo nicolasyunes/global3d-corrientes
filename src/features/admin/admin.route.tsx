@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import OrderForm from '@/features/orders/OrderForm'
-import AdminPage from './AdminPage'
+import OrdersList from '@/features/orders/OrdersList'
+import OrderDetail from '@/features/orders/OrderDetail'
 import { ensureDevOperatorSession } from './dev-session'
 
 // Auth-guard seam: wrap the routes in a <ProtectedRoute /> here once
@@ -16,8 +17,11 @@ export function Component() {
 
   return (
     <Routes>
+      <Route path="orders" element={<OrdersList />} />
       <Route path="orders/new" element={<OrderForm />} />
-      <Route path="*" element={<AdminPage />} />
+      <Route path="orders/:id" element={<OrderDetail />} />
+      {/* The former placeholder landing now forwards to the orders queue. */}
+      <Route path="*" element={<Navigate to="/admin/orders" replace />} />
     </Routes>
   )
 }

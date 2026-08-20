@@ -1,0 +1,21 @@
+import type { OrderStatus } from '@/lib/domain-constants'
+
+// The forward production flow. `cancelled` is a side action, not a step, so it
+// is deliberately excluded — an order never "advances" into cancelled, and a
+// finished order has no next step.
+export const ORDER_STATUS_FLOW: readonly OrderStatus[] = [
+  'new',
+  'in_queue',
+  'printing',
+  'post_processing',
+  'finished',
+]
+
+// The next step in the production flow, or null when the status is terminal
+// (`finished`) or off-flow (`cancelled`). Pure so the unit tests can walk the
+// whole enum without touching a database or component.
+export function nextOrderStatus(status: OrderStatus): OrderStatus | null {
+  const index = ORDER_STATUS_FLOW.indexOf(status)
+  if (index === -1 || index === ORDER_STATUS_FLOW.length - 1) return null
+  return ORDER_STATUS_FLOW[index + 1]
+}

@@ -48,11 +48,11 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: List + detail
 
-- [ ] 3.1 Create `src/features/orders/OrdersList.tsx` — Today/Upcoming tabs, `due_date ASC`, `status != cancelled`; row (name/product/due/status badge/pending); empty state; tap→detail.
-- [ ] 3.2 Create `src/features/orders/OrderDetail.tsx` — view/edit (reuse `OrderForm`) + status progression (advance next enum step, cancel) + pending-balance as source of truth.
-- [ ] 3.3 Mount `/admin/orders` (landing) + `/admin/orders/:id`; delete `AdminPage.tsx`; redirect `/admin` → `/admin/orders`.
-- [ ] 3.4 Unit tests: status progression (next step), badge color mapping, list sort/filter.
-- [ ] 3.5 Integration test (env-gated): seeded operator CRUD orders + `origin_channel` CHECK (reject `email`); anon blocked.
+- [x] 3.1 Create `src/features/orders/OrdersList.tsx` — Today/Upcoming tabs, `due_date ASC`, `status != cancelled`; row (name/product/due/status badge/pending); empty state; tap→detail.
+- [x] 3.2 Create `src/features/orders/OrderDetail.tsx` — view/edit (reuse `OrderForm`) + status progression (advance next enum step, cancel) + pending-balance as source of truth.
+- [x] 3.3 Mount `/admin/orders` (landing) + `/admin/orders/:id`; delete `AdminPage.tsx`; redirect `/admin` → `/admin/orders`.
+- [x] 3.4 Unit tests: status progression (next step), badge color mapping, list sort/filter.
+- [x] 3.5 Integration test (env-gated): seeded operator CRUD orders + `origin_channel` CHECK (reject `email`); anon blocked.
 
 ## Phase 4: Verify + cleanup
 
