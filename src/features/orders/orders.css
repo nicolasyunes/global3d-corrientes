@@ -155,6 +155,19 @@
   color: var(--color-carbon);
 }
 
+.field__hint {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-carbon-muted);
+}
+
+/* Repeatable order-item row (multi-item capture) */
+.item-row {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-carbon-soft);
+}
+
 /* Per-part color spec rows */
 .color-spec__row {
   display: grid;
@@ -191,6 +204,15 @@
   cursor: pointer;
 }
 
+/* Inline variant: sits inside a hint sentence instead of stacking below it. */
+.link-btn--inline {
+  margin-top: 0;
+  min-height: 0;
+  display: inline;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* Submit banners */
 .form-banner {
   margin-top: 1rem;
@@ -211,12 +233,14 @@
   position: sticky;
   bottom: 0;
   padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
-  background: var(--color-white);
-  border-top: 1px solid var(--color-carbon-soft);
+  background: linear-gradient(to bottom, var(--color-white), color-mix(in srgb, var(--color-orange) 4%, var(--color-white)));
+  border-top: 2px solid var(--color-orange);
+  box-shadow: 0 -2px 8px color-mix(in srgb, var(--color-carbon) 6%, transparent);
 }
 
 .sticky-cta__inner {
-  max-width: 44rem;
+  width: 95%;
+  max-width: 100%;
   margin-inline: auto;
 }
 
@@ -266,20 +290,73 @@
   padding-bottom: 6rem; /* clears the sticky CTA */
 }
 
-.tabs {
+/* Toolbar: view switch (Lista/Kanban) plus, in Lista view, the date tabs.
+   This replaces the tabs' own sticky/border rules — the toolbar is now the
+   one sticky bar under the shell header. */
+.orders-list__toolbar {
   position: sticky;
   top: var(--shell-header-h, 0);
   z-index: 1;
   display: flex;
-  gap: 1.5rem;
-  max-width: 72rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  width: 95%;
+  max-width: 100%;
   margin-inline: auto;
-  padding: 0.75rem 1rem 0;
+  padding: 0.75rem 1rem;
   background: var(--color-white);
   border-bottom: 1px solid var(--color-carbon-soft);
 }
 
+/* Segmented Lista/Kanban switch — same visual family as the order form's
+   mode-toggle, sized to sit inline in the toolbar rather than full-width. */
+.view-toggle {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+  background: var(--color-carbon-soft);
+}
+
+.view-toggle__button {
+  min-height: 40px;
+  padding: 0 0.875rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--color-carbon-muted);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.view-toggle__button[aria-pressed='true'] {
+  background: var(--color-white);
+  color: var(--color-carbon);
+}
+
+.view-toggle__button:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
+.tabs {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.tabs--inline .tab {
+  padding-bottom: 0.25rem;
+}
+
 .tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
   min-height: 44px;
   padding: 0.25rem 0.25rem 0.75rem;
   border: 0;
@@ -293,6 +370,22 @@
     border-color 150ms ease-out;
 }
 
+.tab__count {
+  min-width: 1.25rem;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  background: var(--color-carbon-soft);
+  color: var(--color-carbon-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.tab[aria-pressed='true'] .tab__count {
+  background: color-mix(in srgb, var(--color-orange) 16%, var(--color-white));
+  color: var(--color-carbon);
+}
+
 .tab[aria-pressed='true'] {
   color: var(--color-carbon);
   border-bottom-color: var(--color-orange);
@@ -303,17 +396,142 @@
   outline-offset: 2px;
 }
 
+/* Filters row: Entrega desde/hasta, Producto, Cliente — sits below the
+   sticky toolbar, above the table/cards. Wraps to multiple lines on narrow
+   viewports rather than scrolling; each field keeps its label visible. */
+.orders-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  width: 95%;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: 1rem 1rem 0;
+}
+
+.orders-filters__field {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+  margin-top: 0;
+}
+
+.orders-filters__field--search {
+  flex-basis: 14rem;
+}
+
+.orders-filters__clear {
+  margin-top: 0;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
 .orders-list__status {
-  max-width: 72rem;
+  width: 95%;
+  max-width: 100%;
   margin-inline: auto;
   padding: 1rem;
   color: var(--color-carbon-muted);
 }
 
-.orders-list__rows {
-  list-style: none;
-  max-width: 72rem;
+/* Full-width spreadsheet-style table for the date queue (Hoy/Próximos).
+   Soft, calm banding instead of a flat list: alternating tint on the body
+   rows, a quiet header, and a warm-but-desaturated left rail on overdue
+   rows so urgency reads without shouting. Tokens only. */
+.orders-table-wrap {
+  width: 95%;
+  max-width: 100%;
   margin-inline: auto;
+  padding-inline: 1rem;
+  overflow-x: auto;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 40rem;
+}
+
+.orders-table thead th {
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--color-carbon-soft);
+  background: var(--color-surface);
+  color: var(--color-carbon-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.orders-table thead th:first-child {
+  border-top-left-radius: var(--radius-sm);
+}
+
+.orders-table thead th:last-child {
+  border-top-right-radius: var(--radius-sm);
+}
+
+.orders-table__row td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-carbon-soft);
+  background: var(--color-white);
+  vertical-align: middle;
+}
+
+.orders-table__row--alt td {
+  background: color-mix(in srgb, var(--color-surface) 60%, var(--color-white));
+}
+
+.orders-table__row:hover td {
+  background: color-mix(in srgb, var(--color-orange) 6%, var(--color-white));
+}
+
+.orders-table__row--overdue td:first-child {
+  box-shadow: inset 3px 0 0 var(--status-red);
+}
+
+.orders-table__link {
+  color: var(--color-carbon);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.orders-table__link:hover,
+.orders-table__link:focus-visible {
+  text-decoration: underline;
+}
+
+.orders-table__link:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
+.orders-table__muted {
+  color: var(--color-carbon-muted);
+  font-size: 0.875rem;
+}
+
+.orders-table__due {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.orders-table__due--overdue {
+  color: var(--status-red);
+  font-weight: 700;
+}
+
+.orders-table__num {
+  text-align: right;
+}
+
+.orders-table__pending {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .order-row {
@@ -374,6 +592,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Overdue (within the "today" bucket): the due-date text itself carries the
+   urgency, not a new badge or border — activates the semaphore token already
+   reserved for this in domain-constants. */
+.order-row__due--overdue {
+  color: var(--status-red);
+  font-weight: 700;
+}
+
 .order-row__pending {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -393,7 +619,8 @@
 
 /* Empty state — teaches, not blames. */
 .empty-state {
-  max-width: 72rem;
+  width: 95%;
+  max-width: 100%;
   margin-inline: auto;
   padding: 3rem 1rem;
   text-align: center;
@@ -408,6 +635,314 @@
   margin-top: 0.375rem;
   color: var(--color-carbon-muted);
   font-size: 0.875rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Planilla — read-only mirror of the "Pedidos" Google Sheet, the business
+   panorama tab. Cards in a 4-column grid on desktop for quick scanning.
+--------------------------------------------------------------------------- */
+
+.pending-sheet {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  list-style: none;
+  width: 95%;
+  max-width: 100%;
+  margin: 1.5rem auto 0;
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .pending-sheet {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pending-sheet {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .pending-sheet {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+.pending-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  border-top: 2px solid var(--color-orange);
+  transition:
+    box-shadow 150ms ease-out,
+    border-top-color 150ms ease-out;
+}
+
+.pending-card:hover {
+  box-shadow: var(--shadow-md);
+  border-top-color: var(--color-carbon);
+}
+
+.pending-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pending-card__customer {
+  font-weight: 700;
+  font-size: 1rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pending-card__channel {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--color-carbon-soft);
+  color: var(--color-carbon-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pending-card__product {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-carbon-muted);
+}
+
+/* DESCRIPCION: truncate on card view for space */
+.pending-card__details {
+  font-size: 0.8125rem;
+  color: var(--color-carbon-muted);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 0.25rem;
+}
+
+.pending-card__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-carbon-soft);
+}
+
+.pending-card__due {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pending-card__due--overdue {
+  color: var(--status-red);
+}
+
+.pending-card__amounts {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pending-card__total {
+  color: var(--color-carbon-muted);
+}
+
+.pending-card__balance {
+  font-weight: 700;
+  color: var(--color-carbon);
+}
+
+/* ---------------------------------------------------------------------------
+   Orders Kanban — one column per production stage. No horizontal scroll: on
+   a phone the columns stack full-width and the page scrolls normally, each
+   column capping its own card list to a short internal scroll so the whole
+   board's status overview stays reachable in one scroll pass. From ~900px
+   there's room to lay columns out side by side, so they switch to a wrapping
+   grid instead — still no horizontal scroll, just more columns per row.
+--------------------------------------------------------------------------- */
+
+.kanban {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 95%;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: 1rem;
+}
+
+.kanban-column {
+  display: flex;
+  flex-direction: column;
+  max-height: 24rem;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.kanban-column__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  border-top: 3px solid transparent;
+}
+
+.kanban-column__title {
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.kanban-column__count {
+  min-width: 1.5rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 999px;
+  background: var(--color-white);
+  color: var(--color-carbon-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.kanban-column__empty {
+  padding: 0 0.875rem 1rem;
+  color: var(--color-carbon-muted);
+  font-size: 0.8125rem;
+}
+
+.kanban-column__cards {
+  list-style: none;
+  overflow-y: auto;
+  padding: 0 0.625rem 0.625rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.kanban-card {
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.kanban-card__link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 0.875rem;
+  color: var(--color-carbon);
+  text-decoration: none;
+}
+
+.kanban-card__link:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: -2px;
+}
+
+.kanban-card__customer {
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.kanban-card__product {
+  color: var(--color-carbon-muted);
+  font-size: 0.8125rem;
+}
+
+.kanban-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.kanban-card__due {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-carbon-muted);
+}
+
+.kanban-card__due--overdue {
+  color: var(--status-red);
+  font-weight: 700;
+}
+
+.kanban-card__pending {
+  font-weight: 700;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.kanban-card__note {
+  margin-top: 0.25rem;
+  padding-top: 0.375rem;
+  border-top: 1px solid var(--color-carbon-soft);
+  color: var(--color-carbon-muted);
+  font-size: 0.8125rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.kanban-card__advance {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 0.875rem;
+  border: 0;
+  border-top: 1px solid var(--color-carbon-soft);
+  background: transparent;
+  color: var(--color-orange);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.kanban-card__advance:hover {
+  background: var(--color-carbon-soft);
+}
+
+.kanban-card__advance:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: -2px;
+}
+
+.kanban-card__advance:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ---------------------------------------------------------------------------
@@ -463,6 +998,109 @@
   color: var(--color-carbon-muted);
 }
 
+/* ---------------------------------------------------------------------------
+   Production checklist — per-order "what's left / what's already made"
+   tracker, with an optional Casa/Local tag per task. Sits on the detail page
+   above the full edit form, sharing its 44rem measure.
+--------------------------------------------------------------------------- */
+
+.production-checklist {
+  max-width: 44rem;
+  margin-inline: auto;
+  padding: 1rem 1rem 0;
+}
+
+.production-checklist__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.production-checklist__progress {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-carbon-muted);
+}
+
+.task-list {
+  list-style: none;
+  margin-top: 0.75rem;
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 44px;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-carbon-soft);
+}
+
+.task-row__check {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.task-row__check input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--color-orange);
+}
+
+.task-row__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-row--done .task-row__label {
+  color: var(--color-carbon-muted);
+  text-decoration: line-through;
+}
+
+.task-row__location {
+  flex-shrink: 0;
+  background: var(--color-carbon-soft);
+  color: var(--color-carbon-muted);
+}
+
+.task-row__remove {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--status-red);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.task-row__remove:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
+.task-row__remove:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.task-add {
+  margin-top: 1rem;
+}
+
+.task-add__locations {
+  margin-top: 0.5rem;
+}
+
 /* Destructive secondary action — quiet red text, no heavy fill. */
 .danger-btn {
   width: 100%;
@@ -491,18 +1129,362 @@
   cursor: not-allowed;
 }
 
-/* Wider viewports only ever ADD structure. */
+/* Wider viewports only ever ADD structure. Enough width to lay two-plus
+   columns side by side: switch the board from a vertical stack to a
+   wrapping grid — columns keep flowing to the next row instead of
+   scrolling, and each can use more of the viewport's height. */
+@media (min-width: 900px) {
+  .kanban {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    align-items: start;
+  }
+
+  .kanban-column {
+    max-height: calc(100vh - var(--shell-header-h, 0) - 8rem);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Order images — per-order gallery (reference photos, generated mockups,
+   logos to create) with a full-size viewer. Sits on the detail page next to
+   the production checklist, sharing its 44rem measure.
+--------------------------------------------------------------------------- */
+
+.order-images {
+  max-width: 44rem;
+  margin-inline: auto;
+  padding: 1rem 1rem 0;
+}
+
+.order-images__heading {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.order-images__upload {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.order-images__file-input {
+  min-height: 44px;
+}
+
+.order-images__note-input {
+  flex: 1 1 12rem;
+}
+
+.order-images__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+  list-style: none;
+}
+
+.order-images__thumb-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.order-images__thumb {
+  border: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-carbon-soft);
+  cursor: pointer;
+  aspect-ratio: 1;
+  padding: 0;
+}
+
+.order-images__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.order-images__thumb:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
+.order-images__delete {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--status-red);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.order-images__delete:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
+.order-images__viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--color-carbon) 80%, transparent);
+}
+
+.order-images__viewer-content {
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.order-images__viewer-content img {
+  max-width: 100%;
+  max-height: 70vh;
+  border-radius: var(--radius-sm);
+}
+
+.order-images__viewer-note {
+  color: var(--color-white);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.order-images__viewer-controls {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.order-images__viewer-controls button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--color-white);
+  color: var(--color-carbon);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.order-images__viewer-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.order-images__viewer-controls button:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
 @media (min-width: 1280px) {
   .order-form__content {
     max-width: 48rem;
   }
 
-  .orders-list__rows {
-    max-width: 56rem;
+  .order-detail__header,
+  .status-actions,
+  .production-checklist,
+  .order-images {
+    max-width: 48rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Quick order — spreadsheet-speed capture. QuickOrderRow (desktop, inline,
+   ≥900px) and QuickOrderSheet (mobile, a bottom sheet) share one save path
+   (useQuickOrderDraft) but never render at the same time: the sticky CTA at
+   the bottom of the page is the same visual swap (a Link below 900px becomes
+   a button that opens the sheet).
+--------------------------------------------------------------------------- */
+
+.quick-order-row {
+  display: none; /* shown at ≥900px below — QuickOrderSheet covers <900px */
+}
+
+.quick-order-row__fields {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 95%;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: 0.75rem 1rem 0;
+}
+
+.quick-order-row__input {
+  flex: 2 1 0;
+  min-width: 0;
+}
+
+.quick-order-row__input--date {
+  flex: 1.3 1 0;
+}
+
+.quick-order-row__input--money {
+  flex: 1 1 0;
+}
+
+.quick-order-row__submit {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--color-orange);
+  color: var(--color-carbon);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: filter 150ms ease-out;
+}
+
+.quick-order-row__submit:hover {
+  filter: brightness(0.96);
+}
+
+.quick-order-row__submit:focus-visible {
+  outline: 2px solid var(--color-carbon);
+  outline-offset: 2px;
+}
+
+.quick-order-row__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.quick-order-row__error {
+  width: 95%;
+  max-width: 100%;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+/* Undo toast for a just-created quick order — same banner language as
+   form-banner, positioned inline above the filters so it never covers the
+   sticky CTA or jumps the page. */
+.undo-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 95%;
+  max-width: 100%;
+  margin: 0.5rem auto 0;
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-teal) 10%, var(--color-white));
+  color: var(--color-carbon);
+  font-size: 0.875rem;
+}
+
+.undo-toast__button {
+  margin-top: 0;
+  color: var(--color-teal);
+  font-weight: 700;
+}
+
+/* Sticky CTA swap: a plain Link to the full form at ≥900px (QuickOrderRow
+   already covers fast capture there), a button that opens QuickOrderSheet
+   below 900px. Only one is ever in the accessibility tree at a time. */
+.sticky-cta__trigger {
+  display: flex;
+}
+
+.sticky-cta__link {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .quick-order-row {
+    display: block;
   }
 
-  .order-detail__header,
-  .status-actions {
-    max-width: 48rem;
+  .sticky-cta__trigger {
+    display: none;
+  }
+
+  .sticky-cta__link {
+    display: flex;
+  }
+}
+
+/* Mobile quick-capture sheet — a fixed panel sliding up from the bottom,
+   dismissed via the close button, the backdrop, or Escape. */
+.quick-order-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+}
+
+.quick-order-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(29, 29, 27, 0.4);
+}
+
+.quick-order-sheet__panel {
+  position: relative;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-white);
+  box-shadow: var(--shadow-md);
+}
+
+.quick-order-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.quick-order-sheet__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.quick-order-sheet__close {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--color-carbon-soft);
+  color: var(--color-carbon);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.quick-order-sheet__close:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
+.quick-order-sheet__full-form {
+  display: block;
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-carbon-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (min-width: 900px) {
+  .quick-order-sheet {
+    display: none;
   }
 }

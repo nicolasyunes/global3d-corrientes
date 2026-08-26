@@ -8,10 +8,13 @@ import { ProtectedRoute } from './ProtectedRoute'
 // The supabase client is mocked so the tests exercise the provider + guard
 // without credentials or a network connection.
 
-const { getSessionMock, onAuthStateChangeMock } = vi.hoisted(() => ({
-  getSessionMock: vi.fn(),
-  onAuthStateChangeMock: vi.fn(),
-}))
+const { getSessionMock, onAuthStateChangeMock, maybeSingleMock } = vi.hoisted(
+  () => ({
+    getSessionMock: vi.fn(),
+    onAuthStateChangeMock: vi.fn(),
+    maybeSingleMock: vi.fn(),
+  }),
+)
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
@@ -20,6 +23,9 @@ vi.mock('@/lib/supabase', () => ({
       onAuthStateChange: onAuthStateChangeMock,
       signOut: vi.fn(),
     },
+    from: () => ({
+      select: () => ({ eq: () => ({ maybeSingle: maybeSingleMock }) }),
+    }),
   },
 }))
 
@@ -70,6 +76,7 @@ beforeEach(() => {
     data: { subscription: { unsubscribe: vi.fn() } },
   })
   getSessionMock.mockResolvedValue({ data: { session: null } })
+  maybeSingleMock.mockResolvedValue({ data: { role: 'operator' } })
 })
 
 describe('ProtectedRoute', () => {
@@ -99,7 +106,7 @@ describe('ProtectedRoute', () => {
     )
     renderAtOrders()
 
-    expect(screen.getByText('Loading…')).toBeInTheDocument()
+    expect(screen.getByText('Cargando…')).toBeInTheDocument()
     expect(screen.queryByText('Login page')).not.toBeInTheDocument()
 
     // Resolve to keep the suite clean; the redirect must only happen now.

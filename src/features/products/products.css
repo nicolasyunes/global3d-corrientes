@@ -1,0 +1,91 @@
+/* Products admin — reuses orders.css's field/row/button vocabulary; only the
+   image thumbnail/preview and stock/inactive indicators are new here. */
+
+/* Toolbar: search + active-only chip + stock-health summary. Wraps to its
+   own line on narrow screens rather than compressing the search field. */
+.products-toolbar {
+  flex-wrap: wrap;
+}
+
+.products-toolbar__search {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.products-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-carbon-muted);
+}
+
+.products-summary__item--low {
+  color: var(--status-amber);
+  font-weight: 600;
+}
+
+.products-summary__item--out {
+  color: var(--status-red);
+  font-weight: 600;
+}
+
+.product-row__thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  background: var(--color-carbon-soft);
+  overflow: hidden;
+  font-size: 0.625rem;
+  color: var(--color-carbon-muted);
+  text-align: center;
+}
+
+.product-row__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-row__inactive {
+  margin-left: 0.5rem;
+  background: var(--color-carbon-soft);
+  color: var(--color-carbon-muted);
+}
+
+.product-row__stock--out {
+  background: color-mix(in srgb, var(--status-red) 14%, var(--color-white));
+  color: var(--status-red);
+}
+
+.product-row__stock--low {
+  background: color-mix(in srgb, var(--status-amber) 14%, var(--color-white));
+  color: var(--status-amber);
+}
+
+.product-form__image-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.product-form__image-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 0.5rem;
+  object-fit: cover;
+  background: var(--color-carbon-soft);
+}
+
+.product-form__active {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}

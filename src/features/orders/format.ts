@@ -1,19 +1,18 @@
-// Display formatting for money and due dates. Kept locale-agnostic (a plain
-// `$` + fixed decimals) — ARS locale formatting is deferred to the
-// finance-registry change, which owns reconciliation and currency display.
+// Display formatting for money and due dates. Argentine (es-AR) locale: '.'
+// thousands separator, ',' decimals, ARS peso sign.
 
 export function formatMoney(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—'
-  return `$${value.toFixed(2)}`
+  return `$${value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-// 'YYYY-MM-DD' → 'Wed, Aug 19'. `today` (also 'YYYY-MM-DD') shortens the
-// current day to a scannable "Today" in the queue.
+// 'YYYY-MM-DD' → 'mié, 19 ago'. `today` (also 'YYYY-MM-DD') shortens the
+// current day to a scannable "Hoy" in the queue.
 export function formatDueDate(iso: string, today?: string): string {
-  if (today !== undefined && iso === today) return 'Today'
+  if (today !== undefined && iso === today) return 'Hoy'
   const date = new Date(`${iso}T00:00:00`)
   if (Number.isNaN(date.getTime())) return iso
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString('es-AR', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',

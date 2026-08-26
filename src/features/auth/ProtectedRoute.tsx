@@ -17,7 +17,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <p role="status" className="auth-status">
-        Loading…
+        Cargando…
       </p>
     )
   }

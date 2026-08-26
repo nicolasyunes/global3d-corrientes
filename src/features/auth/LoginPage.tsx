@@ -10,6 +10,22 @@ import './auth.css'
 // redirect) to honor deep links: the magic link bounces back to the page the
 // user originally wanted. An existing session short-circuits straight there.
 
+// The one unauthenticated, brand-first moment in the app — the carbon/orange
+// hero panel with the print-layer texture lives only here. `aria-hidden`:
+// it's decorative brand presence, not content the form's flow depends on.
+function LoginHero() {
+  return (
+    <div className="login__hero" aria-hidden="true">
+      <div className="login__hero-content">
+        <p className="login__wordmark">
+          Global<span className="login__wordmark-accent">3D</span>
+        </p>
+        <p className="login__tagline">Sistema de gestión del taller</p>
+      </div>
+    </div>
+  )
+}
+
 export default function LoginPage() {
   const { session, loading } = useAuth()
   const location = useLocation()
@@ -51,7 +67,7 @@ export default function LoginPage() {
     event.preventDefault()
     const target = email.trim()
     if (!target) {
-      setError('Enter your email address to receive a sign-in link.')
+      setError('Ingresá tu email para recibir el enlace de acceso.')
       return
     }
     void requestLink(target)
@@ -60,39 +76,43 @@ export default function LoginPage() {
   if (sentEmail) {
     return (
       <main className="login">
-        <div className="login__inner">
-          <h1 className="login__title">Check your email</h1>
-          <p className="login__note">
-            We sent a sign-in link to <strong>{sentEmail}</strong>. Open it on
-            this device to sign in — no password needed.
-          </p>
-
-          {error && (
-            <p className="login__status login__status--error" role="alert">
-              {error}
+        <LoginHero />
+        <div className="login__panel">
+          <div className="login__inner">
+            <h1 className="login__title">Revisá tu email</h1>
+            <p className="login__note">
+              Te enviamos un enlace de acceso a <strong>{sentEmail}</strong>.
+              Abrilo en este dispositivo para ingresar — no necesitás
+              contraseña.
             </p>
-          )}
 
-          <button
-            type="button"
-            className="login__submit"
-            disabled={sending}
-            onClick={() => void requestLink(sentEmail)}
-          >
-            {sending ? 'Sending…' : 'Resend link'}
-          </button>
+            {error && (
+              <p className="login__status login__status--error" role="alert">
+                {error}
+              </p>
+            )}
 
-          <button
-            type="button"
-            className="login__link"
-            disabled={sending}
-            onClick={() => {
-              setSentEmail(null)
-              setError(null)
-            }}
-          >
-            Use a different email
-          </button>
+            <button
+              type="button"
+              className="login__submit"
+              disabled={sending}
+              onClick={() => void requestLink(sentEmail)}
+            >
+              {sending ? 'Enviando…' : 'Reenviar enlace'}
+            </button>
+
+            <button
+              type="button"
+              className="login__link"
+              disabled={sending}
+              onClick={() => {
+                setSentEmail(null)
+                setError(null)
+              }}
+            >
+              Usar otro email
+            </button>
+          </div>
         </div>
       </main>
     )
@@ -100,39 +120,42 @@ export default function LoginPage() {
 
   return (
     <main className="login">
-      <div className="login__inner">
-        <h1 className="login__title">Sign in</h1>
-        <p className="login__subtitle">
-          We&apos;ll email you a sign-in link. No password needed.
-        </p>
+      <LoginHero />
+      <div className="login__panel">
+        <div className="login__inner">
+          <h1 className="login__title">Iniciar sesión</h1>
+          <p className="login__subtitle">
+            Te enviamos un enlace de acceso por email. No necesitás contraseña.
+          </p>
 
-        <form className="login__form" onSubmit={handleSubmit} noValidate>
-          <label className="login__label" htmlFor="login-email">
-            Email
-          </label>
-          <input
-            id="login-email"
-            className="login__input"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            autoCapitalize="none"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
+          <form className="login__form" onSubmit={handleSubmit} noValidate>
+            <label className="login__label" htmlFor="login-email">
+              Email
+            </label>
+            <input
+              id="login-email"
+              className="login__input"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              placeholder="tu@email.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
 
-          {error && (
-            <p className="login__status login__status--error" role="alert">
-              {error}
-            </p>
-          )}
+            {error && (
+              <p className="login__status login__status--error" role="alert">
+                {error}
+              </p>
+            )}
 
-          <button type="submit" className="login__submit" disabled={sending}>
-            {sending ? 'Sending…' : 'Send sign-in link'}
-          </button>
-        </form>
+            <button type="submit" className="login__submit" disabled={sending}>
+              {sending ? 'Enviando…' : 'Enviar enlace'}
+            </button>
+          </form>
+        </div>
       </div>
     </main>
   )

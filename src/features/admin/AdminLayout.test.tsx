@@ -44,15 +44,34 @@ describe('AdminLayout', () => {
 
     expect(screen.getByText('Global')).toBeInTheDocument()
     expect(screen.getByText('3D')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Cerrar sesión' }),
+    ).toBeInTheDocument()
     expect(screen.getByText('Orders page')).toBeInTheDocument()
   })
 
   it('triggers sign out when the control is activated', () => {
     renderAdminLayout()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
 
     expect(useAuthMock().signOut).toHaveBeenCalledTimes(1)
+  })
+
+  it('hides the Productos nav link for non-admin operators', () => {
+    renderAdminLayout()
+    expect(screen.queryByText('Productos')).not.toBeInTheDocument()
+  })
+
+  it('shows the Productos nav link for admins', () => {
+    useAuthMock.mockReturnValue({
+      session: null,
+      user: null,
+      loading: false,
+      isAdmin: true,
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+    renderAdminLayout()
+    expect(screen.getByText('Productos')).toBeInTheDocument()
   })
 })

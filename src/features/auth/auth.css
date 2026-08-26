@@ -1,7 +1,9 @@
 /* ---------------------------------------------------------------------------
-   Auth surfaces — login + admin shell. Operate mode, mobile-first: white
-   ground, hairline separators only, ≥44px targets, no cards, tokens only.
-   Loaded inside the lazy /admin chunk (never the public bundle).
+   Auth surfaces — login + admin shell. The admin shell stays plain Operate:
+   white ground, hairline separators, ≥44px targets. Login (the one
+   unauthenticated, brand-first moment) earns a committed carbon/orange hero
+   panel; the working screens behind it stay undecorated. Tokens only, no
+   raw hex. Loaded inside the lazy /admin chunk (never the public bundle).
 --------------------------------------------------------------------------- */
 
 /* Admin shell — single sticky wordmark header + sign-out. The header height
@@ -41,6 +43,36 @@
   color: var(--color-orange);
 }
 
+.admin-shell__nav {
+  display: flex;
+  gap: 0.25rem;
+  margin-inline-end: auto;
+}
+
+.admin-shell__nav-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--color-carbon-muted);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    color 150ms ease-out,
+    background-color 150ms ease-out;
+}
+
+.admin-shell__nav-link:hover {
+  color: var(--color-carbon);
+  background: var(--color-carbon-soft);
+}
+
+.admin-shell__nav-link:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
 .admin-shell__signout {
   min-height: 44px;
   padding: 0 0.75rem;
@@ -65,13 +97,93 @@
   outline-offset: 2px;
 }
 
-/* Login — a single centered column, no card, plenty of white around it. */
+/* Login — a committed two-region entry: a carbon hero panel carrying the
+   brand and the product's own mechanism (print layer lines, extruder glow),
+   and a white working panel holding the form. Stacked on mobile (hero as a
+   short band above a rounded "sheet"), side-by-side on wide screens. */
 .login {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   min-height: 100vh;
-  padding: 2rem 1rem calc(2rem + env(safe-area-inset-bottom, 0px));
+}
+
+.login__hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 34vh;
+  padding: 2rem 1.5rem;
+  background: var(--color-carbon);
+  border-radius: 0 0 1.5rem 1.5rem;
+}
+
+/* Print-layer lines: the literal mechanism (FDM printing lays material down
+   line by line) rendered as the panel's own texture, not a stock gradient. */
+.login__hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 7px,
+    color-mix(in srgb, var(--color-orange) 20%, transparent) 7px,
+    color-mix(in srgb, var(--color-orange) 20%, transparent) 9px
+  );
+  mask-image: linear-gradient(180deg, transparent, black 40%, black 100%);
+}
+
+/* Extruder-heat glow: a warm radial field anchored where the nozzle would
+   sit, motivated by the product rather than decorative for its own sake. */
+.login__hero::after {
+  content: '';
+  position: absolute;
+  width: 22rem;
+  height: 22rem;
+  right: -8rem;
+  bottom: -10rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-orange) 55%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+.login__hero-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 24rem;
+  margin-inline: auto;
+}
+
+.login__wordmark {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--color-white);
+}
+
+.login__wordmark-accent {
+  color: var(--color-orange);
+}
+
+.login__tagline {
+  margin-top: 0.5rem;
+  max-width: 20rem;
+  color: color-mix(in srgb, var(--color-white) 75%, transparent);
+  font-size: 1rem;
+}
+
+.login__panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2.5rem 1.5rem calc(2rem + env(safe-area-inset-bottom, 0px));
 }
 
 .login__inner {
@@ -81,7 +193,7 @@
 }
 
 .login__title {
-  font-size: 1.5rem;
+  font-size: 1.875rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -201,4 +313,31 @@
   min-height: 100vh;
   color: var(--color-carbon-muted);
   font-size: 0.875rem;
+}
+
+/* Wider viewports only ever ADD structure: the hero and panel sit side by
+   side instead of stacking, each taking the full viewport height. */
+@media (min-width: 1024px) {
+  .login {
+    flex-direction: row;
+  }
+
+  .login__hero {
+    flex: 1;
+    min-height: 100vh;
+    border-radius: 0;
+  }
+
+  .login__panel {
+    flex: 1;
+    padding-inline: 3rem;
+  }
+
+  .login__wordmark {
+    font-size: 3.5rem;
+  }
+
+  .login__tagline {
+    font-size: 1.125rem;
+  }
 }

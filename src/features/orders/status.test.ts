@@ -6,7 +6,6 @@ describe('nextOrderStatus', () => {
   it('walks the production flow in enum order', () => {
     const flow: OrderStatus[] = [
       'new',
-      'in_queue',
       'printing',
       'post_processing',
       'finished',
@@ -24,10 +23,13 @@ describe('nextOrderStatus', () => {
   it('ORDER_STATUS_FLOW matches the forward production sequence', () => {
     expect(ORDER_STATUS_FLOW).toEqual([
       'new',
-      'in_queue',
       'printing',
       'post_processing',
       'finished',
     ])
+  })
+
+  it('treats the retired in_queue status as terminal (never advanced into or out of)', () => {
+    expect(nextOrderStatus('in_queue')).toBeNull()
   })
 })

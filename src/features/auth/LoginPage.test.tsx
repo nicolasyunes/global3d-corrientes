@@ -76,7 +76,7 @@ describe('LoginPage', () => {
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: EMAIL },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Send sign-in link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }))
     await act(async () => {})
 
     expect(signInWithOtpMock).toHaveBeenCalledTimes(1)
@@ -86,14 +86,14 @@ describe('LoginPage', () => {
     })
 
     expect(
-      screen.getByRole('heading', { name: 'Check your email' }),
+      screen.getByRole('heading', { name: 'Revisá tu email' }),
     ).toBeInTheDocument()
     expect(screen.getByText(EMAIL)).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: 'Resend link' }),
+      screen.getByRole('button', { name: 'Reenviar enlace' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: 'Use a different email' }),
+      screen.getByRole('button', { name: 'Usar otro email' }),
     ).toBeInTheDocument()
   })
 
@@ -106,7 +106,7 @@ describe('LoginPage', () => {
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: EMAIL },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Send sign-in link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }))
     await act(async () => {})
 
     expect(signInWithOtpMock).toHaveBeenCalledWith({
@@ -123,10 +123,10 @@ describe('LoginPage', () => {
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: EMAIL },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Send sign-in link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }))
     await act(async () => {})
 
-    fireEvent.click(screen.getByRole('button', { name: 'Resend link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reenviar enlace' }))
     await act(async () => {})
 
     expect(signInWithOtpMock).toHaveBeenCalledTimes(2)
@@ -142,19 +142,17 @@ describe('LoginPage', () => {
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: EMAIL },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Send sign-in link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }))
     await act(async () => {})
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Use a different email' }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Usar otro email' }))
 
     const input = screen.getByLabelText('Email') as HTMLInputElement
     expect(input.value).toBe(EMAIL)
 
     const nextEmail = 'operator@global3d.local'
     fireEvent.change(input, { target: { value: nextEmail } })
-    fireEvent.click(screen.getByRole('button', { name: 'Send sign-in link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }))
     await act(async () => {})
 
     expect(signInWithOtpMock).toHaveBeenLastCalledWith({
@@ -173,13 +171,13 @@ describe('LoginPage', () => {
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: EMAIL },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Send sign-in link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }))
     await act(async () => {})
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Unable to validate email address',
     )
-    expect(screen.queryByText('Check your email')).not.toBeInTheDocument()
+    expect(screen.queryByText('Revisá tu email')).not.toBeInTheDocument()
   })
 
   it('redirects to the admin area when a session already exists', async () => {
@@ -194,7 +192,7 @@ describe('LoginPage', () => {
     useAuthMock.mockReturnValue({ session: null, loading: true })
     renderLogin()
 
-    expect(screen.queryByText('Sign in')).not.toBeInTheDocument()
+    expect(screen.queryByText('Iniciar sesión')).not.toBeInTheDocument()
     expect(screen.queryByText('Orders landing')).not.toBeInTheDocument()
   })
 })

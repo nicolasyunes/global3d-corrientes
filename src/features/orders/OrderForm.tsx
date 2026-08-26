@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import {
   ORIGIN_CHANNEL,
   ORIGIN_CHANNEL_LABELS,
@@ -12,6 +12,8 @@ import {
 } from '@/lib/domain-constants'
 import {
   createOrder,
+  listOrderItems,
+  replaceOrderItems,
   updateCustomer,
   updateOrder,
   upsertCustomer,
@@ -20,16 +22,21 @@ import {
 } from './orders.api'
 import {
   buildColorSpec,
+  buildOrderItems,
   colorPartsFromSpec,
   draftFromOrder,
   emptyDraft,
+  emptyItemDraft,
+  itemsSubtotal,
   parseMoney,
   resolvedPendingBalance,
   validateOrder,
   type ColorPart,
   type FieldErrors,
   type OrderDraft,
+  type OrderItemDraft,
 } from './validation'
+import { formatMoney } from './format'
 import './orders.css'
 
 type Mode = 'quick' | 'full'
@@ -97,6 +104,57 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [savedName, setSavedName] = useState<string | null>(null)
+  const [itemDrafts, setItemDrafts] = useState<OrderItemDraft[]>([])
+
+  // Prefill items for the edit flow — a new order has none to load. Runs once
+  // per order id; the form otherwise owns items state locally.
+  useEffect(() => {
+    if (!editing || !initialOrder) return
+    let cancelled = false
+    listOrderItems(initialOrder.id)
+      .then((rows) => {
+        if (cancelled) return
+        setItemDrafts(
+          rows.map((row) => ({
+            productType: row.product_type,
+            description: row.description,
+            personalization: row.personalization ?? '',
+            quantity: String(row.quantity),
+            unitPrice: row.unit_price === null ? '' : String(row.unit_price),
+          })),
+        )
+      })
+      .catch(() => {
+        // Non-fatal: the order's own fields still load and save correctly
+        // without items; leave the section empty rather than blocking edit.
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing, initialOrder?.id])
+
+  function setItemField<K extends keyof OrderItemDraft>(
+    index: number,
+    field: K,
+    value: OrderItemDraft[K],
+  ) {
+    setItemDrafts((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
+    )
+  }
+
+  function addItem() {
+    setItemDrafts((prev) => [...prev, emptyItemDraft()])
+  }
+
+  function removeItem(index: number) {
+    setItemDrafts((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  // Suggested total from priced items — offered, never auto-applied, so it
+  // never silently overwrites a total the operator typed by hand.
+  const suggestedTotal = itemsSubtotal(buildOrderItems(itemDrafts))
 
   function setField<K extends keyof OrderDraft>(
     field: K,
@@ -140,6 +198,7 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
     setSavedName(null)
 
     const colorSpec = buildColorSpec(colorParts)
+    const items = buildOrderItems(itemDrafts)
 
     try {
       if (editing && initialOrder) {
@@ -158,11 +217,13 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
           pending_balance: resolvedPendingBalance(draft),
           payment_method: (draft.paymentMethod || null) as PaymentMethod | null,
           origin_channel: (draft.originChannel || null) as OriginChannel | null,
+          reference_link: draft.referenceLink.trim() || null,
           color_spec: colorSpec,
           personalization: draft.personalization.trim() || null,
           measurements: draft.measurements.trim() || null,
           observations: draft.observations.trim() || null,
         })
+        await replaceOrderItems(initialOrder.id, items)
 
         onSaved?.(updated)
       } else {
@@ -180,23 +241,26 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
           pending_balance: resolvedPendingBalance(draft),
           payment_method: (draft.paymentMethod || null) as PaymentMethod | null,
           origin_channel: (draft.originChannel || null) as OriginChannel | null,
+          reference_link: draft.referenceLink.trim() || null,
           color_spec: colorSpec,
           personalization: draft.personalization.trim() || null,
           measurements: draft.measurements.trim() || null,
           observations: draft.observations.trim() || null,
           status: 'new',
         })
+        await replaceOrderItems(created.id, items)
 
         onSaved?.(created)
         setSavedName(customer.name)
         // Reset for the next capture — quick order is a repeat flow.
         setDraft(emptyDraft())
         setColorParts([{ key: '', value: '' }])
+        setItemDrafts([])
         setMode('quick')
       }
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : 'Could not save the order.',
+        err instanceof Error ? err.message : 'No se pudo guardar el pedido.',
       )
     } finally {
       setSubmitting(false)
@@ -209,24 +273,24 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
         <div className="order-form__content">
           <header className="order-form__header">
             <h1 className="order-form__title">
-              {editing ? 'Edit order' : 'New order'}
+              {editing ? 'Editar pedido' : 'Nuevo pedido'}
             </h1>
             <p className="order-form__subtitle">
               {editing
-                ? 'Refine the details, then advance the status.'
-                : 'Capture a job from an inquiry — details can wait.'}
+                ? 'Ajustá los detalles y avanzá el estado.'
+                : 'Cargá un trabajo desde una consulta — los detalles pueden esperar.'}
             </p>
           </header>
 
           {!editing && (
-            <div className="mode-toggle" aria-label="Form mode">
+            <div className="mode-toggle" aria-label="Modo del formulario">
               <button
                 type="button"
                 className="mode-toggle__button"
                 aria-pressed={mode === 'quick'}
                 onClick={() => setMode('quick')}
               >
-                Quick order
+                Rápido
               </button>
               <button
                 type="button"
@@ -234,17 +298,17 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
                 aria-pressed={mode === 'full'}
                 onClick={() => setMode('full')}
               >
-                Full form
+                Formulario completo
               </button>
             </div>
           )}
 
           <section className="form-section">
-            <h2 className="form-section__heading">Customer</h2>
+            <h2 className="form-section__heading">Cliente</h2>
 
             <div className="field">
               <label className="field__label" htmlFor="customer-name">
-                Name
+                Nombre
               </label>
               <input
                 id="customer-name"
@@ -262,7 +326,7 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
 
             <div className="field">
               <label className="field__label" htmlFor="customer-phone">
-                Phone / WhatsApp
+                Teléfono / WhatsApp
               </label>
               <input
                 id="customer-phone"
@@ -277,10 +341,10 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
           </section>
 
           <section className="form-section">
-            <h2 className="form-section__heading">Order</h2>
+            <h2 className="form-section__heading">Pedido</h2>
 
             <ChipGroup
-              label="Product type"
+              label="Tipo de producto"
               value={draft.productType}
               options={PRODUCT_TYPE}
               labels={PRODUCT_TYPE_LABELS}
@@ -290,7 +354,7 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
 
             <div className="field">
               <label className="field__label" htmlFor="due-date">
-                Due date
+                Fecha de entrega
               </label>
               <input
                 id="due-date"
@@ -307,7 +371,7 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
 
             <div className="field">
               <label className="field__label" htmlFor="total-amount">
-                Total amount
+                Monto total
               </label>
               <input
                 id="total-amount"
@@ -322,16 +386,117 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
               {errors.totalAmount && (
                 <p className="field__error">{errors.totalAmount}</p>
               )}
+              {suggestedTotal !== null && (
+                <p className="field__hint">
+                  Suma de los ítems: {formatMoney(suggestedTotal)}.{' '}
+                  <button
+                    type="button"
+                    className="link-btn link-btn--inline"
+                    onClick={() =>
+                      setField('totalAmount', String(suggestedTotal))
+                    }
+                  >
+                    Usar este monto
+                  </button>
+                </p>
+              )}
             </div>
+          </section>
+
+          <section className="form-section">
+            <h2 className="form-section__heading">Ítems</h2>
+            <p className="field__hint">
+              Opcional — para pedidos por lote o personalizados con varias
+              piezas distintas. Dejalo vacío para un pedido de un solo producto.
+            </p>
+
+            {itemDrafts.map((item, index) => (
+              <fieldset className="item-row" key={index}>
+                <legend className="field__label">Ítem {index + 1}</legend>
+
+                <ChipGroup
+                  label="Tipo de producto"
+                  value={item.productType}
+                  options={PRODUCT_TYPE}
+                  labels={PRODUCT_TYPE_LABELS}
+                  onSelect={(value) =>
+                    setItemField(index, 'productType', value)
+                  }
+                />
+
+                <div className="field">
+                  <label className="field__label">Descripción</label>
+                  <textarea
+                    className="field__input field__input--textarea"
+                    placeholder="Descripción completa (ej: texto de la placa, categoría)"
+                    value={item.description}
+                    onChange={(e) =>
+                      setItemField(index, 'description', e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field__label">Personalización</label>
+                  <input
+                    className="field__input"
+                    type="text"
+                    value={item.personalization}
+                    onChange={(e) =>
+                      setItemField(index, 'personalization', e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field__label">Cantidad</label>
+                  <input
+                    className="field__input"
+                    type="text"
+                    inputMode="numeric"
+                    value={item.quantity}
+                    onChange={(e) =>
+                      setItemField(index, 'quantity', e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field__label">Precio unitario</label>
+                  <input
+                    className="field__input"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={item.unitPrice}
+                    onChange={(e) =>
+                      setItemField(index, 'unitPrice', e.target.value)
+                    }
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  className="color-spec__remove"
+                  onClick={() => removeItem(index)}
+                >
+                  Quitar ítem
+                </button>
+              </fieldset>
+            ))}
+
+            <button type="button" className="link-btn" onClick={addItem}>
+              + Agregar ítem
+            </button>
           </section>
 
           {mode === 'full' && (
             <section className="form-section">
-              <h2 className="form-section__heading">Details</h2>
+              <h2 className="form-section__heading">Detalles</h2>
 
               <div className="field">
                 <label className="field__label" htmlFor="deposit">
-                  Deposit (seña)
+                  Seña
                 </label>
                 <input
                   id="deposit"
@@ -350,14 +515,14 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
 
               <div className="field">
                 <label className="field__label" htmlFor="pending-balance">
-                  Pending balance
+                  Saldo pendiente
                 </label>
                 <input
                   id="pending-balance"
                   className="field__input"
                   type="text"
                   inputMode="decimal"
-                  placeholder="Auto (total − deposit)"
+                  placeholder="Automático (total − seña)"
                   value={draft.pendingBalance}
                   onChange={(e) => setField('pendingBalance', e.target.value)}
                   aria-invalid={Boolean(errors.pendingBalance)}
@@ -368,7 +533,7 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
               </div>
 
               <ChipGroup
-                label="Payment method"
+                label="Método de pago"
                 value={draft.paymentMethod}
                 options={PAYMENT_METHOD}
                 labels={PAYMENT_METHOD_LABELS}
@@ -377,7 +542,7 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
               />
 
               <ChipGroup
-                label="Origin channel"
+                label="Canal de origen"
                 value={draft.originChannel}
                 options={ORIGIN_CHANNEL}
                 labels={ORIGIN_CHANNEL_LABELS}
@@ -385,16 +550,34 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
                 error={errors.originChannel}
               />
 
+              <div className="field">
+                <label className="field__label" htmlFor="reference-link">
+                  Link de referencia
+                </label>
+                <input
+                  id="reference-link"
+                  className="field__input"
+                  type="url"
+                  placeholder="https://makerworld.com/..."
+                  value={draft.referenceLink}
+                  onChange={(e) => setField('referenceLink', e.target.value)}
+                  aria-invalid={Boolean(errors.referenceLink)}
+                />
+                {errors.referenceLink && (
+                  <p className="field__error">{errors.referenceLink}</p>
+                )}
+              </div>
+
               <fieldset className="field fieldset">
-                <legend className="field__label">Color spec (per part)</legend>
+                <legend className="field__label">Colores (por parte)</legend>
                 <div className="color-spec">
                   {colorParts.map((part, index) => (
                     <div className="color-spec__row" key={index}>
                       <input
                         className="field__input"
                         type="text"
-                        placeholder="Part (e.g. lid)"
-                        aria-label={`Part ${index + 1} name`}
+                        placeholder="Parte (ej: tapa)"
+                        aria-label={`Nombre de la parte ${index + 1}`}
                         value={part.key}
                         onChange={(e) =>
                           setColorPart(index, 'key', e.target.value)
@@ -403,8 +586,8 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
                       <input
                         className="field__input"
                         type="text"
-                        placeholder="Color (e.g. black)"
-                        aria-label={`Part ${index + 1} color`}
+                        placeholder="Color (ej: negro)"
+                        aria-label={`Color de la parte ${index + 1}`}
                         value={part.value}
                         onChange={(e) =>
                           setColorPart(index, 'value', e.target.value)
@@ -413,10 +596,10 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
                       <button
                         type="button"
                         className="color-spec__remove"
-                        aria-label={`Remove part ${index + 1}`}
+                        aria-label={`Quitar parte ${index + 1}`}
                         onClick={() => removeColorPart(index)}
                       >
-                        Remove
+                        Quitar
                       </button>
                     </div>
                   ))}
@@ -426,13 +609,13 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
                   className="link-btn"
                   onClick={addColorPart}
                 >
-                  + Add part
+                  + Agregar parte
                 </button>
               </fieldset>
 
               <div className="field">
                 <label className="field__label" htmlFor="personalization">
-                  Personalization
+                  Personalización
                 </label>
                 <input
                   id="personalization"
@@ -445,7 +628,7 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
 
               <div className="field">
                 <label className="field__label" htmlFor="measurements">
-                  Measurements
+                  Medidas
                 </label>
                 <input
                   id="measurements"
@@ -458,7 +641,7 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
 
               <div className="field">
                 <label className="field__label" htmlFor="observations">
-                  Observations
+                  Observaciones
                 </label>
                 <textarea
                   id="observations"
@@ -477,7 +660,7 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
           )}
           {savedName && (
             <p className="form-banner form-banner--success" role="status">
-              Order saved for {savedName}. Capture the next one.
+              Pedido guardado para {savedName}. Cargá el siguiente.
             </p>
           )}
         </div>
@@ -485,7 +668,11 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
         <div className="sticky-cta">
           <div className="sticky-cta__inner">
             <button type="submit" className="primary-btn" disabled={submitting}>
-              {submitting ? 'Saving…' : editing ? 'Save changes' : 'Save order'}
+              {submitting
+                ? 'Guardando…'
+                : editing
+                  ? 'Guardar cambios'
+                  : 'Guardar pedido'}
             </button>
           </div>
         </div>

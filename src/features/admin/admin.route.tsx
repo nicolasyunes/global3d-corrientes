@@ -1,10 +1,15 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { AdminOnlyRoute } from '@/features/auth/AdminOnlyRoute'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import LoginPage from '@/features/auth/LoginPage'
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import OrderForm from '@/features/orders/OrderForm'
 import OrdersList from '@/features/orders/OrdersList'
 import OrderDetail from '@/features/orders/OrderDetail'
+import SalesForm from '@/features/sales/SalesForm'
+import SalesList from '@/features/sales/SalesList'
+import ProductForm from '@/features/products/ProductForm'
+import ProductsList from '@/features/products/ProductsList'
 import AdminLayout from './AdminLayout'
 
 // Admin boundary: everything here lives in the lazy /admin chunk, so auth
@@ -27,6 +32,32 @@ export function Component() {
           <Route path="orders" element={<OrdersList />} />
           <Route path="orders/new" element={<OrderForm />} />
           <Route path="orders/:id" element={<OrderDetail />} />
+          <Route path="ventas" element={<SalesList />} />
+          <Route path="ventas/new" element={<SalesForm />} />
+          <Route
+            path="productos"
+            element={
+              <AdminOnlyRoute>
+                <ProductsList />
+              </AdminOnlyRoute>
+            }
+          />
+          <Route
+            path="productos/nuevo"
+            element={
+              <AdminOnlyRoute>
+                <ProductForm />
+              </AdminOnlyRoute>
+            }
+          />
+          <Route
+            path="productos/:id"
+            element={
+              <AdminOnlyRoute>
+                <ProductForm />
+              </AdminOnlyRoute>
+            }
+          />
           {/* The former placeholder landing now forwards to the orders queue. */}
           <Route path="*" element={<Navigate to="/admin/orders" replace />} />
         </Route>

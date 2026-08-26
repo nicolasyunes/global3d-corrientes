@@ -2,10 +2,12 @@ import type { OrderStatus } from '@/lib/domain-constants'
 
 // The forward production flow. `cancelled` is a side action, not a step, so it
 // is deliberately excluded — an order never "advances" into cancelled, and a
-// finished order has no next step.
+// finished order has no next step. `in_queue` is a retired step — the shop's
+// real flow goes straight from `new` to `printing` — kept only as a valid
+// enum value (and label, for any historical order) but never assigned or
+// advanced into.
 export const ORDER_STATUS_FLOW: readonly OrderStatus[] = [
   'new',
-  'in_queue',
   'printing',
   'post_processing',
   'finished',

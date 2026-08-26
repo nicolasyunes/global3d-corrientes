@@ -117,3 +117,122 @@ export async function listOrders(): Promise<OrderWithCustomer[]> {
   if (error) throw error
   return (data ?? []) as OrderWithCustomer[]
 }
+
+// Undo for a just-created quick order: the 5-second "Deshacer" toast calls
+// this directly rather than a soft-delete/status flag — the row hasn't been
+// seen by anyone yet, so there's nothing to preserve a trail of.
+export async function deleteOrder(id: string): Promise<void> {
+  const { error } = await supabase.from('orders').delete().eq('id', id)
+  if (error) throw error
+}
+
+export type OrderItemRow = Database['public']['Tables']['order_items']['Row']
+export type OrderItemInsert =
+  Database['public']['Tables']['order_items']['Insert']
+
+// One order_id per row, no relation columns — cheapest shape for the list
+// view to reduce into a per-order count client-side (a table this small
+// doesn't need a grouped-count RPC).
+export async function listOrderItemCounts(): Promise<Record<string, number>> {
+  const { data, error } = await supabase.from('order_items').select('order_id')
+  if (error) throw error
+  const counts: Record<string, number> = {}
+  for (const row of data ?? []) {
+    counts[row.order_id] = (counts[row.order_id] ?? 0) + 1
+  }
+  return counts
+}
+
+export async function listOrderItems(orderId: string): Promise<OrderItemRow[]> {
+  const { data, error } = await supabase
+    .from('order_items')
+    .select('*')
+    .eq('order_id', orderId)
+    .order('position', { ascending: true })
+  if (error) throw error
+  return data ?? []
+}
+
+// Delete-then-insert: simplest correct semantics for a short, wholly
+// re-submitted list — the form owns the full set of items on every save,
+// there is no partial/incremental edit UI to reconcile against.
+export async function replaceOrderItems(
+  orderId: string,
+  items: Omit<OrderItemInsert, 'order_id'>[],
+): Promise<void> {
+  const { error: deleteError } = await supabase
+    .from('order_items')
+    .delete()
+    .eq('order_id', orderId)
+  if (deleteError) throw deleteError
+
+  if (items.length === 0) return
+
+  const { error: insertError } = await supabase
+    .from('order_items')
+    .insert(items.map((item) => ({ ...item, order_id: orderId })))
+  if (insertError) throw insertError
+}
+
+// Production checklist: unlike order_items (a batch the OrderForm re-submits
+// wholesale), these are checked off one at a time over the course of
+// production — sometimes days apart, sometimes by a different person at a
+// different location — so each task gets its own row-level create/update/
+// delete rather than a replace-all.
+export type ProductionTaskRow =
+  Database['public']['Tables']['order_production_tasks']['Row']
+export type ProductionTaskUpdate =
+  Database['public']['Tables']['order_production_tasks']['Update']
+
+export async function listProductionTasks(
+  orderId: string,
+): Promise<ProductionTaskRow[]> {
+  const { data, error } = await supabase
+    .from('order_production_tasks')
+    .select('*')
+    .eq('order_id', orderId)
+    .order('position', { ascending: true })
+  if (error) throw error
+  return data ?? []
+}
+
+export async function createProductionTask(
+  orderId: string,
+  input: { label: string; location: string | null },
+  position: number,
+): Promise<ProductionTaskRow> {
+  const { data, error } = await supabase
+    .from('order_production_tasks')
+    .insert({
+      order_id: orderId,
+      label: input.label,
+      location: input.location,
+      position,
+    })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateProductionTask(
+  id: string,
+  patch: ProductionTaskUpdate,
+): Promise<ProductionTaskRow> {
+  const { data, error } = await supabase
+    .from('order_production_tasks')
+    .update(patch)
+    .eq('id', id)
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteProductionTask(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('order_production_tasks')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+}

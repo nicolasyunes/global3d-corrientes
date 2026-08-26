@@ -45,41 +45,51 @@ export const ORIGIN_CHANNEL = [
 ] as const
 export type OriginChannel = (typeof ORIGIN_CHANNEL)[number]
 
+// Where a production checklist task is being made — the order_production_tasks
+// CHECK constraint's source of truth on the client side.
+export const TASK_LOCATION = ['casa', 'local'] as const
+export type TaskLocation = (typeof TASK_LOCATION)[number]
+
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  new: 'New',
-  in_queue: 'In Queue',
-  printing: 'Printing',
-  post_processing: 'Post-processing',
-  finished: 'Finished',
-  cancelled: 'Cancelled',
+  new: 'Nuevo',
+  in_queue: 'En cola',
+  printing: 'Imprimiendo',
+  post_processing: 'Post-procesado',
+  finished: 'Terminado',
+  cancelled: 'Cancelado',
 }
 
 export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
-  '3d_service': '3D Service',
-  supplies_sale: 'Supplies Sale',
+  '3d_service': 'Servicio 3D',
+  supplies_sale: 'Venta de insumos',
 }
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Cash',
-  transfer: 'Transfer',
+  cash: 'Efectivo',
+  transfer: 'Transferencia',
   uala: 'Ualá',
   brubank: 'Brubank',
   mercadopago: 'Mercado Pago',
-  other: 'Other',
+  other: 'Otro',
 }
 
 export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
-  cup: 'Cup',
-  trophy: 'Trophy',
-  keychain: 'Keychain',
-  other: 'Other',
+  cup: 'Taza',
+  trophy: 'Trofeo',
+  keychain: 'Llavero',
+  other: 'Otro',
 }
 
 export const ORIGIN_CHANNEL_LABELS: Record<OriginChannel, string> = {
   facebook: 'Facebook',
   whatsapp: 'WhatsApp',
   instagram: 'Instagram',
-  other: 'Other',
+  other: 'Otro',
+}
+
+export const TASK_LOCATION_LABELS: Record<TaskLocation, string> = {
+  casa: 'Casa',
+  local: 'Local',
 }
 
 // Status/urgency color maps reference design tokens, never raw hex, so the

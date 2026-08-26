@@ -7,13 +7,13 @@ import { useAuth } from './useAuth'
 // The supabase client is mocked so the provider can be exercised with full
 // control over getSession resolution and emitted auth events.
 
-const { getSessionMock, onAuthStateChangeMock, signOutMock } = vi.hoisted(
-  () => ({
+const { getSessionMock, onAuthStateChangeMock, signOutMock, maybeSingleMock } =
+  vi.hoisted(() => ({
     getSessionMock: vi.fn(),
     onAuthStateChangeMock: vi.fn(),
     signOutMock: vi.fn(),
-  }),
-)
+    maybeSingleMock: vi.fn(),
+  }))
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
@@ -22,6 +22,9 @@ vi.mock('@/lib/supabase', () => ({
       onAuthStateChange: onAuthStateChangeMock,
       signOut: signOutMock,
     },
+    from: () => ({
+      select: () => ({ eq: () => ({ maybeSingle: maybeSingleMock }) }),
+    }),
   },
 }))
 
@@ -48,12 +51,14 @@ const session: Session = {
 
 // Reads the context so tests can assert on the exposed value.
 function AuthProbe() {
-  const { session, user: currentUser, loading, signOut } = useAuth()
+  const { session, user: currentUser, loading, roleLoading, isAdmin, signOut } = useAuth()
   return (
     <div>
       <span data-testid="loading">{String(loading)}</span>
       <span data-testid="session">{session ? session.user.email : 'none'}</span>
       <span data-testid="user">{currentUser ? currentUser.id : 'none'}</span>
+      <span data-testid="role-loading">{String(roleLoading)}</span>
+      <span data-testid="is-admin">{String(isAdmin)}</span>
       <button onClick={() => void signOut()}>Sign out</button>
     </div>
   )
@@ -85,6 +90,7 @@ beforeEach(() => {
   })
   getSessionMock.mockResolvedValue({ data: { session: null } })
   signOutMock.mockResolvedValue({ error: null })
+  maybeSingleMock.mockResolvedValue({ data: { role: 'operator' } })
 })
 
 describe('AuthProvider', () => {
@@ -129,6 +135,25 @@ describe('AuthProvider', () => {
     // supabase emits SIGNED_OUT after signOut completes; the provider follows.
     emit('SIGNED_OUT', null)
     expect(screen.getByTestId('session')).toHaveTextContent('none')
+  })
+
+  it('resolves isAdmin from profiles.role once a session loads', async () => {
+    getSessionMock.mockResolvedValue({ data: { session } })
+    maybeSingleMock.mockResolvedValue({ data: { role: 'admin' } })
+    renderProvider()
+
+    await act(async () => {})
+    expect(screen.getByTestId('role-loading')).toHaveTextContent('false')
+    expect(screen.getByTestId('is-admin')).toHaveTextContent('true')
+  })
+
+  it('defaults isAdmin to false for a non-admin operator', async () => {
+    getSessionMock.mockResolvedValue({ data: { session } })
+    maybeSingleMock.mockResolvedValue({ data: { role: 'operator' } })
+    renderProvider()
+
+    await act(async () => {})
+    expect(screen.getByTestId('is-admin')).toHaveTextContent('false')
   })
 
   it('useAuth throws when used outside the provider', () => {

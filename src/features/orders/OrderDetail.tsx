@@ -5,6 +5,8 @@ import { getOrder, updateOrder, type OrderWithCustomer } from './orders.api'
 import { nextOrderStatus } from './status'
 import { formatMoney } from './format'
 import OrderForm from './OrderForm'
+import OrderImages from './OrderImages'
+import ProductionChecklist from './ProductionChecklist'
 import StatusBadge from './StatusBadge'
 import './orders.css'
 
@@ -31,7 +33,7 @@ export default function OrderDetail() {
       .catch((err) => {
         if (!cancelled)
           setError(
-            err instanceof Error ? err.message : 'Could not load the order.',
+            err instanceof Error ? err.message : 'No se pudo cargar el pedido.',
           )
       })
       .finally(() => {
@@ -60,7 +62,7 @@ export default function OrderDetail() {
       setOrder((prev) => (prev ? { ...prev, ...updated } : prev))
     } catch (err) {
       setActionError(
-        err instanceof Error ? err.message : 'Could not update the status.',
+        err instanceof Error ? err.message : 'No se pudo actualizar el estado.',
       )
     } finally {
       setBusy(false)
@@ -75,7 +77,7 @@ export default function OrderDetail() {
   if (loading) {
     return (
       <main className="order-detail">
-        <p className="orders-list__status">Loading…</p>
+        <p className="orders-list__status">Cargando…</p>
       </main>
     )
   }
@@ -87,10 +89,10 @@ export default function OrderDetail() {
           className="form-banner form-banner--error orders-list__status"
           role="alert"
         >
-          {error ?? 'Order not found.'}
+          {error ?? 'Pedido no encontrado.'}
         </p>
         <Link to="/admin/orders" className="link-btn back-link">
-          Back to orders
+          Volver a pedidos
         </Link>
       </main>
     )
@@ -104,17 +106,27 @@ export default function OrderDetail() {
     <main className="order-detail">
       <header className="order-detail__header">
         <Link to="/admin/orders" className="link-btn back-link">
-          Back to orders
+          Volver a pedidos
         </Link>
         <h1 className="order-detail__title">
-          {order.customers?.name ?? 'Unknown'}
+          {order.customers?.name ?? 'Desconocido'}
         </h1>
         <div className="order-detail__status-row">
           <StatusBadge status={order.status} />
           <span className="order-detail__pending">
-            Pending balance: {formatMoney(order.pending_balance)}
+            Saldo pendiente: {formatMoney(order.pending_balance)}
           </span>
         </div>
+        {order.reference_link && (
+          <a
+            href={order.reference_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="link-btn"
+          >
+            Ver producto ↗
+          </a>
+        )}
       </header>
 
       <section className="status-actions">
@@ -125,7 +137,7 @@ export default function OrderDetail() {
             disabled={busy}
             onClick={() => void setStatus(next)}
           >
-            {busy ? 'Updating…' : `Advance to ${ORDER_STATUS_LABELS[next]}`}
+            {busy ? 'Actualizando…' : `Avanzar a ${ORDER_STATUS_LABELS[next]}`}
           </button>
         )}
         {!isFinished && !isCancelled && (
@@ -135,14 +147,14 @@ export default function OrderDetail() {
             disabled={busy}
             onClick={() => void setStatus('cancelled')}
           >
-            Cancel order
+            Cancelar pedido
           </button>
         )}
         {isFinished && (
-          <p className="status-actions__done">This order is complete.</p>
+          <p className="status-actions__done">Este pedido está completo.</p>
         )}
         {isCancelled && (
-          <p className="status-actions__done">This order was cancelled.</p>
+          <p className="status-actions__done">Este pedido fue cancelado.</p>
         )}
         {actionError && (
           <p className="form-banner form-banner--error" role="alert">
@@ -150,6 +162,10 @@ export default function OrderDetail() {
           </p>
         )}
       </section>
+
+      <ProductionChecklist orderId={order.id} />
+
+      <OrderImages orderId={order.id} />
 
       <OrderForm key={order.id} initialOrder={order} onSaved={handleSaved} />
     </main>
