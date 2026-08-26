@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import {
   ORIGIN_CHANNEL,
   ORIGIN_CHANNEL_LABELS,
@@ -40,6 +40,58 @@ import { formatMoney } from './format'
 import './orders.css'
 
 type Mode = 'quick' | 'full'
+type Step = 1 | 2 | 3 | 4
+
+interface StepSectionProps {
+  step: Step
+  title: string
+  children: ReactNode
+  // Collapsible sections start closed and reveal on demand — used for the
+  // optional Ítems block so the operator isn't asked to read it up front.
+  collapsible?: boolean
+  defaultOpen?: boolean
+  hint?: string
+}
+
+function StepSection({
+  step,
+  title,
+  children,
+  collapsible,
+  defaultOpen = true,
+  hint,
+}: StepSectionProps) {
+  const [open, setOpen] = useState(defaultOpen)
+  const showBody = !collapsible || open
+
+  return (
+    <section className={`form-section form-section--step-${step}`}>
+      {collapsible ? (
+        <button
+          type="button"
+          className="form-section__toggle"
+          aria-expanded={open}
+          onClick={() => setOpen((prev) => !prev)}
+        >
+          <span className="form-section__step-badge">{step}</span>
+          <span className="form-section__toggle-text">
+            <span className="form-section__heading">{title}</span>
+            {hint && <span className="field__hint">{hint}</span>}
+          </span>
+          <span className="form-section__toggle-icon" aria-hidden="true">
+            {open ? '−' : '+'}
+          </span>
+        </button>
+      ) : (
+        <div className="form-section__head">
+          <span className="form-section__step-badge">{step}</span>
+          <h2 className="form-section__heading">{title}</h2>
+        </div>
+      )}
+      {showBody && <div className="form-section__body">{children}</div>}
+    </section>
+  )
+}
 
 interface ChipGroupProps<T extends string> {
   label: string
@@ -303,9 +355,7 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
             </div>
           )}
 
-          <section className="form-section">
-            <h2 className="form-section__heading">Cliente</h2>
-
+          <StepSection step={1} title="Cliente">
             <div className="field">
               <label className="field__label" htmlFor="customer-name">
                 Nombre
@@ -338,11 +388,9 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
                 onChange={(e) => setField('customerPhone', e.target.value)}
               />
             </div>
-          </section>
+          </StepSection>
 
-          <section className="form-section">
-            <h2 className="form-section__heading">Pedido</h2>
-
+          <StepSection step={2} title="Pedido">
             <ChipGroup
               label="Tipo de producto"
               value={draft.productType}
@@ -401,15 +449,15 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
                 </p>
               )}
             </div>
-          </section>
+          </StepSection>
 
-          <section className="form-section">
-            <h2 className="form-section__heading">Ítems</h2>
-            <p className="field__hint">
-              Opcional — para pedidos por lote o personalizados con varias
-              piezas distintas. Dejalo vacío para un pedido de un solo producto.
-            </p>
-
+          <StepSection
+            step={3}
+            title="Ítems extra"
+            collapsible
+            defaultOpen={itemDrafts.length > 0}
+            hint="Opcional — solo si el pedido tiene varias piezas distintas."
+          >
             {itemDrafts.map((item, index) => (
               <fieldset className="item-row" key={index}>
                 <legend className="field__label">Ítem {index + 1}</legend>
@@ -488,12 +536,10 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
             <button type="button" className="link-btn" onClick={addItem}>
               + Agregar ítem
             </button>
-          </section>
+          </StepSection>
 
           {mode === 'full' && (
-            <section className="form-section">
-              <h2 className="form-section__heading">Detalles</h2>
-
+            <StepSection step={4} title="Detalles">
               <div className="field">
                 <label className="field__label" htmlFor="deposit">
                   Seña
@@ -650,7 +696,7 @@ export default function OrderForm({ initialOrder, onSaved }: OrderFormProps) {
                   onChange={(e) => setField('observations', e.target.value)}
                 />
               </div>
-            </section>
+            </StepSection>
           )}
 
           {submitError && (

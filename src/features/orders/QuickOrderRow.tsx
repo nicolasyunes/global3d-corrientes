@@ -45,65 +45,71 @@ export default function QuickOrderRow({ onCreated }: QuickOrderRowProps) {
       onKeyDown={handleKeyDown}
     >
       <div className="quick-order-row__fields">
-        <input
-          ref={customerInputRef}
-          className="field__input quick-order-row__input"
-          type="text"
-          placeholder="Cliente"
-          aria-label="Cliente"
-          aria-invalid={Boolean(errors.customerName)}
-          value={draft.customerName}
-          onChange={(e) => setField('customerName', e.target.value)}
-        />
-        <select
-          className="field__input quick-order-row__input"
-          aria-label="Producto"
-          value={draft.productType}
-          onChange={(e) => setField('productType', e.target.value)}
-        >
-          <option value="">Producto</option>
-          {PRODUCT_TYPE.map((type) => (
-            <option key={type} value={type}>
-              {PRODUCT_TYPE_LABELS[type]}
-            </option>
-          ))}
-        </select>
-        <input
-          className="field__input quick-order-row__input"
-          type="text"
-          placeholder="Detalle"
-          aria-label="Detalle"
-          value={draft.detail}
-          onChange={(e) => setField('detail', e.target.value)}
-        />
-        <input
-          className="field__input quick-order-row__input quick-order-row__input--date"
-          type="date"
-          aria-label="Entrega"
-          aria-invalid={Boolean(errors.dueDate)}
-          value={draft.dueDate}
-          onChange={(e) => setField('dueDate', e.target.value)}
-        />
-        <input
-          className="field__input quick-order-row__input quick-order-row__input--money"
-          type="text"
-          inputMode="decimal"
-          placeholder="Total"
-          aria-label="Total"
-          aria-invalid={Boolean(errors.totalAmount)}
-          value={draft.totalAmount}
-          onChange={(e) => setField('totalAmount', e.target.value)}
-        />
-        <input
-          className="field__input quick-order-row__input quick-order-row__input--money"
-          type="text"
-          inputMode="decimal"
-          placeholder="Seña"
-          aria-label="Seña"
-          aria-invalid={Boolean(errors.deposit)}
-          value={draft.deposit}
-          onChange={(e) => setField('deposit', e.target.value)}
-        />
+        <div className="quick-order-row__group quick-order-row__group--who">
+          <input
+            ref={customerInputRef}
+            className="field__input quick-order-row__input"
+            type="text"
+            placeholder="Cliente"
+            aria-label="Cliente"
+            aria-invalid={Boolean(errors.customerName)}
+            value={draft.customerName}
+            onChange={(e) => setField('customerName', e.target.value)}
+          />
+          <select
+            className="field__input quick-order-row__input"
+            aria-label="Producto"
+            value={draft.productType}
+            onChange={(e) => setField('productType', e.target.value)}
+          >
+            <option value="">Producto</option>
+            {PRODUCT_TYPE.map((type) => (
+              <option key={type} value={type}>
+                {PRODUCT_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </select>
+          <input
+            className="field__input quick-order-row__input"
+            type="text"
+            placeholder="Detalle"
+            aria-label="Detalle"
+            value={draft.detail}
+            onChange={(e) => setField('detail', e.target.value)}
+          />
+        </div>
+
+        <div className="quick-order-row__group quick-order-row__group--when">
+          <input
+            className="field__input quick-order-row__input quick-order-row__input--date"
+            type="date"
+            aria-label="Entrega"
+            aria-invalid={Boolean(errors.dueDate)}
+            value={draft.dueDate}
+            onChange={(e) => setField('dueDate', e.target.value)}
+          />
+          <input
+            className="field__input quick-order-row__input quick-order-row__input--money"
+            type="text"
+            inputMode="decimal"
+            placeholder="Total"
+            aria-label="Total"
+            aria-invalid={Boolean(errors.totalAmount)}
+            value={draft.totalAmount}
+            onChange={(e) => setField('totalAmount', e.target.value)}
+          />
+          <input
+            className="field__input quick-order-row__input quick-order-row__input--money"
+            type="text"
+            inputMode="decimal"
+            placeholder="Seña"
+            aria-label="Seña"
+            aria-invalid={Boolean(errors.deposit)}
+            value={draft.deposit}
+            onChange={(e) => setField('deposit', e.target.value)}
+          />
+        </div>
+
         <button
           type="submit"
           className="quick-order-row__submit"
