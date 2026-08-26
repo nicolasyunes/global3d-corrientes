@@ -642,6 +642,43 @@
    panorama tab. Cards in a 4-column grid on desktop for quick scanning.
 --------------------------------------------------------------------------- */
 
+/* Sheet view toggle — same styling as view-toggle */
+.sheet-view-toggle {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+  background: var(--color-carbon-soft);
+  width: 95%;
+  max-width: 100%;
+  margin: 1rem auto 0;
+}
+
+.sheet-view-toggle .view-toggle__button {
+  min-height: 40px;
+  padding: 0 0.875rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--color-carbon-muted);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.sheet-view-toggle .view-toggle__button[aria-pressed='true'] {
+  background: var(--color-white);
+  color: var(--color-carbon);
+}
+
+.sheet-view-toggle .view-toggle__button:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
 .pending-sheet {
   display: grid;
   grid-template-columns: 1fr;
@@ -649,7 +686,7 @@
   list-style: none;
   width: 95%;
   max-width: 100%;
-  margin: 1.5rem auto 0;
+  margin: 1rem auto 0;
   padding: 0;
 }
 
@@ -672,6 +709,95 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 1.5rem;
   }
+}
+
+/* Sheet table — spreadsheet view of planilla */
+.sheet-table-wrap {
+  width: 95%;
+  max-width: 100%;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  overflow-x: auto;
+}
+
+.sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 40rem;
+}
+
+.sheet-table thead th {
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--color-carbon-soft);
+  background: var(--color-surface);
+  color: var(--color-carbon-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sheet-table thead th:first-child {
+  border-top-left-radius: var(--radius-sm);
+}
+
+.sheet-table thead th:last-child {
+  border-top-right-radius: var(--radius-sm);
+}
+
+.sheet-table__row td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-carbon-soft);
+  background: var(--color-white);
+  vertical-align: middle;
+}
+
+.sheet-table__row--alt td {
+  background: color-mix(in srgb, var(--color-surface) 60%, var(--color-white));
+}
+
+.sheet-table__row:hover td {
+  background: color-mix(in srgb, var(--color-orange) 6%, var(--color-white));
+}
+
+.sheet-table__row--overdue td:first-child {
+  box-shadow: inset 3px 0 0 var(--status-red);
+}
+
+.sheet-table__customer {
+  font-weight: 700;
+}
+
+.sheet-table__muted {
+  color: var(--color-carbon-muted);
+  font-size: 0.875rem;
+}
+
+.sheet-table__details {
+  max-width: 20rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sheet-table__due {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sheet-table__due--overdue {
+  color: var(--status-red);
+  font-weight: 700;
+}
+
+.sheet-table__num {
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .pending-card {
