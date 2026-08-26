@@ -296,6 +296,7 @@ export default function OrdersList() {
 
       {view === 'date' && (
         <section className="quick-order-section">
+          <h2 className="quick-order-section__title">Pedido rápido</h2>
           <QuickOrderRow onCreated={handleQuickOrderCreated} />
         </section>
       )}

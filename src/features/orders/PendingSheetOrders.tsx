@@ -15,7 +15,7 @@ export default function PendingSheetOrders() {
   const [orders, setOrders] = useState<PendingSheetOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [view, setView] = useState<SheetView>('cards')
+  const [view, setView] = useState<SheetView>('list')
 
   useEffect(() => {
     let cancelled = false
@@ -158,7 +158,10 @@ export default function PendingSheetOrders() {
                     <td className="sheet-table__customer">{order.nombre}</td>
                     <td className="sheet-table__muted">{order.canal || '—'}</td>
                     <td className="sheet-table__muted">{order.producto}</td>
-                    <td className="sheet-table__muted sheet-table__details">
+                    <td
+                      className="sheet-table__muted sheet-table__details"
+                      title={order.detalles || undefined}
+                    >
                       {order.detalles || '—'}
                     </td>
                     <td

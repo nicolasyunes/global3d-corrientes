@@ -337,12 +337,14 @@ export function inferProductType(detail: string): ProductType {
   return 'other'
 }
 
-// Raw state for the one-row/one-sheet quick-capture flow: five fields, no
+// Raw state for the one-row/one-sheet quick-capture flow: six fields, no
 // more — phone, payment method, colors, etc. are added later by editing the
 // order, never blocking the initial capture. `detail` is free text; it seeds
 // both the inferred product_type and (when non-blank) a single order_item.
+// `productType` is optional; if not set, it's inferred from detail.
 export interface QuickOrderDraft {
   customerName: string
+  productType: string // optional product type, inferred from detail if blank
   detail: string
   dueDate: string // 'YYYY-MM-DD', pre-filled with the default lead time
   totalAmount: string // decimal or ''
@@ -354,6 +356,7 @@ export type QuickOrderFieldErrors = Partial<Record<keyof QuickOrderDraft, string
 export function emptyQuickOrderDraft(now: Date = new Date()): QuickOrderDraft {
   return {
     customerName: '',
+    productType: '',
     detail: '',
     dueDate: defaultDueDate(now),
     totalAmount: '',

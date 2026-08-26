@@ -1,4 +1,5 @@
 import { useRef, type FormEvent, type KeyboardEvent } from 'react'
+import { PRODUCT_TYPE, PRODUCT_TYPE_LABELS } from '@/lib/domain-constants'
 import type { OrderWithCustomer } from './orders.api'
 import { useQuickOrderDraft } from './useQuickOrderDraft'
 
@@ -54,6 +55,19 @@ export default function QuickOrderRow({ onCreated }: QuickOrderRowProps) {
           value={draft.customerName}
           onChange={(e) => setField('customerName', e.target.value)}
         />
+        <select
+          className="field__input quick-order-row__input"
+          aria-label="Producto"
+          value={draft.productType}
+          onChange={(e) => setField('productType', e.target.value)}
+        >
+          <option value="">Producto</option>
+          {PRODUCT_TYPE.map((type) => (
+            <option key={type} value={type}>
+              {PRODUCT_TYPE_LABELS[type]}
+            </option>
+          ))}
+        </select>
         <input
           className="field__input quick-order-row__input"
           type="text"

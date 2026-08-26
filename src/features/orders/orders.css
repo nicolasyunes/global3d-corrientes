@@ -1562,6 +1562,13 @@
   border: 1px solid color-mix(in srgb, var(--color-orange) 16%, var(--color-carbon-soft));
 }
 
+.quick-order-section__title {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-carbon);
+}
+
 /* Mobile quick-capture sheet — a fixed panel sliding up from the bottom,
    dismissed via the close button, the backdrop, or Escape. */
 .quick-order-sheet {

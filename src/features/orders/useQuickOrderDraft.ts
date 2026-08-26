@@ -81,9 +81,10 @@ export function useQuickOrderDraft(): UseQuickOrderDraftResult {
 
     try {
       const customer = await upsertCustomer({ name: draft.customerName.trim() })
+      const productType = draft.productType || inferProductType(draft.detail)
       const created = await createOrder({
         customer_id: customer.id,
-        product_type: inferProductType(draft.detail) as ProductType,
+        product_type: productType as ProductType,
         due_date: draft.dueDate,
         total_amount: parseMoney(draft.totalAmount),
         deposit: parseMoney(draft.deposit),
