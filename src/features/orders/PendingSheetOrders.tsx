@@ -67,24 +67,28 @@ export default function PendingSheetOrders() {
 
   return (
     <>
-      <nav className="sheet-view-toggle" aria-label="Vista de planilla">
-        <button
-          type="button"
-          className="view-toggle__button"
-          aria-pressed={view === 'cards'}
-          onClick={() => setView('cards')}
-        >
-          Cards
-        </button>
-        <button
-          type="button"
-          className="view-toggle__button"
-          aria-pressed={view === 'list'}
-          onClick={() => setView('list')}
-        >
-          Lista
-        </button>
-      </nav>
+      <div className="sheet-controls">
+        <nav className="sheet-view-toggle" aria-label="Vista de planilla">
+          <button
+            type="button"
+            className="view-toggle__button"
+            aria-pressed={view === 'cards'}
+            onClick={() => setView('cards')}
+            title="Vista de cards"
+          >
+            ⊞
+          </button>
+          <button
+            type="button"
+            className="view-toggle__button"
+            aria-pressed={view === 'list'}
+            onClick={() => setView('list')}
+            title="Vista de lista"
+          >
+            ≡
+          </button>
+        </nav>
+      </div>
 
       {view === 'cards' && (
         <ul className="pending-sheet">

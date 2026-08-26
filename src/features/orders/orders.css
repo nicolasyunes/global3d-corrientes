@@ -287,7 +287,7 @@
 
 .orders-list {
   min-height: 100vh;
-  padding-bottom: 6rem; /* clears the sticky CTA */
+  padding-bottom: 7rem; /* clears the sticky CTA */
 }
 
 /* Toolbar: view switch (Lista/Kanban) plus, in Lista view, the date tabs.
@@ -407,7 +407,7 @@
   width: 95%;
   max-width: 100%;
   margin-inline: auto;
-  padding: 1rem 1rem 0;
+  padding: 1rem 1rem 1.5rem;
 }
 
 .orders-filters__field {
@@ -441,7 +441,7 @@
 .orders-table-wrap {
   width: 95%;
   max-width: 100%;
-  margin-inline: auto;
+  margin: 2rem auto 0;
   padding-inline: 1rem;
   overflow-x: auto;
 }
@@ -642,28 +642,37 @@
    panorama tab. Cards in a 4-column grid on desktop for quick scanning.
 --------------------------------------------------------------------------- */
 
-/* Sheet view toggle — same styling as view-toggle */
+/* Sheet view controls */
+.sheet-controls {
+  width: 95%;
+  max-width: 100%;
+  margin: 1.5rem auto 0;
+  padding-inline: 1rem;
+}
+
+/* Sheet view toggle — icon buttons for cards/list */
 .sheet-view-toggle {
   display: inline-flex;
   gap: 0.25rem;
   padding: 0.25rem;
   border-radius: 0.75rem;
   background: var(--color-carbon-soft);
-  width: 95%;
-  max-width: 100%;
-  margin: 1rem auto 0;
 }
 
 .sheet-view-toggle .view-toggle__button {
   min-height: 40px;
-  padding: 0 0.875rem;
+  min-width: 40px;
+  padding: 0;
   border: 0;
   border-radius: 0.5rem;
   background: transparent;
   color: var(--color-carbon-muted);
-  font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 1.125rem;
+  line-height: 1;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition:
     background-color 150ms ease-out,
     color 150ms ease-out;
@@ -686,8 +695,8 @@
   list-style: none;
   width: 95%;
   max-width: 100%;
-  margin: 1rem auto 0;
-  padding: 0;
+  margin: 2rem auto 0;
+  padding: 0 1rem;
 }
 
 @media (min-width: 640px) {
@@ -715,7 +724,7 @@
 .sheet-table-wrap {
   width: 95%;
   max-width: 100%;
-  margin-inline: auto;
+  margin: 2rem auto 0;
   padding-inline: 1rem;
   overflow-x: auto;
 }
