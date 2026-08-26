@@ -1450,10 +1450,9 @@
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  width: 95%;
-  max-width: 100%;
-  margin-inline: auto;
-  padding: 0.75rem 1rem 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .quick-order-row__input {
@@ -1550,6 +1549,17 @@
   .sticky-cta__link {
     display: flex;
   }
+}
+
+/* Quick order section — separates the row from filters with visual hierarchy */
+.quick-order-section {
+  width: 95%;
+  max-width: 100%;
+  margin: 2rem auto 0;
+  padding: 1.5rem 1rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--color-orange) 2%, var(--color-white)), var(--color-white));
+  border: 1px solid color-mix(in srgb, var(--color-orange) 16%, var(--color-carbon-soft));
 }
 
 /* Mobile quick-capture sheet — a fixed panel sliding up from the bottom,

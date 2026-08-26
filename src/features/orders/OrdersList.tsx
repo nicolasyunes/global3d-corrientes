@@ -210,10 +210,6 @@ export default function OrdersList() {
         )}
       </div>
 
-      {view === 'date' && (
-        <QuickOrderRow onCreated={handleQuickOrderCreated} />
-      )}
-
       {justCreated && (
         <div className="undo-toast" role="status">
           <span className="undo-toast__text">
@@ -296,6 +292,12 @@ export default function OrdersList() {
             </button>
           )}
         </div>
+      )}
+
+      {view === 'date' && (
+        <section className="quick-order-section">
+          <QuickOrderRow onCreated={handleQuickOrderCreated} />
+        </section>
       )}
 
       {loading && <p className="orders-list__status">Cargando…</p>}
