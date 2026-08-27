@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
-import { CATEGORIES } from './data/products'
 import { useCart } from './CartContext'
+import StorefrontNav from './StorefrontNav'
 import { waHref } from '@/lib/whatsapp'
 import './storefront.css'
 
@@ -52,21 +52,7 @@ export default function StorefrontLayout() {
             )}
           </button>
         </div>
-        <nav className="sf-cat-nav" aria-label="Categorías">
-          <button type="button" className="sf-cat-nav__item" onClick={() => navigate('/categoria/todas')}>
-            Todas las categorías
-          </button>
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.slug}
-              type="button"
-              className="sf-cat-nav__item"
-              onClick={() => navigate(`/categoria/${c.slug}`)}
-            >
-              {c.name}
-            </button>
-          ))}
-        </nav>
+        <StorefrontNav />
       </header>
 
       <a
