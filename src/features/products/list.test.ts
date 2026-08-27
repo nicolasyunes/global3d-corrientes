@@ -13,6 +13,14 @@ function product(overrides: Partial<ProductRow>): ProductRow {
     active: true,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
+    slug: null,
+    sku: null,
+    compare_at_price: null,
+    custom_on_request: false,
+    personalizable: false,
+    weight_grams: null,
+    category_id: null,
+    subcategory: null,
     ...overrides,
   }
 }
@@ -36,7 +44,13 @@ describe('stockLevel', () => {
 describe('filterProducts', () => {
   it('returns everything when the filter is empty', () => {
     const products = [product({ id: 'a' }), product({ id: 'b' })]
-    expect(filterProducts(products, { query: '', activeOnly: false })).toHaveLength(2)
+    expect(
+      filterProducts(products, {
+        query: '',
+        activeOnly: false,
+        categoryId: '',
+      }),
+    ).toHaveLength(2)
   })
 
   it('matches the query against name case-insensitively', () => {
@@ -44,7 +58,11 @@ describe('filterProducts', () => {
       product({ id: 'a', name: 'Llavero Zelda' }),
       product({ id: 'b', name: 'Taza térmica' }),
     ]
-    const result = filterProducts(products, { query: 'zelda', activeOnly: false })
+    const result = filterProducts(products, {
+      query: 'zelda',
+      activeOnly: false,
+      categoryId: '',
+    })
     expect(result.map((p) => p.id)).toEqual(['a'])
   })
 
@@ -53,7 +71,11 @@ describe('filterProducts', () => {
       product({ id: 'a', name: 'Producto', description: 'Edición especial' }),
       product({ id: 'b', name: 'Otro', description: null }),
     ]
-    const result = filterProducts(products, { query: 'especial', activeOnly: false })
+    const result = filterProducts(products, {
+      query: 'especial',
+      activeOnly: false,
+      categoryId: '',
+    })
     expect(result.map((p) => p.id)).toEqual(['a'])
   })
 
@@ -62,7 +84,39 @@ describe('filterProducts', () => {
       product({ id: 'a', active: true }),
       product({ id: 'b', active: false }),
     ]
-    const result = filterProducts(products, { query: '', activeOnly: true })
+    const result = filterProducts(products, {
+      query: '',
+      activeOnly: true,
+      categoryId: '',
+    })
     expect(result.map((p) => p.id)).toEqual(['a'])
+  })
+
+  it('filtra por categoría cuando categoryId está seteado', () => {
+    const products = [
+      product({ id: 'a', category_id: 'cat-1' }),
+      product({ id: 'b', category_id: 'cat-2' }),
+      product({ id: 'c', category_id: null }),
+    ]
+    const result = filterProducts(products, {
+      query: '',
+      activeOnly: false,
+      categoryId: 'cat-1',
+    })
+    expect(result.map((p) => p.id)).toEqual(['a'])
+  })
+
+  it('devuelve todo cuando categoryId es ""', () => {
+    const products = [
+      product({ id: 'a', category_id: 'cat-1' }),
+      product({ id: 'b', category_id: null }),
+    ]
+    expect(
+      filterProducts(products, {
+        query: '',
+        activeOnly: false,
+        categoryId: '',
+      }),
+    ).toHaveLength(2)
   })
 })

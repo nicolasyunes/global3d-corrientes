@@ -7,7 +7,9 @@ export const LOW_STOCK_THRESHOLD = 5
 
 export type StockLevel = 'out' | 'low' | 'ok'
 
-export function stockLevel(product: Pick<ProductRow, 'stock_quantity'>): StockLevel {
+export function stockLevel(
+  product: Pick<ProductRow, 'stock_quantity'>,
+): StockLevel {
   if (product.stock_quantity <= 0) return 'out'
   if (product.stock_quantity < LOW_STOCK_THRESHOLD) return 'low'
   return 'ok'
@@ -16,10 +18,11 @@ export function stockLevel(product: Pick<ProductRow, 'stock_quantity'>): StockLe
 export interface ProductFilter {
   query: string
   activeOnly: boolean
+  categoryId: string // '' = todas
 }
 
 export function emptyProductFilter(): ProductFilter {
-  return { query: '', activeOnly: false }
+  return { query: '', activeOnly: false, categoryId: '' }
 }
 
 // Client-side filter over the already-loaded catalog — the list is small
@@ -33,6 +36,8 @@ export function filterProducts(
 
   return products.filter((product) => {
     if (filter.activeOnly && !product.active) return false
+    if (filter.categoryId !== '' && product.category_id !== filter.categoryId)
+      return false
     if (query === '') return true
     return (
       product.name.toLowerCase().includes(query) ||
