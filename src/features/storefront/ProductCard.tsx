@@ -39,6 +39,9 @@ export default function ProductCard({ product }: { product: Product }) {
             {product.stock === 'low' ? `¡Últimas ${stockCount(product)} unidades!` : 'En stock'}
           </span>
           {product.personalizable && <span className="sf-tag sf-tag--outline">Personalizable</span>}
+          {!product.personalizable && product.customOnRequest && (
+            <span className="sf-tag sf-tag--soft">Personalizable a pedido</span>
+          )}
         </div>
         <div className="product-card__name">{product.name}</div>
         <div className="product-card__price">
