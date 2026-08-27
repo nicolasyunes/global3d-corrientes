@@ -17,6 +17,7 @@ const product = (overrides: Partial<Product> = {}): Product => ({
   name: 'Producto',
   price: 10000,
   personalizable: false,
+  customOnRequest: true,
   colors: null,
   stock: 'in',
   desc: '',

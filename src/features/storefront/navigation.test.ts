@@ -6,7 +6,9 @@ import {
   resolveCategorySlug,
   allProductCats,
   findCategory,
+  findNav,
 } from './navigation'
+import { PRODUCTS } from './data/products'
 
 describe('NAV config', () => {
   it('has 11 categories with unique slugs', () => {
@@ -73,5 +75,48 @@ describe('NAV config', () => {
   it('findCategory returns the back-compat shape', () => {
     expect(findCategory('trofeos')).toEqual({ slug: 'trofeos', name: 'Trofeos y Premios' })
     expect(findCategory('nope')).toBeUndefined()
+  })
+})
+
+describe('NAV <-> catalog integrity', () => {
+  it('every product cat is a valid NAV slug or memberCats target', () => {
+    const valid = allProductCats()
+    for (const p of PRODUCTS) {
+      expect(valid.has(p.cat), `${p.id} has cat "${p.cat}"`).toBe(true)
+    }
+  })
+
+  it('every product subcat exists in its resolved category', () => {
+    for (const p of PRODUCTS) {
+      if (!p.subcat) continue
+      const nav = findNav(p.cat)
+      expect(nav, `${p.id} cat "${p.cat}" resolves`).toBeDefined()
+      const subSlugs = nav!.subLinks.map((s) => s.slug)
+      expect(subSlugs, `${p.id} subcat "${p.subcat}"`).toContain(p.subcat)
+    }
+  })
+
+  it('capacity is only set on vasos-ferneteros products', () => {
+    for (const p of PRODUCTS) {
+      if (p.capacity) expect(p.cat).toBe('vasos-ferneteros')
+    }
+  })
+
+  it('no product carries an empty themes array', () => {
+    for (const p of PRODUCTS) {
+      if (p.themes) expect(p.themes.length, p.id).toBeGreaterThan(0)
+    }
+  })
+
+  it('filaments and printers are never customOnRequest', () => {
+    for (const p of PRODUCTS.filter((p) => p.cat === 'filamentos' || p.cat === 'impresoras')) {
+      expect(p.customOnRequest, p.id).toBe(false)
+    }
+  })
+
+  it('every other product is customOnRequest', () => {
+    for (const p of PRODUCTS.filter((p) => p.cat !== 'filamentos' && p.cat !== 'impresoras')) {
+      expect(p.customOnRequest, p.id).toBe(true)
+    }
   })
 })

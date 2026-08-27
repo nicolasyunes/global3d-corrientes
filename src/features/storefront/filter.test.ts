@@ -12,10 +12,10 @@ const baseFilters: ProductFilters = {
 }
 
 const products: Product[] = [
-  { id: 'a', cat: 'llaveros', name: 'Llavero barato', price: 1000, personalizable: false, colors: null, stock: 'in', desc: '', specs: [] },
-  { id: 'b', cat: 'trofeos', name: 'Trofeo personalizado', price: 15000, personalizable: true, colors: null, stock: 'in', desc: '', specs: [] },
-  { id: 'c', cat: 'filamentos', brand: '3n3', name: '3N3 — PLA', price: 25000, personalizable: false, colors: null, stock: 'in', desc: '', specs: [] },
-  { id: 'd', cat: 'filamentos', brand: 'grilon3', name: 'Grilon3 — PLA', price: 25000, personalizable: false, colors: null, stock: 'in', desc: '', specs: [] },
+  { id: 'a', cat: 'llaveros', name: 'Llavero barato', price: 1000, personalizable: false, customOnRequest: true, colors: null, stock: 'in', desc: '', specs: [] },
+  { id: 'b', cat: 'trofeos', name: 'Trofeo personalizado', price: 15000, personalizable: true, customOnRequest: true, colors: null, stock: 'in', desc: '', specs: [] },
+  { id: 'c', cat: 'filamentos', brand: '3n3', name: '3N3 — PLA', price: 25000, personalizable: false, customOnRequest: false, colors: null, stock: 'in', desc: '', specs: [] },
+  { id: 'd', cat: 'filamentos', brand: 'grilon3', name: 'Grilon3 — PLA', price: 25000, personalizable: false, customOnRequest: false, colors: null, stock: 'in', desc: '', specs: [] },
 ]
 
 describe('filterProducts', () => {
