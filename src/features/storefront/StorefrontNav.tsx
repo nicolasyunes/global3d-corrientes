@@ -69,6 +69,7 @@ function DesktopNav() {
               to={`/categoria/${c.slug}`}
               className={`sf-nav__item ${openSlug === c.slug ? 'sf-nav__item--open' : ''}`}
               aria-expanded={openSlug === c.slug}
+              aria-controls="sf-megamenu-panel"
               aria-haspopup={c.subLinks.length > 0}
               onFocus={() => (c.subLinks.length ? setOpenSlug(c.slug) : closeNow())}
             >
@@ -83,6 +84,7 @@ function DesktopNav() {
           <div className="sf-megamenu__scrim" aria-hidden="true" onMouseEnter={scheduleClose} />
           <div
             className="sf-megamenu"
+            id="sf-megamenu-panel"
             role="region"
             aria-label={openCat.name}
             onMouseEnter={() => window.clearTimeout(closeTimer.current)}
