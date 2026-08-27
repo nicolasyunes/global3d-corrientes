@@ -43,22 +43,90 @@ describe('validateProduct', () => {
   })
 
   it('accepts an empty base price (optional)', () => {
-    const errors = validateProduct({ ...emptyProductDraft(), name: 'Llavero', basePrice: '' })
+    const errors = validateProduct({
+      ...emptyProductDraft(),
+      name: 'Llavero',
+      basePrice: '',
+    })
     expect(errors.basePrice).toBeUndefined()
   })
 
   it('rejects an invalid base price', () => {
-    const errors = validateProduct({ ...emptyProductDraft(), name: 'Llavero', basePrice: '-5' })
+    const errors = validateProduct({
+      ...emptyProductDraft(),
+      name: 'Llavero',
+      basePrice: '-5',
+    })
     expect(errors.basePrice).toBeDefined()
   })
 
   it('rejects an invalid stock quantity', () => {
-    const errors = validateProduct({ ...emptyProductDraft(), name: 'Llavero', stockQuantity: '' })
+    const errors = validateProduct({
+      ...emptyProductDraft(),
+      name: 'Llavero',
+      stockQuantity: '',
+    })
     expect(errors.stockQuantity).toBeDefined()
   })
 
   it('passes with a valid minimal draft', () => {
     const errors = validateProduct({ ...emptyProductDraft(), name: 'Llavero' })
     expect(errors).toEqual({})
+  })
+
+  it('rechaza un slug con caracteres inválidos', () => {
+    const errors = validateProduct({
+      ...emptyProductDraft(),
+      name: 'X',
+      slug: 'Con Espacios',
+    })
+    expect(errors.slug).toBeDefined()
+  })
+
+  it('acepta un slug kebab-case válido', () => {
+    const errors = validateProduct({
+      ...emptyProductDraft(),
+      name: 'X',
+      slug: 'vaso-fernetero-boca',
+    })
+    expect(errors.slug).toBeUndefined()
+  })
+
+  it('rechaza un precio comparativo menor o igual al precio base', () => {
+    const errors = validateProduct({
+      ...emptyProductDraft(),
+      name: 'X',
+      basePrice: '100',
+      compareAtPrice: '100',
+    })
+    expect(errors.compareAtPrice).toBeDefined()
+  })
+
+  it('acepta un precio comparativo mayor al base', () => {
+    const errors = validateProduct({
+      ...emptyProductDraft(),
+      name: 'X',
+      basePrice: '100',
+      compareAtPrice: '150',
+    })
+    expect(errors.compareAtPrice).toBeUndefined()
+  })
+
+  it('rechaza un peso no entero', () => {
+    const errors = validateProduct({
+      ...emptyProductDraft(),
+      name: 'X',
+      weightGrams: '10.5',
+    })
+    expect(errors.weightGrams).toBeDefined()
+  })
+
+  it('rechaza un SKU con espacios', () => {
+    const errors = validateProduct({
+      ...emptyProductDraft(),
+      name: 'X',
+      sku: 'A B',
+    })
+    expect(errors.sku).toBeDefined()
   })
 })
