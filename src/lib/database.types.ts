@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      categories: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          icon: string | null
+          position: number
+          featured: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          name: string
+          icon?: string | null
+          position?: number
+          featured?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          name?: string
+          icon?: string | null
+          position?: number
+          featured?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           id: string
@@ -45,6 +78,7 @@ export type Database = {
           brand: string | null
           quantity_grams: number | null
           remaining_grams: number | null
+          unit_price: number | null
           active: boolean
           created_at: string
           updated_at: string
@@ -57,6 +91,7 @@ export type Database = {
           brand?: string | null
           quantity_grams?: number | null
           remaining_grams?: number | null
+          unit_price?: number | null
           active?: boolean
           created_at?: string
           updated_at?: string
@@ -69,6 +104,7 @@ export type Database = {
           brand?: string | null
           quantity_grams?: number | null
           remaining_grams?: number | null
+          unit_price?: number | null
           active?: boolean
           created_at?: string
           updated_at?: string
@@ -275,6 +311,44 @@ export type Database = {
           },
         ]
       }
+      product_images: {
+        Row: {
+          id: string
+          product_id: string
+          path: string
+          url: string
+          position: number
+          alt: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          path: string
+          url: string
+          position?: number
+          alt?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          path?: string
+          url?: string
+          position?: number
+          alt?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'product_images_product_id_fkey'
+            columns: ['product_id']
+            isOneToOne: false
+            referencedRelation: 'products'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       product_variants: {
         Row: {
           id: string
@@ -333,6 +407,14 @@ export type Database = {
           active: boolean
           created_at: string
           updated_at: string
+          slug: string | null
+          sku: string | null
+          compare_at_price: number | null
+          custom_on_request: boolean
+          personalizable: boolean
+          weight_grams: number | null
+          category_id: string | null
+          subcategory: string | null
         }
         Insert: {
           id?: string
@@ -344,6 +426,14 @@ export type Database = {
           active?: boolean
           created_at?: string
           updated_at?: string
+          slug?: string | null
+          sku?: string | null
+          compare_at_price?: number | null
+          custom_on_request?: boolean
+          personalizable?: boolean
+          weight_grams?: number | null
+          category_id?: string | null
+          subcategory?: string | null
         }
         Update: {
           id?: string
@@ -355,8 +445,24 @@ export type Database = {
           active?: boolean
           created_at?: string
           updated_at?: string
+          slug?: string | null
+          sku?: string | null
+          compare_at_price?: number | null
+          custom_on_request?: boolean
+          personalizable?: boolean
+          weight_grams?: number | null
+          category_id?: string | null
+          subcategory?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'products_category_id_fkey'
+            columns: ['category_id']
+            isOneToOne: false
+            referencedRelation: 'categories'
+            referencedColumns: ['id']
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -413,6 +519,9 @@ export type Database = {
           updated_at: string
           inventory_id: string | null
           quantity_grams: number | null
+          product_id: string | null
+          quantity: number | null
+          customer_id: string | null
         }
         Insert: {
           id?: string
@@ -427,6 +536,9 @@ export type Database = {
           updated_at?: string
           inventory_id?: string | null
           quantity_grams?: number | null
+          product_id?: string | null
+          quantity?: number | null
+          customer_id?: string | null
         }
         Update: {
           id?: string
@@ -441,8 +553,25 @@ export type Database = {
           updated_at?: string
           inventory_id?: string | null
           quantity_grams?: number | null
+          product_id?: string | null
+          quantity?: number | null
+          customer_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: 'transactions_customer_id_fkey'
+            columns: ['customer_id']
+            isOneToOne: false
+            referencedRelation: 'customers'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'transactions_inventory_id_fkey'
+            columns: ['inventory_id']
+            isOneToOne: false
+            referencedRelation: 'inventory'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'transactions_order_id_fkey'
             columns: ['order_id']
@@ -451,10 +580,10 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
-            foreignKeyName: 'transactions_inventory_id_fkey'
-            columns: ['inventory_id']
+            foreignKeyName: 'transactions_product_id_fkey'
+            columns: ['product_id']
             isOneToOne: false
-            referencedRelation: 'inventory'
+            referencedRelation: 'products'
             referencedColumns: ['id']
           },
         ]
@@ -476,8 +605,9 @@ export type Database = {
         | 'printing'
         | 'post_processing'
         | 'finished'
+        | 'delivered'
         | 'cancelled'
-      transaction_type: '3d_service' | 'supplies_sale'
+      transaction_type: '3d_service' | 'supplies_sale' | 'product_sale'
     }
     CompositeTypes: {
       [_ in never]: never
