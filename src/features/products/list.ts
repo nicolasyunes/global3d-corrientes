@@ -18,7 +18,7 @@ export function stockLevel(
 export interface ProductFilter {
   query: string
   activeOnly: boolean
-  categoryId: string // '' = todas
+  categoryId?: string // '' o ausente = todas
 }
 
 export function emptyProductFilter(): ProductFilter {
@@ -36,7 +36,10 @@ export function filterProducts(
 
   return products.filter((product) => {
     if (filter.activeOnly && !product.active) return false
-    if (filter.categoryId !== '' && product.category_id !== filter.categoryId)
+    if (
+      (filter.categoryId ?? '') !== '' &&
+      product.category_id !== filter.categoryId
+    )
       return false
     if (query === '') return true
     return (
