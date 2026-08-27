@@ -1,7 +1,7 @@
 // Single source of truth for the storefront category tree. The nav bar, the
 // mega-menu panels, the mobile drawer and the CategoryPage facet sidebar are
 // all generated from NAV. Replaces the old flat CATEGORIES array and the
-// name-matching subcategories.ts module.
+// name-matching sub-link helper module.
 
 export type SubLink = {
   slug: string
