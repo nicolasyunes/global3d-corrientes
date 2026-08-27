@@ -10,6 +10,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "gen:types": "node scripts/gen-types.mjs && prettier --write src/lib/database.types.ts",
+    "import:catalog": "node scripts/import-catalog.mjs",
     "db:reset": "supabase db reset",
     "lint": "eslint .",
     "format": "prettier --write .",
