@@ -2107,3 +2107,21 @@
   white-space: pre-wrap;
   color: var(--color-carbon);
 }
+
+/* --- OrderEdit (/admin/orders/:id/editar) ---------------------------- */
+.order-edit__header {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1rem 1rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.order-edit__customer {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-carbon);
+}
