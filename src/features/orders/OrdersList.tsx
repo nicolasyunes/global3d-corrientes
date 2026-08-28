@@ -5,13 +5,14 @@ import {
   deleteOrder,
   listOrderItemCounts,
   listOrders,
+  listProductionTaskCounts,
   updateOrder,
   type OrderWithCustomer,
 } from './orders.api'
 import {
   emptyFilters,
   filterOrders,
-  isOverdue,
+  getOrderSemaphore,
   shapeOrders,
   type ListTab,
   type OrderFilters,
@@ -42,6 +43,9 @@ type Tab = ListTab | 'sheet'
 export default function OrdersList() {
   const [orders, setOrders] = useState<OrderWithCustomer[]>([])
   const [itemCounts, setItemCounts] = useState<Record<string, number>>({})
+  const [taskCounts, setTaskCounts] = useState<
+    Record<string, { done: number; total: number }>
+  >({})
   const [view, setView] = useState<View>('date')
   const [tab, setTab] = useState<Tab>('pending')
   const [filters, setFilters] = useState<OrderFilters>(emptyFilters())
@@ -50,16 +54,18 @@ export default function OrdersList() {
   const [advancingId, setAdvancingId] = useState<string | null>(null)
   const [advanceError, setAdvanceError] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [justCreated, setJustCreated] = useState<OrderWithCustomer | null>(null)
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([listOrders(), listOrderItemCounts()])
-      .then(([rows, counts]) => {
+    Promise.all([listOrders(), listOrderItemCounts(), listProductionTaskCounts()])
+      .then(([rows, counts, tasks]) => {
         if (!cancelled) {
           setOrders(rows)
           setItemCounts(counts)
+          setTaskCounts(tasks)
         }
       })
       .catch((err) => {
@@ -103,6 +109,13 @@ export default function OrdersList() {
     filters.dueTo !== '' ||
     filters.productType !== '' ||
     filters.customerSearch !== ''
+
+  // Auto-expands the collapsed filters panel the moment a filter becomes
+  // active, but never fights a manual toggle afterwards (only fires on the
+  // false → true transition, not on every render).
+  useEffect(() => {
+    if (filtersActive) setFiltersOpen(true)
+  }, [filtersActive])
 
   function setFilter<K extends keyof OrderFilters>(
     field: K,
@@ -210,6 +223,17 @@ export default function OrdersList() {
         )}
       </div>
 
+      {/* The Planilla tab renders its own capture row ("Agregar a la
+          planilla", wired to that tab's optimistic sheet-mirror list), so the
+          generic quick-capture section is hidden there to avoid two identical
+          rows. */}
+      {view === 'date' && tab !== 'sheet' && (
+        <section className="quick-order-section">
+          <h2 className="quick-order-section__title">Pedido rápido</h2>
+          <QuickOrderRow onCreated={handleQuickOrderCreated} />
+        </section>
+      )}
+
       {justCreated && (
         <div className="undo-toast" role="status">
           <span className="undo-toast__text">
@@ -223,82 +247,6 @@ export default function OrdersList() {
             Deshacer
           </button>
         </div>
-      )}
-
-      {view === 'date' && tab !== 'sheet' && (
-        <div className="orders-filters">
-          <div className="field orders-filters__field">
-            <label className="field__label" htmlFor="filter-due-from">
-              Entrega desde
-            </label>
-            <input
-              id="filter-due-from"
-              className="field__input"
-              type="date"
-              value={filters.dueFrom}
-              onChange={(e) => setFilter('dueFrom', e.target.value)}
-            />
-          </div>
-          <div className="field orders-filters__field">
-            <label className="field__label" htmlFor="filter-due-to">
-              Entrega hasta
-            </label>
-            <input
-              id="filter-due-to"
-              className="field__input"
-              type="date"
-              value={filters.dueTo}
-              onChange={(e) => setFilter('dueTo', e.target.value)}
-            />
-          </div>
-          <div className="field orders-filters__field">
-            <label className="field__label" htmlFor="filter-product-type">
-              Producto
-            </label>
-            <select
-              id="filter-product-type"
-              className="field__input"
-              value={filters.productType}
-              onChange={(e) => setFilter('productType', e.target.value)}
-            >
-              <option value="">Todos</option>
-              {PRODUCT_TYPE.map((type) => (
-                <option key={type} value={type}>
-                  {PRODUCT_TYPE_LABELS[type]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field orders-filters__field orders-filters__field--search">
-            <label className="field__label" htmlFor="filter-customer">
-              Cliente
-            </label>
-            <input
-              id="filter-customer"
-              className="field__input"
-              type="text"
-              placeholder="Buscar por nombre…"
-              value={filters.customerSearch}
-              onChange={(e) => setFilter('customerSearch', e.target.value)}
-            />
-          </div>
-          {filtersActive && (
-            <button
-              type="button"
-              className="link-btn orders-filters__clear"
-              onClick={() => setFilters(emptyFilters())}
-            >
-              Limpiar filtros
-            </button>
-          )}
-        </div>
-      )}
-
-      {view === 'date' && (
-        <section className="quick-order-section">
-          <h2 className="quick-order-section__title">Pedido rápido</h2>
-          <QuickOrderRow onCreated={handleQuickOrderCreated} />
-        </section>
       )}
 
       {loading && <p className="orders-list__status">Cargando…</p>}
@@ -349,6 +297,9 @@ export default function OrdersList() {
           <table className="orders-table">
             <thead>
               <tr>
+                <th scope="col" className="orders-table__index-head">
+                  N.º
+                </th>
                 <th scope="col">Cliente</th>
                 <th scope="col">Producto</th>
                 <th scope="col">Entrega</th>
@@ -359,45 +310,134 @@ export default function OrdersList() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((order, index) => (
-                <tr
-                  key={order.id}
-                  className={`orders-table__row${
-                    index % 2 === 1 ? ' orders-table__row--alt' : ''
-                  }${isOverdue(order, today) ? ' orders-table__row--overdue' : ''}`}
-                >
-                  <td>
-                    <Link
-                      to={`/admin/orders/${order.id}`}
-                      className="orders-table__link"
-                    >
-                      {order.customers?.name ?? 'Desconocido'}
-                    </Link>
-                  </td>
-                  <td className="orders-table__muted">
-                    {itemCounts[order.id] > 1
-                      ? `${itemCounts[order.id]} ítems`
-                      : PRODUCT_TYPE_LABELS[order.product_type as ProductType] ??
-                        order.product_type}
-                  </td>
-                  <td
-                    className={`orders-table__due${
-                      isOverdue(order, today) ? ' orders-table__due--overdue' : ''
+              {rows.map((order, index) => {
+                const semaphore = getOrderSemaphore(order, today)
+                return (
+                  <tr
+                    key={order.id}
+                    className={`orders-table__row orders-table__row--${semaphore}${
+                      semaphore === 'ok' && index % 2 === 1
+                        ? ' orders-table__row--alt'
+                        : ''
                     }`}
                   >
-                    {formatDueDate(order.due_date, today)}
-                  </td>
-                  <td>
-                    <StatusBadge status={order.status} />
-                  </td>
-                  <td className="orders-table__num orders-table__pending">
-                    {formatMoney(order.pending_balance)}
-                  </td>
-                </tr>
-              ))}
+                    <td className="orders-table__index">
+                      {String(index + 1).padStart(3, '0')}
+                    </td>
+                    <td>
+                      <Link
+                        to={`/admin/orders/${order.id}`}
+                        className="orders-table__link"
+                      >
+                        {order.customers?.name ?? 'Desconocido'}
+                      </Link>
+                    </td>
+                    <td className="orders-table__muted">
+                      {itemCounts[order.id] > 1
+                        ? `${itemCounts[order.id]} ítems`
+                        : PRODUCT_TYPE_LABELS[order.product_type as ProductType] ??
+                          order.product_type}
+                    </td>
+                    <td
+                      className={`orders-table__due${
+                        semaphore === 'urgent' ? ' orders-table__due--urgent' : ''
+                      }`}
+                    >
+                      {formatDueDate(order.due_date, today)}
+                    </td>
+                    <td>
+                      <StatusBadge status={order.status} />
+                    </td>
+                    <td className="orders-table__num orders-table__pending">
+                      {formatMoney(order.pending_balance)}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
+      )}
+
+      {view === 'date' && tab !== 'sheet' && (
+        <details
+          className="orders-filters"
+          open={filtersOpen}
+          onToggle={(e) => setFiltersOpen(e.currentTarget.open)}
+        >
+          <summary className="orders-filters__summary">
+            Filtros
+            {filtersActive && (
+              <span className="orders-filters__badge">Activos</span>
+            )}
+          </summary>
+          <div className="orders-filters__body">
+            <div className="field orders-filters__field">
+              <label className="field__label" htmlFor="filter-due-from">
+                Entrega desde
+              </label>
+              <input
+                id="filter-due-from"
+                className="field__input"
+                type="date"
+                value={filters.dueFrom}
+                onChange={(e) => setFilter('dueFrom', e.target.value)}
+              />
+            </div>
+            <div className="field orders-filters__field">
+              <label className="field__label" htmlFor="filter-due-to">
+                Entrega hasta
+              </label>
+              <input
+                id="filter-due-to"
+                className="field__input"
+                type="date"
+                value={filters.dueTo}
+                onChange={(e) => setFilter('dueTo', e.target.value)}
+              />
+            </div>
+            <div className="field orders-filters__field">
+              <label className="field__label" htmlFor="filter-product-type">
+                Producto
+              </label>
+              <select
+                id="filter-product-type"
+                className="field__input"
+                value={filters.productType}
+                onChange={(e) => setFilter('productType', e.target.value)}
+              >
+                <option value="">Todos</option>
+                {PRODUCT_TYPE.map((type) => (
+                  <option key={type} value={type}>
+                    {PRODUCT_TYPE_LABELS[type]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field orders-filters__field orders-filters__field--search">
+              <label className="field__label" htmlFor="filter-customer">
+                Cliente
+              </label>
+              <input
+                id="filter-customer"
+                className="field__input"
+                type="text"
+                placeholder="Buscar por nombre…"
+                value={filters.customerSearch}
+                onChange={(e) => setFilter('customerSearch', e.target.value)}
+              />
+            </div>
+            {filtersActive && (
+              <button
+                type="button"
+                className="link-btn orders-filters__clear"
+                onClick={() => setFilters(emptyFilters())}
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+        </details>
       )}
 
       {!loading && !error && view === 'kanban' && (
@@ -406,36 +446,44 @@ export default function OrdersList() {
           today={today}
           advancingId={advancingId}
           onAdvance={handleAdvance}
+          taskCounts={taskCounts}
         />
       )}
 
-      <div className="sticky-cta">
-        <div className="sticky-cta__inner">
-          {/* ≥900px: QuickOrderRow already covers capture inline, so this
-              stays a direct link to the full form. <900px: QuickOrderRow is
-              hidden (see orders.css), so this button opens QuickOrderSheet
-              instead — CSS toggles which of the two renders. */}
-          <Link
-            to="/admin/orders/new"
-            className="primary-btn sticky-cta__link"
-          >
-            Pedido rápido
-          </Link>
-          <button
-            type="button"
-            className="primary-btn sticky-cta__trigger"
-            onClick={() => setSheetOpen(true)}
-          >
-            Pedido rápido
-          </button>
-        </div>
-      </div>
+      {/* The Planilla tab carries its own capture affordance (and its own
+          optimistic list), so the app-wide quick-capture CTA steps aside
+          there to avoid two competing "add" buttons. */}
+      {!(view === 'date' && tab === 'sheet') && (
+        <>
+          <div className="sticky-cta">
+            <div className="sticky-cta__inner">
+              {/* ≥900px: QuickOrderRow already covers capture inline, so this
+                  stays a direct link to the full form. <900px: QuickOrderRow is
+                  hidden (see orders.css), so this button opens QuickOrderSheet
+                  instead — CSS toggles which of the two renders. */}
+              <Link
+                to="/admin/orders/new"
+                className="primary-btn sticky-cta__link"
+              >
+                Pedido rápido
+              </Link>
+              <button
+                type="button"
+                className="primary-btn sticky-cta__trigger"
+                onClick={() => setSheetOpen(true)}
+              >
+                Pedido rápido
+              </button>
+            </div>
+          </div>
 
-      <QuickOrderSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        onCreated={handleQuickOrderCreated}
-      />
+          <QuickOrderSheet
+            open={sheetOpen}
+            onClose={() => setSheetOpen(false)}
+            onCreated={handleQuickOrderCreated}
+          />
+        </>
+      )}
     </main>
   )
 }

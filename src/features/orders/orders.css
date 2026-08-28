@@ -2125,3 +2125,43 @@
   font-weight: 700;
   color: var(--color-carbon);
 }
+
+/* --- Kanban card: production data ----------------------------------- */
+.kanban-card__colors {
+  font-size: 0.8125rem;
+  color: var(--color-carbon-muted);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kanban-card__swatch {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  margin-right: 0.25rem;
+  border: 1px solid var(--color-carbon-soft);
+  vertical-align: middle;
+}
+
+.kanban-card__engraving {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-carbon);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.kanban-card__tasks {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 999px;
+  background: var(--color-carbon-soft);
+  color: var(--color-carbon-muted);
+}

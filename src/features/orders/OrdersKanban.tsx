@@ -10,6 +10,7 @@ import { groupOrdersByStatus, isOverdue } from './list'
 import { nextOrderStatus, ORDER_STATUS_FLOW } from './status'
 import { formatDueDate, formatMoney } from './format'
 import type { OrderWithCustomer } from './orders.api'
+import { colorSpecEntries, swatchFor } from './colorSpec'
 
 // Every column the board can show, in production order, with the off-flow
 // terminal state pinned last so it never breaks the left-to-right flow read.
@@ -23,6 +24,7 @@ interface OrdersKanbanProps {
   today: string
   advancingId: string | null
   onAdvance: (order: OrderWithCustomer) => void
+  taskCounts: Record<string, { done: number; total: number }>
 }
 
 // Status board for `/admin/orders`: one column per production stage so the
@@ -40,6 +42,7 @@ export default function OrdersKanban({
   today,
   advancingId,
   onAdvance,
+  taskCounts,
 }: OrdersKanbanProps) {
   const columns = groupOrdersByStatus(orders, KANBAN_STATUSES)
 
@@ -71,6 +74,8 @@ export default function OrdersKanban({
                 {rows.map((order) => {
                   const next = nextOrderStatus(order.status)
                   const overdue = isOverdue(order, today)
+                  const colors = colorSpecEntries(order.color_spec)
+                  const tasks = taskCounts[order.id]
                   return (
                     <li key={order.id} className="kanban-card">
                       <Link
@@ -85,6 +90,34 @@ export default function OrdersKanban({
                             order.product_type as ProductType
                           ] ?? order.product_type}
                         </span>
+                        {colors.length > 0 && (
+                          <span className="kanban-card__colors">
+                            {colors.map(({ part, color }, i) => {
+                              const hex = swatchFor(color)
+                              return (
+                                <span
+                                  key={part}
+                                  className="kanban-card__color"
+                                >
+                                  {i > 0 && ' · '}
+                                  {hex && (
+                                    <span
+                                      className="kanban-card__swatch"
+                                      style={{ backgroundColor: hex }}
+                                      aria-hidden="true"
+                                    />
+                                  )}
+                                  {part} {color}
+                                </span>
+                              )
+                            })}
+                          </span>
+                        )}
+                        {order.personalization && (
+                          <span className="kanban-card__engraving">
+                            {order.personalization}
+                          </span>
+                        )}
                         <span className="kanban-card__row">
                           <span
                             className={`kanban-card__due${
@@ -96,6 +129,11 @@ export default function OrdersKanban({
                           <span className="kanban-card__pending">
                             {formatMoney(order.pending_balance)}
                           </span>
+                          {tasks && tasks.total > 0 && (
+                            <span className="kanban-card__tasks">
+                              {tasks.done}/{tasks.total}
+                            </span>
+                          )}
                         </span>
                         {order.observations && (
                           <span className="kanban-card__note">
