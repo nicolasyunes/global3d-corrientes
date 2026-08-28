@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -56,5 +56,21 @@ describe('CategoryPage', () => {
   it('shows the brand facet only for impresion-3d', () => {
     renderAt('/categoria/impresion-3d')
     expect(screen.getByText('Marca')).toBeInTheDocument()
+  })
+
+  it('keeps the personalizable + price filters on /categoria/todas (FR-1)', () => {
+    renderAt('/categoria/todas')
+    expect(screen.getByLabelText('Sólo personalizables (a medida)')).toBeInTheDocument()
+    expect(screen.getByText('Precio')).toBeInTheDocument()
+  })
+
+  it('surfaces and clears an active ?tema= filter on /categoria/todas (FR-2)', () => {
+    renderAt('/categoria/todas?tema=mundial')
+    const count = () => Number(screen.getByText(/^\d+ resultados?$/).textContent!.split(' ')[0])
+    const filtered = count()
+    const clear = screen.getByRole('button', { name: 'Limpiar filtros' })
+    fireEvent.click(clear)
+    expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument()
+    expect(count()).toBeGreaterThan(filtered)
   })
 })

@@ -46,6 +46,19 @@ describe('StorefrontNav — desktop', () => {
     expect(within(panel).getByRole('link', { name: 'Fútbol y Clubes' })).toBeInTheDocument()
     expect(within(panel).getByRole('link', { name: 'Ver todo' })).toBeInTheDocument()
   })
+
+  it('reveals a NON-last category panel on keyboard focus (FR-4)', async () => {
+    renderNav()
+    fireEvent.focus(screen.getByRole('link', { name: 'Figuras y Coleccionables' }))
+    const panel = await screen.findByRole('region', { name: 'Figuras y Coleccionables' })
+    expect(
+      within(panel).getByRole('link', { name: 'Funko Pop Personalizados' }),
+    ).toBeInTheDocument()
+    expect(within(panel).getByRole('link', { name: 'Ver todo' })).toBeInTheDocument()
+    // panel follows its own trigger in DOM order (so it is keyboard-reachable)
+    const trigger = screen.getByRole('link', { name: 'Figuras y Coleccionables' })
+    expect(trigger.closest('.sf-nav__group')).toContainElement(panel)
+  })
 })
 
 describe('StorefrontNav — mobile', () => {

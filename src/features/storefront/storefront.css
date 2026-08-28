@@ -862,6 +862,22 @@
   gap: 0.75rem;
 }
 
+.sf-results-bar__clear {
+  border: 1px solid var(--color-carbon-soft);
+  background: var(--color-white);
+  color: var(--color-carbon-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+.sf-results-bar__clear:hover {
+  color: var(--color-carbon);
+  background: var(--color-carbon-soft);
+}
+
 .sf-empty {
   padding: 4rem 0;
   text-align: center;
@@ -1352,10 +1368,6 @@
 }
 .sf-megamenu__link--all {
   font-weight: 800;
-}
-
-.sf-nav--mobile .sf-nav__bar {
-  display: none;
 }
 
 .sf-nav__toggle {

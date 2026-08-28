@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 import { NAV, type NavCategory } from './navigation'
@@ -69,51 +69,52 @@ function DesktopNav() {
               to={`/categoria/${c.slug}`}
               className={`sf-nav__item ${openSlug === c.slug ? 'sf-nav__item--open' : ''}`}
               aria-expanded={openSlug === c.slug}
-              aria-controls="sf-megamenu-panel"
+              aria-controls={openSlug === c.slug ? 'sf-megamenu-panel' : undefined}
               aria-haspopup={c.subLinks.length > 0}
               onFocus={() => (c.subLinks.length ? setOpenSlug(c.slug) : closeNow())}
             >
               <span aria-hidden="true">{c.icon}</span> {c.name}
             </Link>
+
+            {openSlug === c.slug && c.subLinks.length > 0 && (
+              <div
+                className="sf-megamenu"
+                id="sf-megamenu-panel"
+                role="region"
+                aria-label={c.name}
+                onMouseEnter={() => window.clearTimeout(closeTimer.current)}
+                onMouseLeave={scheduleClose}
+              >
+                <div className="sf-megamenu__inner">
+                  <div className="sf-megamenu__title">
+                    <span aria-hidden="true">{c.icon}</span> {c.name}
+                  </div>
+                  <ul className="sf-megamenu__cols">
+                    <li>
+                      <Link
+                        to={`/categoria/${c.slug}`}
+                        className="sf-megamenu__link sf-megamenu__link--all"
+                      >
+                        Ver todo
+                      </Link>
+                    </li>
+                    {c.subLinks.map((s) => (
+                      <li key={s.slug}>
+                        <Link to={subLinkTo(c.slug, s.slug)} className="sf-megamenu__link">
+                          {s.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
 
       {openCat && openCat.subLinks.length > 0 && (
-        <>
-          <div className="sf-megamenu__scrim" aria-hidden="true" onMouseEnter={scheduleClose} />
-          <div
-            className="sf-megamenu"
-            id="sf-megamenu-panel"
-            role="region"
-            aria-label={openCat.name}
-            onMouseEnter={() => window.clearTimeout(closeTimer.current)}
-            onMouseLeave={scheduleClose}
-          >
-            <div className="sf-megamenu__inner">
-              <div className="sf-megamenu__title">
-                <span aria-hidden="true">{openCat.icon}</span> {openCat.name}
-              </div>
-              <ul className="sf-megamenu__cols">
-                <li>
-                  <Link
-                    to={`/categoria/${openCat.slug}`}
-                    className="sf-megamenu__link sf-megamenu__link--all"
-                  >
-                    Ver todo
-                  </Link>
-                </li>
-                {openCat.subLinks.map((s) => (
-                  <li key={s.slug}>
-                    <Link to={subLinkTo(openCat.slug, s.slug)} className="sf-megamenu__link">
-                      {s.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </>
+        <div className="sf-megamenu__scrim" aria-hidden="true" onMouseEnter={scheduleClose} />
       )}
     </nav>
   )
@@ -123,15 +124,26 @@ function MobileNav() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
   const location = useLocation()
+  const drawerRef = useRef<HTMLDivElement>(null)
+  const closeBtnRef = useRef<HTMLButtonElement>(null)
+  const toggleRef = useRef<HTMLButtonElement>(null)
+  const prevOpenRef = useRef(false)
 
   useEffect(() => {
     setDrawerOpen(false)
   }, [location.pathname, location.search])
 
   useEffect(() => {
-    if (!drawerOpen) return
+    if (!drawerOpen) {
+      // Restore focus to the hamburger toggle when the drawer closes.
+      if (prevOpenRef.current) toggleRef.current?.focus()
+      prevOpenRef.current = false
+      return
+    }
+    prevOpenRef.current = true
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    closeBtnRef.current?.focus()
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setDrawerOpen(false)
     }
@@ -142,10 +154,28 @@ function MobileNav() {
     }
   }, [drawerOpen])
 
+  const trapTab = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab' || !drawerRef.current) return
+    const focusables = drawerRef.current.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled])',
+    )
+    if (focusables.length === 0) return
+    const first = focusables[0]
+    const last = focusables[focusables.length - 1]
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
+
   return (
     <nav className="sf-nav sf-nav--mobile" aria-label="Categorías">
       <button
         type="button"
+        ref={toggleRef}
         className="sf-nav__toggle"
         aria-expanded={drawerOpen}
         aria-controls="sf-drawer"
@@ -158,11 +188,18 @@ function MobileNav() {
         <div className="sf-drawer__scrim" aria-hidden="true" onClick={() => setDrawerOpen(false)} />
       )}
 
-      <div id="sf-drawer" className={`sf-drawer ${drawerOpen ? 'sf-drawer--open' : ''}`}>
+      <div
+        id="sf-drawer"
+        ref={drawerRef}
+        className={`sf-drawer ${drawerOpen ? 'sf-drawer--open' : ''}`}
+        onKeyDown={trapTab}
+        {...(drawerOpen ? {} : { inert: '' })}
+      >
         <div className="sf-drawer__head">
           <span>Categorías</span>
           <button
             type="button"
+            ref={closeBtnRef}
             className="sf-drawer__close"
             aria-label="Cerrar menú"
             onClick={() => setDrawerOpen(false)}

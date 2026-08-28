@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { BRAND_LIST, PRODUCTS } from './data/products'
-import { CATEGORY_ALIASES, THEME_LABELS, findNav } from './navigation'
+import { CATEGORY_ALIASES, THEME_LABELS, findNav, type Facet } from './navigation'
 import {
   PRICE_BUCKETS,
   filterProducts,
@@ -14,17 +14,17 @@ import { useMediaQuery } from './useMediaQuery'
 import CustomOrderCTA from './CustomOrderCTA'
 import ProductCard from './ProductCard'
 
-const CAPACITY_OPTIONS: { key: CapacityValue; label: string }[] = [
-  { key: 'all', label: 'Todas' },
-  { key: '500ml', label: '500 ml' },
-  { key: '650ml', label: '650 ml' },
-  { key: '1L', label: '1 litro' },
-]
+const CAPACITY_LABELS: Record<string, string> = {
+  '500ml': '500 ml',
+  '650ml': '650 ml',
+  '1L': '1 litro',
+}
+const CAPACITY_ORDER = ['500ml', '650ml', '1L'] as const
 
 export default function CategoryPage() {
   const navigate = useNavigate()
   const { slug = 'todas' } = useParams()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const aliasTarget = slug !== 'todas' && CATEGORY_ALIASES[slug] ? CATEGORY_ALIASES[slug] : null
   const effSlug = aliasTarget ?? slug
@@ -32,7 +32,7 @@ export default function CategoryPage() {
   const search = searchParams.get('q') || ''
   const activeCategory = search ? 'all' : effSlug === 'todas' ? 'all' : effSlug
   const nav = findNav(activeCategory)
-  const facets = useMemo(() => nav?.facets ?? [], [nav])
+  const facets = useMemo<Facet[]>(() => nav?.facets ?? ['precio', 'personalizable'], [nav])
 
   const [priceBucket, setPriceBucket] = useState<PriceBucket>('all')
   const [brand, setBrand] = useState('all')
@@ -89,6 +89,21 @@ export default function CategoryPage() {
     return [...set].sort().map((s) => ({ slug: s, label: THEME_LABELS[s] ?? s }))
   }, [facets, nav])
 
+  const capacityOptions = useMemo(() => {
+    if (!facets.includes('capacidad')) return [] as { key: CapacityValue; label: string }[]
+    const target = nav?.slug
+    const set = new Set<string>()
+    for (const p of PRODUCTS) {
+      if ((findNav(p.cat)?.slug ?? p.cat) !== target) continue
+      if (p.capacity) set.add(p.capacity)
+    }
+    const opts: { key: CapacityValue; label: string }[] = [{ key: 'all', label: 'Todas' }]
+    for (const c of CAPACITY_ORDER) {
+      if (set.has(c)) opts.push({ key: c, label: CAPACITY_LABELS[c] })
+    }
+    return opts
+  }, [facets, nav])
+
   const toggleTheme = (t: string) =>
     setThemes((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))
 
@@ -99,6 +114,22 @@ export default function CategoryPage() {
     setPriceBucket('all')
     setBrand('all')
     setPersonalizableOnly(false)
+  }
+
+  const hasActiveFilters =
+    sub !== 'all' ||
+    themes.length > 0 ||
+    capacity !== 'all' ||
+    priceBucket !== 'all' ||
+    brand !== 'all' ||
+    personalizableOnly
+
+  const clearFilters = () => {
+    clearAll()
+    const next = new URLSearchParams()
+    const q = searchParams.get('q')
+    if (q) next.set('q', q)
+    setSearchParams(next, { replace: true })
   }
 
   if (aliasTarget) {
@@ -121,9 +152,9 @@ export default function CategoryPage() {
         </FilterGroup>
       )}
 
-      {facets.includes('capacidad') && (
+      {facets.includes('capacidad') && capacityOptions.length >= 2 && (
         <FilterGroup heading="Capacidad">
-          {CAPACITY_OPTIONS.map((c) => (
+          {capacityOptions.map((c) => (
             <FilterButton key={c.key} active={capacity === c.key} onClick={() => setCapacity(c.key)}>
               {c.label}
             </FilterButton>
@@ -201,9 +232,20 @@ export default function CategoryPage() {
           <CustomOrderCTA variant="strip" />
 
           <div className="sf-results-bar">
-            <span className="sf-muted" style={{ fontSize: '0.9rem' }}>
-              {list.length} resultado{list.length === 1 ? '' : 's'}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <span className="sf-muted" style={{ fontSize: '0.9rem' }}>
+                {list.length} resultado{list.length === 1 ? '' : 's'}
+              </span>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  className="sf-results-bar__clear"
+                  onClick={clearFilters}
+                >
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {isMobile && (
                 <button
@@ -260,7 +302,7 @@ export default function CategoryPage() {
             </div>
             <div className="sf-filter-sheet__body sf-filters">{filtersBody}</div>
             <div className="sf-filter-sheet__foot">
-              <button type="button" className="btn btn--secondary" onClick={clearAll}>
+              <button type="button" className="btn btn--secondary" onClick={clearFilters}>
                 Limpiar
               </button>
               <button
