@@ -523,18 +523,62 @@
   outline-offset: 2px;
 }
 
-/* Filters row: Entrega desde/hasta, Producto, Cliente — sits below the
-   sticky toolbar, above the table/cards. Wraps to multiple lines on narrow
-   viewports rather than scrolling; each field keeps its label visible. */
+/* Filters panel: Entrega desde/hasta, Producto, Cliente — deliberately placed
+   below the results, opposite the quick-add section above the toolbar, and
+   styled as a quiet, collapsible <details> so it never competes with "Pedido
+   rápido" for attention. Opens automatically once a filter is active. */
 .orders-filters {
+  width: 95%;
+  max-width: 100%;
+  margin: 1.5rem auto 0;
+  padding: 0.25rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-carbon-soft);
+}
+
+.orders-filters__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 0;
+  color: var(--color-carbon-muted);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.orders-filters__summary::-webkit-details-marker {
+  display: none;
+}
+
+.orders-filters__summary::before {
+  content: '▸';
+  font-size: 0.75rem;
+}
+
+.orders-filters[open] .orders-filters__summary::before {
+  content: '▾';
+}
+
+.orders-filters__badge {
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-orange) 16%, var(--color-white));
+  color: var(--color-carbon);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.orders-filters__body {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 0.75rem 1rem;
-  width: 95%;
-  max-width: 100%;
-  margin-inline: auto;
-  padding: 1rem 1rem 1.5rem;
+  padding: 0.25rem 0 1.25rem;
 }
 
 .orders-filters__field {
@@ -615,8 +659,40 @@
   background: color-mix(in srgb, var(--color-orange) 6%, var(--color-white));
 }
 
-.orders-table__row--overdue td:first-child {
-  box-shadow: inset 3px 0 0 var(--status-red);
+/* Delivery semaphore (see getOrderSemaphore in list.ts): pastel row tint plus
+   a colored left rail, status always overriding date-based urgency. Kept as
+   a soft color-mix tint, never a solid fill, to match the rest of the
+   pastel-token system. */
+.orders-table__row--delivered td {
+  background: color-mix(in srgb, var(--status-blue) 12%, var(--color-white));
+}
+
+.orders-table__row--ready td {
+  background: color-mix(in srgb, var(--status-amber) 14%, var(--color-white));
+}
+
+.orders-table__row--urgent td {
+  background: color-mix(in srgb, var(--status-red) 12%, var(--color-white));
+}
+
+.orders-table__row--ok td {
+  background: color-mix(in srgb, var(--status-green) 8%, var(--color-white));
+}
+
+.orders-table__row td:first-child {
+  border-left: 3px solid transparent;
+}
+
+.orders-table__row--delivered td:first-child {
+  border-left-color: var(--status-blue);
+}
+
+.orders-table__row--ready td:first-child {
+  border-left-color: var(--status-amber);
+}
+
+.orders-table__row--urgent td:first-child {
+  border-left-color: var(--status-red);
 }
 
 .orders-table__link {
@@ -646,7 +722,7 @@
   white-space: nowrap;
 }
 
-.orders-table__due--overdue {
+.orders-table__due--urgent {
   color: var(--status-red);
   font-weight: 700;
 }
@@ -658,6 +734,18 @@
 .orders-table__pending {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Docket index — the row's own number, standing in for a leading icon. */
+.orders-table__index-head {
+  width: 3.5rem;
+}
+
+.orders-table__index {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-carbon-muted);
   white-space: nowrap;
 }
 
@@ -732,12 +820,13 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Status badge — semantic token as text over a ~12% tint (set inline via
-   color-mix). No colored side borders. */
+/* Status stamp — semantic token as a bordered mark, not a filled pill. Reads
+   like a rubber stamp on a docket. */
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.125rem 0.5rem;
+  padding: 0.1875rem 0.5rem;
+  border: 1.5px solid currentColor;
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 700;
@@ -775,6 +864,33 @@
   max-width: 100%;
   margin: 1.5rem auto 0;
   padding-inline: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* Month + estado filters for the Planilla tab */
+.sheet-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sheet-filters__select {
+  min-height: 40px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--color-carbon-soft);
+  border-radius: 0.75rem;
+  background: var(--color-white);
+  color: var(--color-carbon);
+  font: inherit;
+}
+
+.sheet-filters__select:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
 }
 
 /* Sheet view toggle — icon buttons for cards/list */
@@ -898,8 +1014,36 @@
   background: color-mix(in srgb, var(--color-orange) 6%, var(--color-white));
 }
 
-.sheet-table__row--overdue td:first-child {
-  box-shadow: inset 3px 0 0 var(--status-red);
+.sheet-table__row--delivered td {
+  background: color-mix(in srgb, var(--status-blue) 12%, var(--color-white));
+}
+
+.sheet-table__row--ready td {
+  background: color-mix(in srgb, var(--status-amber) 14%, var(--color-white));
+}
+
+.sheet-table__row--urgent td {
+  background: color-mix(in srgb, var(--status-red) 12%, var(--color-white));
+}
+
+.sheet-table__row--ok td {
+  background: color-mix(in srgb, var(--status-green) 8%, var(--color-white));
+}
+
+.sheet-table__row td:first-child {
+  border-left: 3px solid transparent;
+}
+
+.sheet-table__row--delivered td:first-child {
+  border-left-color: var(--status-blue);
+}
+
+.sheet-table__row--ready td:first-child {
+  border-left-color: var(--status-amber);
+}
+
+.sheet-table__row--urgent td:first-child {
+  border-left-color: var(--status-red);
 }
 
 .sheet-table__customer {
@@ -924,7 +1068,7 @@
   white-space: nowrap;
 }
 
-.sheet-table__due--overdue {
+.sheet-table__due--urgent {
   color: var(--status-red);
   font-weight: 700;
 }
@@ -933,6 +1077,18 @@
   text-align: right;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Docket index — the row's own number, standing in for a leading icon. */
+.sheet-table__index-head {
+  width: 3.5rem;
+}
+
+.sheet-table__index {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-carbon-muted);
   white-space: nowrap;
 }
 
@@ -955,11 +1111,40 @@
   border-top-color: var(--color-carbon);
 }
 
+.pending-card--delivered {
+  background: color-mix(in srgb, var(--status-blue) 12%, var(--color-white));
+  border-top-color: var(--status-blue);
+}
+
+.pending-card--ready {
+  background: color-mix(in srgb, var(--status-amber) 14%, var(--color-white));
+  border-top-color: var(--status-amber);
+}
+
+.pending-card--urgent {
+  background: color-mix(in srgb, var(--status-red) 12%, var(--color-white));
+  border-top-color: var(--status-red);
+}
+
+.pending-card--ok {
+  background: color-mix(in srgb, var(--status-green) 8%, var(--color-white));
+  border-top-color: var(--status-green);
+}
+
 .pending-card__top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+/* Docket index — the card's own number, standing in for a leading icon. */
+.pending-card__index {
+  font-weight: 700;
+  font-size: 1.375rem;
+  line-height: 1;
+  color: var(--color-carbon-muted);
+  flex-shrink: 0;
 }
 
 .pending-card__customer {
@@ -1020,7 +1205,7 @@
   align-items: center;
 }
 
-.pending-card__due--overdue {
+.pending-card__due--urgent {
   color: var(--status-red);
 }
 
@@ -1619,6 +1804,10 @@
   flex: 1 1 0;
 }
 
+.quick-order-row__input--channel {
+  flex: 1.4 1 0;
+}
+
 .quick-order-row__submit {
   flex: 0 0 auto;
   min-height: 44px;
@@ -1720,6 +1909,19 @@
   color: var(--color-carbon);
 }
 
+/* <900px the inline QuickOrderRow is hidden, so the Planilla's capture entry
+   point is this button, which opens the same bottom sheet as "Pedido rápido". */
+.quick-order-section__mobile-trigger {
+  display: block;
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .quick-order-section__mobile-trigger {
+    display: none;
+  }
+}
+
 /* Mobile quick-capture sheet — a fixed panel sliding up from the bottom,
    dismissed via the close button, the backdrop, or Escape. */
 .quick-order-sheet {
@@ -1790,4 +1992,118 @@
   .quick-order-sheet {
     display: none;
   }
+}
+
+/* --- OrderProduction (/admin/orders/:id) ------------------------------- */
+.order-production {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1rem 1rem 6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.order-production__nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.order-production__customer {
+  margin: 0.5rem 0 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-carbon);
+}
+
+.order-production__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.375rem;
+}
+
+.order-production__due {
+  font-size: 0.875rem;
+  color: var(--color-carbon-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.order-production__due--overdue {
+  color: var(--status-red);
+  font-weight: 700;
+}
+
+.production-spec__list {
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.production-spec__row {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.5rem;
+}
+
+.production-spec__row dt {
+  color: var(--color-carbon-muted);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.production-spec__row dd {
+  margin: 0;
+  color: var(--color-carbon);
+}
+
+.production-spec__colors {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.production-spec__swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  margin-right: 0.375rem;
+  border: 1px solid var(--color-carbon-soft);
+  vertical-align: middle;
+}
+
+.production-spec__part {
+  color: var(--color-carbon-muted);
+}
+
+.production-spec__engraving {
+  font-weight: 600;
+}
+
+.production-spec__items {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--color-carbon-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.production-spec__item-qty {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.production-observations p {
+  margin: 0.375rem 0 0;
+  white-space: pre-wrap;
+  color: var(--color-carbon);
 }
