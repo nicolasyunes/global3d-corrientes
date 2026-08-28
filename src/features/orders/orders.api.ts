@@ -118,6 +118,31 @@ export async function listOrders(): Promise<OrderWithCustomer[]> {
   return (data ?? []) as OrderWithCustomer[]
 }
 
+// Every order regardless of status — the "Planilla" tab shows the full
+// lifecycle (pendiente, listo, entregado, cancelado) and merges these with the
+// rows read from the Google Sheet, so unlike listOrders() it filters nothing.
+export async function listAllOrders(): Promise<OrderWithCustomer[]> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, customers(name, phone)')
+    .order('due_date', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as OrderWithCustomer[]
+}
+
+// Ventas de Pedidos (/admin/ventas-pedidos): every order the shop has
+// actually handed over, independent of the Pendientes/Próximos/Kanban views
+// which all stop tracking an order once it's delivered.
+export async function listDeliveredOrders(): Promise<OrderWithCustomer[]> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, customers(name, phone)')
+    .eq('status', 'delivered')
+    .order('due_date', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as OrderWithCustomer[]
+}
+
 // Undo for a just-created quick order: the 5-second "Deshacer" toast calls
 // this directly rather than a soft-delete/status flag — the row hasn't been
 // seen by anyone yet, so there's nothing to preserve a trail of.
@@ -235,4 +260,35 @@ export async function deleteProductionTask(id: string): Promise<void> {
     .delete()
     .eq('id', id)
   if (error) throw error
+}
+
+export type ProductionTaskCount = { done: number; total: number }
+
+// Pure reducer: one row per production task (order_id + done flag) collapsed
+// into { done, total } per order. Extracted from the fetch below so the
+// aggregation is unit-tested without a Supabase round-trip (mirrors the pure
+// helpers in pendingSheet.api.ts).
+export function reduceProductionTaskCounts(
+  rows: readonly { order_id: string; done: boolean }[],
+): Record<string, ProductionTaskCount> {
+  const counts: Record<string, ProductionTaskCount> = {}
+  for (const row of rows) {
+    const entry = (counts[row.order_id] ??= { done: 0, total: 0 })
+    entry.total += 1
+    if (row.done) entry.done += 1
+  }
+  return counts
+}
+
+// Checklist progress for every order, for the Kanban card pill. Cheapest
+// shape (two columns, no relations) reduced client-side — the table is small
+// and this rides in the list view's existing Promise.all.
+export async function listProductionTaskCounts(): Promise<
+  Record<string, ProductionTaskCount>
+> {
+  const { data, error } = await supabase
+    .from('order_production_tasks')
+    .select('order_id, done')
+  if (error) throw error
+  return reduceProductionTaskCounts(data ?? [])
 }
