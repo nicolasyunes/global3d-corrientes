@@ -5,9 +5,12 @@ import LoginPage from '@/features/auth/LoginPage'
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import OrderForm from '@/features/orders/OrderForm'
 import OrdersList from '@/features/orders/OrdersList'
-import OrderDetail from '@/features/orders/OrderDetail'
+import OrderProduction from '@/features/orders/OrderProduction'
+import OrderEdit from '@/features/orders/OrderEdit'
+import DeliveredOrdersList from '@/features/orders/DeliveredOrdersList'
 import SalesForm from '@/features/sales/SalesForm'
 import SalesList from '@/features/sales/SalesList'
+import InsumosList from '@/features/insumos/InsumosList'
 import ProductForm from '@/features/products/ProductForm'
 import ProductsList from '@/features/products/ProductsList'
 import AdminLayout from './AdminLayout'
@@ -31,9 +34,12 @@ export function Component() {
         >
           <Route path="orders" element={<OrdersList />} />
           <Route path="orders/new" element={<OrderForm />} />
-          <Route path="orders/:id" element={<OrderDetail />} />
+          <Route path="orders/:id" element={<OrderProduction />} />
+          <Route path="orders/:id/editar" element={<OrderEdit />} />
           <Route path="ventas" element={<SalesList />} />
           <Route path="ventas/new" element={<SalesForm />} />
+          <Route path="insumos" element={<InsumosList />} />
+          <Route path="ventas-pedidos" element={<DeliveredOrdersList />} />
           <Route
             path="productos"
             element={
