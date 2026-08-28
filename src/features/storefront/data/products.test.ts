@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { BRAND_LIST, CATEGORIES, FEATURED_PRODUCT_IDS, PRODUCTS, colorBg, colorName, findCategory, findProduct } from './products'
+import { BRAND_LIST, FEATURED_PRODUCT_IDS, PRODUCTS, colorBg, colorName, findCategory, findProduct } from './products'
+import { allProductCats } from '../navigation'
 
 describe('PRODUCTS', () => {
   it('has no duplicate ids', () => {
@@ -8,7 +9,7 @@ describe('PRODUCTS', () => {
   })
 
   it('every product belongs to a known category', () => {
-    const slugs = new Set(CATEGORIES.map((c) => c.slug))
+    const slugs = allProductCats()
     for (const p of PRODUCTS) expect(slugs.has(p.cat)).toBe(true)
   })
 
@@ -27,7 +28,7 @@ describe('PRODUCTS', () => {
 
 describe('findCategory / findProduct', () => {
   it('finds an existing category by slug', () => {
-    expect(findCategory('trofeos')?.name).toBe('Trofeos personalizados')
+    expect(findCategory('trofeos')?.name).toBe('Trofeos y Premios')
   })
 
   it('returns undefined for an unknown id/slug', () => {

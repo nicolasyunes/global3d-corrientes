@@ -9,6 +9,7 @@ const product = (overrides: Partial<Product> = {}): Product => ({
   name: 'Llavero test',
   price: 1000,
   personalizable: false,
+  customOnRequest: true,
   colors: null,
   stock: 'in',
   desc: '',
