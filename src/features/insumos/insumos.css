@@ -1,0 +1,90 @@
+/* Insumos stock admin — reuses orders.css's row/toolbar/button vocabulary; the
+   inline roll stepper and the low-stock cue are the only new pieces. */
+
+.insumos-toolbar {
+  justify-content: space-between;
+}
+
+.insumos-toolbar__label {
+  font-weight: 600;
+  color: var(--color-carbon-muted);
+}
+
+.insumos-filters {
+  align-items: center;
+  padding: 0.75rem 1rem;
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+.insumos-filters__search {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.insumos-filters__count {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-carbon-muted);
+  white-space: nowrap;
+}
+
+.insumo-row {
+  gap: 0.75rem;
+}
+
+.insumo-row--inactive {
+  opacity: 0.5;
+}
+
+.insumo-row__stock {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.insumo-row__rolls {
+  min-width: 4.5rem;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.insumo-row__rolls--low {
+  color: var(--status-red, #c0392b);
+}
+
+.insumo-row__rolls-unit {
+  font-weight: 400;
+  font-size: 0.8125rem;
+  color: var(--color-carbon-muted);
+}
+
+.insumo-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-carbon-soft);
+  border-radius: 999px;
+  background: var(--color-surface, #fff);
+  color: var(--color-carbon);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.insumo-step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.insumos-list__container {
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: 0 1rem;
+}
