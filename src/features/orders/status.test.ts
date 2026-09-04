@@ -9,6 +9,7 @@ describe('nextOrderStatus', () => {
       'printing',
       'post_processing',
       'finished',
+      'delivered',
     ]
     for (let i = 0; i < flow.length - 1; i += 1) {
       expect(nextOrderStatus(flow[i])).toBe(flow[i + 1])
@@ -16,7 +17,7 @@ describe('nextOrderStatus', () => {
   })
 
   it('returns null for terminal and off-flow statuses', () => {
-    expect(nextOrderStatus('finished')).toBeNull()
+    expect(nextOrderStatus('delivered')).toBeNull()
     expect(nextOrderStatus('cancelled')).toBeNull()
   })
 
@@ -26,6 +27,7 @@ describe('nextOrderStatus', () => {
       'printing',
       'post_processing',
       'finished',
+      'delivered',
     ])
   })
 

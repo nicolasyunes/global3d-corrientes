@@ -3,6 +3,7 @@ import {
   addDaysISO,
   emptyFilters,
   filterOrders,
+  getOrderSemaphore,
   groupOrdersByStatus,
   isOverdue,
   shapeOrders,
@@ -80,12 +81,13 @@ describe('shapeOrders', () => {
     expect(allIds(pending)).toEqual(['later', 'earlier'])
   })
 
-  it('hides cancelled and finished orders', () => {
+  it('hides cancelled, finished and delivered orders', () => {
     const { pending } = shapeOrders(
       [
         order({ id: 'a', status: 'new', due_date: '2026-01-02' }),
         order({ id: 'b', status: 'cancelled', due_date: '2026-01-03' }),
         order({ id: 'c', status: 'finished', due_date: '2026-01-03' }),
+        order({ id: 'd', status: 'delivered', due_date: '2026-01-03' }),
       ],
       '2026-01-01',
     )
@@ -264,5 +266,49 @@ describe('isOverdue', () => {
     expect(isOverdue(order({ due_date: '2026-01-09' }), '2026-01-05')).toBe(
       false,
     )
+  })
+})
+
+describe('getOrderSemaphore', () => {
+  it('is "delivered" whenever the order is delivered, regardless of due_date', () => {
+    expect(
+      getOrderSemaphore(
+        order({ status: 'delivered', due_date: '2026-01-01' }),
+        '2026-01-05',
+      ),
+    ).toBe('delivered')
+  })
+
+  it('is "ready" whenever the order is finished, regardless of due_date', () => {
+    expect(
+      getOrderSemaphore(
+        order({ status: 'finished', due_date: '2026-01-01' }),
+        '2026-01-05',
+      ),
+    ).toBe('ready')
+  })
+
+  it('is "urgent" when due_date is 3 days away or less, including overdue', () => {
+    expect(
+      getOrderSemaphore(
+        order({ status: 'printing', due_date: '2026-01-08' }),
+        '2026-01-05',
+      ),
+    ).toBe('urgent')
+    expect(
+      getOrderSemaphore(
+        order({ status: 'printing', due_date: '2026-01-01' }),
+        '2026-01-05',
+      ),
+    ).toBe('urgent')
+  })
+
+  it('is "ok" when due_date is more than 3 days away', () => {
+    expect(
+      getOrderSemaphore(
+        order({ status: 'printing', due_date: '2026-01-10' }),
+        '2026-01-05',
+      ),
+    ).toBe('ok')
   })
 })

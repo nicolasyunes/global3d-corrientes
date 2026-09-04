@@ -1,4 +1,4 @@
-import type { OrderStatus } from '@/lib/domain-constants'
+import type { OrderSemaphore, OrderStatus } from '@/lib/domain-constants'
 import type { OrderWithCustomer } from './orders.api'
 
 export type ListTab = 'pending' | 'upcoming'
@@ -17,20 +17,27 @@ export function addDaysISO(date: string, days: number): string {
   return shifted.toISOString().slice(0, 10)
 }
 
-// The single source of truth for shaping the landing list: drop cancelled and
-// finished orders (nothing left to do on them), sort by order_date descending
-// — the most recently anotated order first, tiebroken by created_at — then
-// split into "pending" (every active order, the full open-work queue) and
-// "upcoming" (the same active set narrowed to a due_date within the next 7
-// days, so it reads as "what's landing soon" without re-sorting by urgency).
-// Kept pure so the view and the unit tests exercise the exact same
-// filtering/ordering logic.
+// The single source of truth for shaping the landing list: drop cancelled,
+// finished and delivered orders (nothing left to do on them — a delivered
+// order lives only in Ventas de Pedidos from here on), sort by order_date
+// descending — the most recently anotated order first, tiebroken by
+// created_at — then split into "pending" (every active order, the full
+// open-work queue) and "upcoming" (the same active set narrowed to a
+// due_date within the next 7 days, so it reads as "what's landing soon"
+// without re-sorting by urgency). Kept pure so the view and the unit tests
+// exercise the exact same filtering/ordering logic.
+const INACTIVE_STATUSES: readonly OrderStatus[] = [
+  'cancelled',
+  'finished',
+  'delivered',
+]
+
 export function shapeOrders(
   orders: readonly OrderWithCustomer[],
   today: string,
 ): OrderPartition {
   const active = orders
-    .filter((order) => order.status !== 'cancelled' && order.status !== 'finished')
+    .filter((order) => !INACTIVE_STATUSES.includes(order.status))
     .sort(
       (a, b) =>
         b.order_date.localeCompare(a.order_date) ||
@@ -86,6 +93,31 @@ export function filterOrders(
 // stays unchanged.
 export function isOverdue(order: OrderWithCustomer, today: string): boolean {
   return order.due_date < today
+}
+
+// How many days remain until due_date (negative once overdue). Pure date-math
+// on the ISO strings, no Date arithmetic needed since both are 'YYYY-MM-DD'.
+function daysUntil(dueDate: string, today: string): number {
+  const [ty, tm, td] = today.split('-').map(Number)
+  const [dy, dm, dd] = dueDate.split('-').map(Number)
+  const msPerDay = 24 * 60 * 60 * 1000
+  return Math.round(
+    (Date.UTC(dy, dm - 1, dd) - Date.UTC(ty, tm - 1, td)) / msPerDay,
+  )
+}
+
+// The delivery semaphore shown in Pendientes/Próximos and the Planilla tab:
+// status always wins over date-based urgency (a delivered/ready order reads
+// calm even if its due_date was close), so this is checked in strict order —
+// delivered > ready > urgent (due_date within 3 days, overdue included) > ok.
+export function getOrderSemaphore(
+  order: Pick<OrderWithCustomer, 'status' | 'due_date'>,
+  today: string,
+): OrderSemaphore {
+  if (order.status === 'delivered') return 'delivered'
+  if (order.status === 'finished') return 'ready'
+  if (daysUntil(order.due_date, today) <= 3) return 'urgent'
+  return 'ok'
 }
 
 // Groups every order (cancelled included — the board shows the full
