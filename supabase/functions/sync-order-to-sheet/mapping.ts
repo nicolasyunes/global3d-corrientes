@@ -31,15 +31,13 @@ const ORIGIN_CHANNEL_ES: Record<string, string> = {
   other: 'Otro',
 }
 
-// See design.md "Status mapping — a gap worth flagging": `finished` is the
-// closest existing state to the sheet's `Listo`; nothing maps to `Entregado`
-// because the app cannot express it yet.
 const STATUS_ES: Record<string, string> = {
   new: '',
   in_queue: '',
   printing: '',
   post_processing: 'Post-procesado',
   finished: 'Listo',
+  delivered: 'Entregado',
   cancelled: 'Cancelado',
 }
 

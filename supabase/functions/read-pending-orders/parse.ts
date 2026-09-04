@@ -7,6 +7,7 @@
 // Total (ARS) | SEÑA | SALDO | CANAL | ESTADO | (K, hidden) order id
 
 export interface PendingOrder {
+  id: string // column K — the app order id, or '' for a row typed straight into the sheet
   nombre: string
   producto: string
   detalles: string
@@ -15,6 +16,7 @@ export interface PendingOrder {
   total: number | null
   saldo: number
   canal: string
+  estado: string // raw ESTADO cell, lowercased/trimmed — drives the client-side semaphore
 }
 
 // The sheet mixes manually-typed values ("1500", "$1.500", "$ 1.500,00") with
@@ -61,23 +63,24 @@ export function toPendingOrder(row: string[]): PendingOrder | null {
   const nombre = (row[1] ?? '').trim()
   if (nombre === '') return null
 
+  // Cancelled rows are kept (unlike before): the Planilla tab now offers a
+  // "Cancelado" estado filter, so it needs them in the dataset. They still
+  // sort and render like any other row; the filter is what hides them.
   const estado = (row[9] ?? '').trim().toLowerCase()
-  if (estado === 'cancelado') return null
-
-  const saldo = parseMoneyLoose(row[7])
-  if (saldo === null || saldo <= 0) return null
 
   const fechaEntrega = (row[4] ?? '').trim() || null
 
   return {
+    id: (row[10] ?? '').trim(),
     nombre,
     producto: (row[2] ?? '').trim(),
     detalles: (row[3] ?? '').trim(),
     fechaEntrega,
     fechaEntregaSortKey: dateSortKey(row[4]),
     total: parseMoneyLoose(row[5]),
-    saldo,
+    saldo: parseMoneyLoose(row[7]) ?? 0,
     canal: (row[8] ?? '').trim(),
+    estado,
   }
 }
 

@@ -54,14 +54,33 @@ beforeEach(() => {
 })
 
 describe('QuickOrderRow', () => {
-  it('renders the five capture fields and the submit button', () => {
+  it('renders the six capture fields and the submit button', () => {
     render(<QuickOrderRow onCreated={vi.fn()} />)
     expect(screen.getByLabelText('Cliente')).toBeInTheDocument()
     expect(screen.getByLabelText('Detalle')).toBeInTheDocument()
+    expect(screen.getByLabelText('Medio')).toBeInTheDocument()
     expect(screen.getByLabelText('Entrega')).toBeInTheDocument()
     expect(screen.getByLabelText('Total')).toBeInTheDocument()
     expect(screen.getByLabelText('Seña')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Agregar' })).toBeInTheDocument()
+  })
+
+  it('passes the selected origin channel through to createOrder', async () => {
+    const onCreated = vi.fn()
+    render(<QuickOrderRow onCreated={onCreated} />)
+
+    fireEvent.change(screen.getByLabelText('Cliente'), {
+      target: { value: 'Ada' },
+    })
+    fireEvent.change(screen.getByLabelText('Medio'), {
+      target: { value: 'whatsapp' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar' }))
+    await act(async () => {})
+
+    expect(createOrderMock).toHaveBeenCalledWith(
+      expect.objectContaining({ origin_channel: 'whatsapp' }),
+    )
   })
 
   it('saves on submit, calls onCreated, and clears the row for the next entry', async () => {

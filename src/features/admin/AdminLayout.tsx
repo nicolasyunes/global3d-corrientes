@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom'
 import { useAuth } from '@/features/auth/useAuth'
 import '../auth/auth.css'
+import './admin-theme.css'
 
 // Shared shell for the protected admin area: the single Global3D wordmark
 // header plus a sign-out control, with the routed page rendered in the
@@ -21,8 +22,14 @@ export default function AdminLayout() {
             <Link to="/admin/orders" className="admin-shell__nav-link">
               Pedidos
             </Link>
+            <Link to="/admin/ventas-pedidos" className="admin-shell__nav-link">
+              Ventas de pedidos
+            </Link>
             <Link to="/admin/ventas" className="admin-shell__nav-link">
-              Ventas
+              Ventas de insumos
+            </Link>
+            <Link to="/admin/insumos" className="admin-shell__nav-link">
+              Stock de insumos
             </Link>
             {isAdmin && (
               <Link to="/admin/productos" className="admin-shell__nav-link">

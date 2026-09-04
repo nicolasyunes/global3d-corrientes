@@ -358,6 +358,7 @@ describe('emptyQuickOrderDraft', () => {
     expect(draft.detail).toBe('')
     expect(draft.totalAmount).toBe('')
     expect(draft.deposit).toBe('')
+    expect(draft.originChannel).toBe('')
   })
 })
 
@@ -407,6 +408,20 @@ describe('validateQuickOrder', () => {
       quickDraftWith({ customerName: 'Ada', dueDate: 'not-a-date' }),
     )
     expect(errors.dueDate).toBeTruthy()
+  })
+
+  it('accepts a valid origin channel', () => {
+    const errors = validateQuickOrder(
+      quickDraftWith({ customerName: 'Ada', originChannel: 'whatsapp' }),
+    )
+    expect(errors).toEqual({})
+  })
+
+  it('rejects an invalid origin channel', () => {
+    const errors = validateQuickOrder(
+      quickDraftWith({ customerName: 'Ada', originChannel: 'carrier-pigeon' }),
+    )
+    expect(errors.originChannel).toBeTruthy()
   })
 })
 

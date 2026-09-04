@@ -1,5 +1,10 @@
 import { useRef, type FormEvent, type KeyboardEvent } from 'react'
-import { PRODUCT_TYPE, PRODUCT_TYPE_LABELS } from '@/lib/domain-constants'
+import {
+  ORIGIN_CHANNEL,
+  ORIGIN_CHANNEL_LABELS,
+  PRODUCT_TYPE,
+  PRODUCT_TYPE_LABELS,
+} from '@/lib/domain-constants'
 import type { OrderWithCustomer } from './orders.api'
 import { useQuickOrderDraft } from './useQuickOrderDraft'
 
@@ -77,6 +82,19 @@ export default function QuickOrderRow({ onCreated }: QuickOrderRowProps) {
             value={draft.detail}
             onChange={(e) => setField('detail', e.target.value)}
           />
+          <select
+            className="field__input quick-order-row__input quick-order-row__input--channel"
+            aria-label="Medio"
+            value={draft.originChannel}
+            onChange={(e) => setField('originChannel', e.target.value)}
+          >
+            <option value="">Medio</option>
+            {ORIGIN_CHANNEL.map((channel) => (
+              <option key={channel} value={channel}>
+                {ORIGIN_CHANNEL_LABELS[channel]}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="quick-order-row__group quick-order-row__group--when">

@@ -76,6 +76,7 @@ describe('QuickOrderSheet', () => {
     renderSheet()
     expect(screen.getByLabelText('Cliente')).toBeInTheDocument()
     expect(screen.getByLabelText('Detalle')).toBeInTheDocument()
+    expect(screen.getByLabelText('Medio')).toBeInTheDocument()
     expect(screen.getByLabelText('Entrega')).toBeInTheDocument()
     expect(screen.getByLabelText('Total')).toBeInTheDocument()
     expect(screen.getByLabelText('Seña')).toBeInTheDocument()
@@ -85,6 +86,23 @@ describe('QuickOrderSheet', () => {
     expect(screen.getByRole('link', { name: /formulario completo/i })).toHaveAttribute(
       'href',
       '/admin/orders/new',
+    )
+  })
+
+  it('passes the selected origin channel through to createOrder', async () => {
+    renderSheet()
+
+    fireEvent.change(screen.getByLabelText('Cliente'), {
+      target: { value: 'Ada' },
+    })
+    fireEvent.change(screen.getByLabelText('Medio'), {
+      target: { value: 'instagram' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar y seguir' }))
+    await act(async () => {})
+
+    expect(createOrderMock).toHaveBeenCalledWith(
+      expect.objectContaining({ origin_channel: 'instagram' }),
     )
   })
 

@@ -1,5 +1,6 @@
 import type { FormEvent, KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { ORIGIN_CHANNEL, ORIGIN_CHANNEL_LABELS } from '@/lib/domain-constants'
 import type { OrderWithCustomer } from './orders.api'
 import { useQuickOrderDraft } from './useQuickOrderDraft'
 
@@ -93,6 +94,25 @@ export default function QuickOrderSheet({
             value={draft.detail}
             onChange={(e) => setField('detail', e.target.value)}
           />
+        </div>
+
+        <div className="field">
+          <label className="field__label" htmlFor="qo-sheet-channel">
+            Medio
+          </label>
+          <select
+            id="qo-sheet-channel"
+            className="field__input"
+            value={draft.originChannel}
+            onChange={(e) => setField('originChannel', e.target.value)}
+          >
+            <option value="">Sin especificar</option>
+            {ORIGIN_CHANNEL.map((channel) => (
+              <option key={channel} value={channel}>
+                {ORIGIN_CHANNEL_LABELS[channel]}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="field">

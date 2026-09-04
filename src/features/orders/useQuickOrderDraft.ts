@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import type { ProductType } from '@/lib/domain-constants'
+import type { OriginChannel, ProductType } from '@/lib/domain-constants'
 import {
   createOrder,
   replaceOrderItems,
@@ -90,6 +90,7 @@ export function useQuickOrderDraft(): UseQuickOrderDraftResult {
         deposit: parseMoney(draft.deposit),
         pending_balance: quickOrderPendingBalance(draft),
         status: 'new',
+        origin_channel: (draft.originChannel || null) as OriginChannel | null,
       })
 
       const item = quickOrderItem(draft.detail)

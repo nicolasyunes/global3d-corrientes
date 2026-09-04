@@ -349,6 +349,7 @@ export interface QuickOrderDraft {
   dueDate: string // 'YYYY-MM-DD', pre-filled with the default lead time
   totalAmount: string // decimal or ''
   deposit: string // decimal or ''
+  originChannel: string // '' or an OriginChannel
 }
 
 export type QuickOrderFieldErrors = Partial<Record<keyof QuickOrderDraft, string>>
@@ -361,6 +362,7 @@ export function emptyQuickOrderDraft(now: Date = new Date()): QuickOrderDraft {
     dueDate: defaultDueDate(now),
     totalAmount: '',
     deposit: '',
+    originChannel: '',
   }
 }
 
@@ -393,6 +395,13 @@ export function validateQuickOrder(draft: QuickOrderDraft): QuickOrderFieldError
     errors.deposit = 'Ingresá el monto total antes de la seña.'
   } else if (deposit !== null && total !== null && deposit > total) {
     errors.deposit = 'La seña no puede superar el monto total.'
+  }
+
+  if (
+    draft.originChannel !== '' &&
+    !includes(draft.originChannel, ORIGIN_CHANNEL)
+  ) {
+    errors.originChannel = 'Elegí un canal de origen válido.'
   }
 
   return errors

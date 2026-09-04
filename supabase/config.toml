@@ -371,6 +371,16 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+[functions.read-insumos-stock]
+# Called by the signed-in admin ("Sincronizar desde planilla" on /admin/insumos)
+# — keep the default Supabase JWT check on.
+verify_jwt = true
+
+[functions.sync-insumo-to-sheet]
+# Called by Postgres via pg_net (trg_inventory_sync_to_sheet); the real gate is
+# the X-Webhook-Secret header check inside the function.
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

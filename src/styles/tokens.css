@@ -13,6 +13,7 @@
   --status-red: #c63d3d;
   --status-amber: #c77d12;
   --status-green: #2e7d4f;
+  --status-blue: #3d6fc6;
 
   /* Storefront surface roles — derived from the palette above, not new hex. */
   --color-surface: #f7f6f5;

@@ -107,6 +107,31 @@ describe('useQuickOrderDraft', () => {
     expect(result.current.draft.detail).toBe('')
   })
 
+  it('passes originChannel through as origin_channel, defaulting to null', async () => {
+    const { result } = renderHook(() => useQuickOrderDraft())
+
+    act(() => {
+      result.current.setField('customerName', 'Ada')
+    })
+    await act(async () => {
+      await result.current.submit()
+    })
+    expect(createOrderMock).toHaveBeenCalledWith(
+      expect.objectContaining({ origin_channel: null }),
+    )
+
+    act(() => {
+      result.current.setField('customerName', 'Beto')
+      result.current.setField('originChannel', 'whatsapp')
+    })
+    await act(async () => {
+      await result.current.submit()
+    })
+    expect(createOrderMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ origin_channel: 'whatsapp' }),
+    )
+  })
+
   it('skips replaceOrderItems when the detail is left blank', async () => {
     const { result } = renderHook(() => useQuickOrderDraft())
     act(() => {
