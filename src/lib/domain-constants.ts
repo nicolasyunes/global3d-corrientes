@@ -13,12 +13,14 @@ export const ORDER_STATUS = [
   'printing',
   'post_processing',
   'finished',
+  'delivered',
   'cancelled',
 ] as const satisfies readonly OrderStatus[]
 
 export const TRANSACTION_TYPE = [
   '3d_service',
   'supplies_sale',
+  'product_sale',
 ] as const satisfies readonly TransactionType[]
 
 // Open-list values (text + CHECK columns). The generated types expose these as
@@ -56,12 +58,14 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   printing: 'Imprimiendo',
   post_processing: 'Post-procesado',
   finished: 'Terminado',
+  delivered: 'Entregado',
   cancelled: 'Cancelado',
 }
 
 export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   '3d_service': 'Servicio 3D',
   supplies_sale: 'Venta de insumos',
+  product_sale: 'Venta de producto',
 }
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -100,15 +104,19 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
   printing: 'var(--color-orange)',
   post_processing: 'var(--color-orange)',
   finished: 'var(--color-teal)',
+  delivered: 'var(--status-blue)',
   cancelled: 'var(--color-carbon)',
 }
 
-// Future urgency semaphore (agenda-view): warm, desaturated buckets. teal maps
-// to finished/success; red/amber/green feed the traffic-light agenda.
-export type Urgency = 'overdue' | 'upcoming' | 'comfortable' | 'finished'
-export const URGENCY_COLORS: Record<Urgency, string> = {
-  overdue: 'var(--status-red)',
-  upcoming: 'var(--status-amber)',
-  comfortable: 'var(--status-green)',
-  finished: 'var(--color-teal)',
+// Delivery semaphore for Pendientes/Próximos + Planilla: unlike
+// ORDER_STATUS_COLORS (production stage, used by the Kanban), this answers
+// "how urgent/close-to-done is this order for the customer". Status always
+// wins over date-based urgency (delivered/ready are terminal, calm colors),
+// checked in this exact order by getOrderSemaphore().
+export type OrderSemaphore = 'delivered' | 'ready' | 'urgent' | 'ok'
+export const SEMAPHORE_COLORS: Record<OrderSemaphore, string> = {
+  delivered: 'var(--status-blue)',
+  ready: 'var(--status-amber)',
+  urgent: 'var(--status-red)',
+  ok: 'var(--status-green)',
 }

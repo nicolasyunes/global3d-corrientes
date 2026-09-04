@@ -16,6 +16,9 @@ function sale(overrides: Partial<SaleWithInventory>): SaleWithInventory {
     updated_at: '2026-01-05T12:00:00Z',
     inventory_id: null,
     quantity_grams: null,
+    product_id: null,
+    quantity: null,
+    customer_id: null,
     inventory: null,
     ...overrides,
   }

@@ -16,6 +16,7 @@ function spool(overrides: Partial<InventoryRow> = {}): InventoryRow {
     brand: null,
     quantity_grams: 1000,
     remaining_grams: 200,
+    unit_price: null,
     active: true,
     created_at: '',
     updated_at: '',

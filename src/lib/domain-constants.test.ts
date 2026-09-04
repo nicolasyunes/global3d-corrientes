@@ -5,8 +5,8 @@ import {
   ORDER_STATUS_COLORS,
   PAYMENT_METHOD,
   PRODUCT_TYPE,
+  SEMAPHORE_COLORS,
   TRANSACTION_TYPE,
-  URGENCY_COLORS,
 } from './domain-constants'
 
 describe('open-list constants', () => {
@@ -43,12 +43,17 @@ describe('enum constants', () => {
       'printing',
       'post_processing',
       'finished',
+      'delivered',
       'cancelled',
     ])
   })
 
-  it('TRANSACTION_TYPE covers both transaction_type values', () => {
-    expect(TRANSACTION_TYPE).toEqual(['3d_service', 'supplies_sale'])
+  it('TRANSACTION_TYPE covers every transaction_type value', () => {
+    expect(TRANSACTION_TYPE).toEqual([
+      '3d_service',
+      'supplies_sale',
+      'product_sale',
+    ])
   })
 })
 
@@ -68,6 +73,7 @@ describe('color mappings', () => {
       printing: 'var(--color-orange)',
       post_processing: 'var(--color-orange)',
       finished: 'var(--color-teal)',
+      delivered: 'var(--status-blue)',
       cancelled: 'var(--color-carbon)',
     })
   })
@@ -78,18 +84,18 @@ describe('color mappings', () => {
     }
   })
 
-  it('URGENCY_COLORS references tokens, not raw hex', () => {
-    for (const value of Object.values(URGENCY_COLORS)) {
+  it('SEMAPHORE_COLORS references tokens, not raw hex', () => {
+    for (const value of Object.values(SEMAPHORE_COLORS)) {
       expect(value).toMatch(tokenPattern)
     }
   })
 
-  it('URGENCY_COLORS covers the four semaphore buckets', () => {
-    expect(Object.keys(URGENCY_COLORS).sort()).toEqual([
-      'comfortable',
-      'finished',
-      'overdue',
-      'upcoming',
+  it('SEMAPHORE_COLORS covers the four semaphore buckets', () => {
+    expect(Object.keys(SEMAPHORE_COLORS).sort()).toEqual([
+      'delivered',
+      'ok',
+      'ready',
+      'urgent',
     ])
   })
 })
