@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   BANNERS,
-  CATEGORIES,
   FEATURED_PRODUCT_IDS,
   PAYMENT_BADGES,
   PRODUCTS,
@@ -12,6 +11,7 @@ import {
 import ProductCard from './ProductCard'
 import { useToast } from './ToastContext'
 import { waHref } from '@/lib/whatsapp'
+import { NAV } from './navigation'
 
 const BANNER_INTERVAL_MS = 5000
 const STORE_MAPS_URL =
@@ -19,16 +19,6 @@ const STORE_MAPS_URL =
 const STORE_MAPS_EMBED_URL = 'https://www.google.com/maps?q=-27.4674354,-58.8396152&z=17&output=embed'
 const INSTAGRAM_URL = 'https://instagram.com/global3d_corrientes'
 
-const CATEGORY_ICON: Record<string, string> = {
-  combos: '📦',
-  figuras: '🧍',
-  vasos: '🥤',
-  trofeos: '🏆',
-  llaveros: '🔑',
-  golosineros: '🍬',
-  filamentos: '🧵',
-  impresoras: '🖨️',
-}
 const TRUST_ICON: Record<string, string> = { truck: '🚚', pin: '📍', edit: '✏️', card: '💳' }
 
 const featuredProducts = FEATURED_PRODUCT_IDS.map((id) => PRODUCTS.find((p) => p.id === id)).filter(
@@ -107,18 +97,36 @@ export default function HomePage() {
       <section className="sf-section">
         <h2 className="sf-h2">Categorías</h2>
         <div className="sf-cat-grid">
-          {CATEGORIES.map((c) => (
+          {NAV.map((c) => (
             <button
               key={c.slug}
               type="button"
               className="sf-cat-card"
               onClick={() => navigate(`/categoria/${c.slug}`)}
             >
-              <span className="sf-cat-card__icon" aria-hidden="true">{CATEGORY_ICON[c.slug]}</span>
+              <span className="sf-cat-card__icon" aria-hidden="true">
+                {c.icon}
+              </span>
               <span className="sf-cat-card__name">{c.name}</span>
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="sf-section" style={{ paddingTop: 0 }}>
+        <button
+          type="button"
+          className="sf-collection-tile"
+          onClick={() => navigate('/categoria/todas?tema=mundial')}
+        >
+          <span aria-hidden="true" style={{ fontSize: '1.5rem' }}>
+            🇦🇷
+          </span>
+          <span>
+            <strong>Colección Mundial / Selección</strong>
+            <span className="sf-muted"> — vasos, mates, réplicas y llaveros de la Scaloneta</span>
+          </span>
+        </button>
       </section>
 
       <section className="sf-section">

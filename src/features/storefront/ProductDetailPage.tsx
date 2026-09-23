@@ -4,6 +4,7 @@ import { colorBg, colorName, findCategory, findProduct } from './data/products'
 import { cashPrice, fmt, installmentPrice, leadTimeText, stockCount } from './pricing'
 import { useCart } from './CartContext'
 import { useToast } from './ToastContext'
+import CustomOrderCTA from './CustomOrderCTA'
 
 const SHOW_INSTALLMENTS = true
 
@@ -66,6 +67,9 @@ export default function ProductDetailPage() {
               {product.stock === 'low' ? `¡Últimas ${stockCount(product)} unidades!` : 'En stock'}
             </span>
             {product.personalizable && <span className="sf-tag sf-tag--outline">Personalizable</span>}
+            {!product.personalizable && product.customOnRequest && (
+              <span className="sf-tag sf-tag--soft">Personalizable a pedido</span>
+            )}
           </div>
           <h1 className="sf-product__title">{product.name}</h1>
           <div className="sf-product__price">
@@ -139,6 +143,8 @@ export default function ProductDetailPage() {
               Comprar ahora
             </button>
           </div>
+
+          {product.customOnRequest && <CustomOrderCTA variant="card" />}
 
           <hr className="sf-hr" />
           <div>
