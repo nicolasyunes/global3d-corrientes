@@ -32,7 +32,9 @@ export async function getAccessToken(
     }),
   })
   if (!res.ok) {
-    throw new Error(`Google token exchange failed: ${res.status} ${await res.text()}`)
+    throw new Error(
+      `Google token exchange failed: ${res.status} ${await res.text()}`,
+    )
   }
   const data = (await res.json()) as { access_token: string }
   return data.access_token
@@ -59,9 +61,13 @@ export async function upsertOrderRow(
   // row, so the row count is exact even though old hand-typed rows have an
   // empty id in K. The order id is index 9 within B:K.
   const scanRange = encodeURIComponent(`${sheetTabName}!B:K`)
-  const getRes = await fetch(`${base}/values/${scanRange}`, { headers: authHeader })
+  const getRes = await fetch(`${base}/values/${scanRange}`, {
+    headers: authHeader,
+  })
   if (!getRes.ok) {
-    throw new Error(`Sheets read failed: ${getRes.status} ${await getRes.text()}`)
+    throw new Error(
+      `Sheets read failed: ${getRes.status} ${await getRes.text()}`,
+    )
   }
   const getData = (await getRes.json()) as { values?: string[][] }
   const { row, mode } = resolveTargetRow(getData.values ?? [], orderId)
@@ -76,7 +82,9 @@ export async function upsertOrderRow(
     },
   )
   if (!writeRes.ok) {
-    throw new Error(`Sheets write failed: ${writeRes.status} ${await writeRes.text()}`)
+    throw new Error(
+      `Sheets write failed: ${writeRes.status} ${await writeRes.text()}`,
+    )
   }
   return mode
 }

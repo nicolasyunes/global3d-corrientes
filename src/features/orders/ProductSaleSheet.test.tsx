@@ -81,7 +81,11 @@ beforeEach(() => {
   vi.clearAllMocks()
   listSellableProductsMock.mockResolvedValue([PRODUCT])
   createProductSaleMock.mockResolvedValue(createdRow())
-  upsertCustomerMock.mockResolvedValue({ id: 'cust-1', name: 'Ada', phone: null })
+  upsertCustomerMock.mockResolvedValue({
+    id: 'cust-1',
+    name: 'Ada',
+    phone: null,
+  })
 })
 
 describe('ProductSaleSheet', () => {
@@ -108,7 +112,9 @@ describe('ProductSaleSheet', () => {
 
   it('reveals the free-text name field when "Otro" is chosen', async () => {
     await renderOpen()
-    expect(screen.queryByLabelText('Nombre del producto')).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('Nombre del producto'),
+    ).not.toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Producto'), {
       target: { value: '__free__' },
     })
@@ -179,7 +185,9 @@ describe('ProductSaleSheet', () => {
 
     expect(createProductSaleMock).not.toHaveBeenCalled()
     expect(onCreated).not.toHaveBeenCalled()
-    expect(screen.getByText('Elegí un producto del catálogo o cargá uno.')).toBeInTheDocument()
+    expect(
+      screen.getByText('Elegí un producto del catálogo o cargá uno.'),
+    ).toBeInTheDocument()
   })
 
   it('rejects a quantity above catalog stock before hitting the api', async () => {
@@ -230,7 +238,9 @@ describe('ProductSaleSheet', () => {
     fireEvent.click(container.querySelector('.sale-sheet__backdrop')!)
     expect(onClose).toHaveBeenCalledTimes(1)
 
-    fireEvent.keyDown(container.querySelector('.sale-sheet')!, { key: 'Escape' })
+    fireEvent.keyDown(container.querySelector('.sale-sheet')!, {
+      key: 'Escape',
+    })
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 })

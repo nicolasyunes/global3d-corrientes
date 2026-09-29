@@ -1,52 +1,177 @@
-import { Link, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import Icon, { type IconName } from '@/components/Icon'
 import { useAuth } from '@/features/auth/useAuth'
-import '../auth/auth.css'
-import './admin-theme.css'
+import { useOperator } from '@/features/operators/operator-context'
+import { useOrderModal } from '@/features/orders/order-modal-context'
+import { OrderModalProvider } from '@/features/orders/OrderModalProvider'
+import './shell.css'
 
-// Shared shell for the protected admin area: the single Global3D wordmark
-// header plus a sign-out control, with the routed page rendered in the
-// outlet. Owns the wordmark so page components (e.g. OrdersList) never render
-// their own. Sign-out clears the session via AuthProvider; ProtectedRoute then
-// bounces the user back to /admin/login.
+function NewOrderFab() {
+  const { openNew } = useOrderModal()
+  return (
+    <button
+      type="button"
+      className="shell-fab"
+      aria-label="Nuevo pedido"
+      onClick={openNew}
+    >
+      <Icon name="plus" size={26} />
+    </button>
+  )
+}
+
+interface NavItem {
+  to: string
+  label: string
+  short?: string
+  icon: IconName
+  adminOnly?: boolean
+}
+
+const MAIN: NavItem[] = [
+  { to: '/admin/hoy', label: 'Hoy', icon: 'home' },
+  {
+    to: '/admin/imprimir',
+    label: '¿Qué imprimo?',
+    short: 'Imprimir',
+    icon: 'printer',
+  },
+  { to: '/admin/orders', label: 'Pedidos', icon: 'box' },
+]
+
+const SECONDARY: NavItem[] = [
+  { to: '/admin/ventas-pedidos', label: 'Entregados', icon: 'receipt' },
+  { to: '/admin/calculadora', label: 'Calculadora', icon: 'calc' },
+  {
+    to: '/admin/productos',
+    label: 'Productos y stock',
+    icon: 'layers',
+    adminOnly: true,
+  },
+  { to: '/admin/personas', label: 'Personas', icon: 'users', adminOnly: true },
+]
+
+function navClass({ isActive }: { isActive: boolean }) {
+  return `shell-nav__link${isActive ? ' is-active' : ''}`
+}
+
 export default function AdminLayout() {
-  const { signOut, isAdmin } = useAuth()
+  const { signOut } = useAuth()
+  const { current, isAdmin, lock } = useOperator()
+  const [moreOpen, setMoreOpen] = useState(false)
+  const location = useLocation()
+  const secondary = SECONDARY.filter((item) => !item.adminOnly || isAdmin)
+
+  useEffect(() => setMoreOpen(false), [location.pathname])
 
   return (
-    <div className="admin-shell">
-      <header className="admin-shell__header">
-        <div className="admin-shell__header-inner">
-          <p className="admin-shell__wordmark">
-            Global<span className="admin-shell__wordmark-accent">3D</span>
-          </p>
-          <nav className="admin-shell__nav" aria-label="Secciones">
-            <Link to="/admin/orders" className="admin-shell__nav-link">
-              Pedidos
-            </Link>
-            <Link to="/admin/ventas-pedidos" className="admin-shell__nav-link">
-              Ventas de pedidos
-            </Link>
-            <Link to="/admin/ventas" className="admin-shell__nav-link">
-              Ventas de insumos
-            </Link>
-            <Link to="/admin/insumos" className="admin-shell__nav-link">
-              Stock de insumos
-            </Link>
-            {isAdmin && (
-              <Link to="/admin/productos" className="admin-shell__nav-link">
-                Productos
-              </Link>
-            )}
+    <OrderModalProvider>
+      <div className="shell">
+        <aside className="shell-side" aria-label="Navegación principal">
+          <Link to="/admin/hoy" className="brand shell-side__brand">
+            <span className="brand__cube">
+              <Icon name="box" size={18} />
+            </span>
+            Global<span className="brand__accent">3D</span>
+          </Link>
+          <nav className="shell-nav">
+            {MAIN.map((item) => (
+              <NavLink key={item.to} to={item.to} className={navClass}>
+                <Icon name={item.icon} />
+                {item.label}
+              </NavLink>
+            ))}
+            <p className="shell-nav__section">Taller</p>
+            {secondary.map((item) => (
+              <NavLink key={item.to} to={item.to} className={navClass}>
+                <Icon name={item.icon} />
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
+          <div className="shell-me">
+            <span className="avatar" style={{ background: current?.color }}>
+              {current?.initials}
+            </span>
+            <div className="shell-me__who">
+              <strong>{current?.name}</strong>
+              <button type="button" onClick={lock}>
+                Cambiar persona
+              </button>
+            </div>
+            <button
+              type="button"
+              className="icon-btn shell-me__out"
+              aria-label="Cerrar sesión del taller"
+              title="Cerrar sesión del taller"
+              onClick={() => void signOut()}
+            >
+              <Icon name="logout" />
+            </button>
+          </div>
+        </aside>
+
+        <div className="shell-main">
+          <Outlet />
+        </div>
+
+        <NewOrderFab />
+
+        <nav className="shell-bottom" aria-label="Navegación">
+          {MAIN.map((item) => (
+            <NavLink key={item.to} to={item.to} className={navClass}>
+              <Icon name={item.icon} />
+              {item.short ?? item.label}
+            </NavLink>
+          ))}
           <button
             type="button"
-            className="admin-shell__signout"
-            onClick={() => void signOut()}
+            className={`shell-nav__link${moreOpen ? ' is-active' : ''}`}
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((v) => !v)}
           >
-            Cerrar sesión
+            <span
+              className="avatar avatar--sm"
+              style={{ background: current?.color }}
+            >
+              {current?.initials}
+            </span>
+            Más
           </button>
-        </div>
-      </header>
-      <Outlet />
-    </div>
+        </nav>
+
+        {moreOpen && (
+          <div className="shell-more" role="dialog" aria-label="Más opciones">
+            <button
+              type="button"
+              className="shell-more__scrim"
+              aria-label="Cerrar"
+              onClick={() => setMoreOpen(false)}
+            />
+            <div className="shell-more__panel">
+              {secondary.map((item) => (
+                <NavLink key={item.to} to={item.to} className={navClass}>
+                  <Icon name={item.icon} />
+                  {item.label}
+                </NavLink>
+              ))}
+              <button type="button" className="shell-nav__link" onClick={lock}>
+                <Icon name="users" />
+                Cambiar persona ({current?.name})
+              </button>
+              <button
+                type="button"
+                className="shell-nav__link"
+                onClick={() => void signOut()}
+              >
+                <Icon name="logout" />
+                Cerrar sesión del taller
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </OrderModalProvider>
   )
 }

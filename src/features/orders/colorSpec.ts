@@ -12,7 +12,8 @@ export interface ColorEntry {
 // non-string values (returns []), unlike colorPartsFromSpec which pads an
 // empty spec with a blank editable row.
 export function colorSpecEntries(spec: unknown): ColorEntry[] {
-  if (spec === null || typeof spec !== 'object' || Array.isArray(spec)) return []
+  if (spec === null || typeof spec !== 'object' || Array.isArray(spec))
+    return []
   return Object.entries(spec as Record<string, unknown>)
     .filter(
       (e): e is [string, string] =>

@@ -54,6 +54,8 @@ const baseOrder: OrderWithCustomer = {
   updated_at: '2026-01-01T00:00:00Z',
   origin_channel: null,
   reference_link: null,
+  title: null,
+  description: null,
   customers: { name: 'Ada', phone: null },
 }
 
@@ -315,9 +317,7 @@ describe('smart defaults', () => {
 
 describe('inferProductType', () => {
   it('infers cup from a "taza" mention', () => {
-    expect(inferProductType('Taza personalizada con foto de perro')).toBe(
-      'cup',
-    )
+    expect(inferProductType('Taza personalizada con foto de perro')).toBe('cup')
   })
 
   it('infers trophy from a "trofeo" mention', () => {
@@ -335,9 +335,7 @@ describe('inferProductType', () => {
   })
 
   it('falls back to other when no keyword matches', () => {
-    expect(inferProductType('Soporte para celular, base redonda')).toBe(
-      'other',
-    )
+    expect(inferProductType('Soporte para celular, base redonda')).toBe('other')
   })
 
   it('falls back to other for blank text', () => {
@@ -369,9 +367,7 @@ describe('validateQuickOrder', () => {
   })
 
   it('passes with only a customer name set', () => {
-    const errors = validateQuickOrder(
-      quickDraftWith({ customerName: 'Ada' }),
-    )
+    const errors = validateQuickOrder(quickDraftWith({ customerName: 'Ada' }))
     expect(errors).toEqual({})
   })
 
@@ -398,7 +394,11 @@ describe('validateQuickOrder', () => {
 
   it('rejects a deposit greater than the total', () => {
     const errors = validateQuickOrder(
-      quickDraftWith({ customerName: 'Ada', totalAmount: '100', deposit: '150' }),
+      quickDraftWith({
+        customerName: 'Ada',
+        totalAmount: '100',
+        deposit: '150',
+      }),
     )
     expect(errors.deposit).toBeTruthy()
   })

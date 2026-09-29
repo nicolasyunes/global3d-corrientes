@@ -1,16 +1,18 @@
-import {
-  ORDER_STATUS_COLORS,
-  ORDER_STATUS_LABELS,
-  type OrderStatus,
-} from '@/lib/domain-constants'
+import { ORDER_STATUS_LABELS, type OrderStatus } from '@/lib/domain-constants'
 
-// Status stamp: the semantic token as border + text color, no fill — reads
-// like a rubber stamp on a docket rather than a colored chip. Reused by the
-// list rows and the detail header.
+export const STATUS_BADGE_CLASS: Record<OrderStatus, string> = {
+  new: 'badge badge--new',
+  in_queue: 'badge badge--new',
+  printing: 'badge badge--printing',
+  post_processing: 'badge badge--post',
+  finished: 'badge badge--ready',
+  delivered: 'badge badge--delivered',
+  cancelled: 'badge',
+}
+
 export default function StatusBadge({ status }: { status: OrderStatus }) {
-  const color = ORDER_STATUS_COLORS[status]
   return (
-    <span className="badge" style={{ color }}>
+    <span className={STATUS_BADGE_CLASS[status]}>
       {ORDER_STATUS_LABELS[status]}
     </span>
   )

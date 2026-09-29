@@ -1,230 +1,251 @@
-/* Products admin — a card-list in the vein of modern storefront back-offices
-   (Tiendanube/Tienda Nube): a floating toolbar, a labeled header row, and one
-   elevated card per product instead of a dense spreadsheet line. Reuses
-   orders.css's field/button vocabulary; the grid, stepper, stock chip and
-   active toggle are all new here.
+/* Productos guardados: list rows (prow) and the product sheet (pform) with its
+   parts editor. Built on the ui.css kit (card, input, btn, swatch, badge). */
 
-   Signature: the left rail on each card carries the same stock-health
-   semaphore already used on the orders table/kanban (amber = low, red =
-   out) — one glance tells you what needs restocking, no separate legend. */
-
-/* --- Toolbar: floats as its own card above the list, not pinned under the
-   sticky shell header (a card look reads oddly while stuck to the top). --- */
-.products-toolbar {
-  position: static;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem 1rem;
-  width: 95%;
-  max-width: 64rem;
-  margin: 1.25rem auto 0;
-  padding: 1rem 1.25rem;
-  border-radius: var(--radius-md);
-  border-bottom: none;
-  background: var(--color-white);
-  box-shadow: var(--shadow-sm);
+/* ---------- List ---------- */
+.prod-rows {
+  list-style: none;
+  padding: 0;
+  overflow: hidden;
 }
-
-.products-toolbar__search {
-  flex: 1 1 14rem;
+.prow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 0;
+  border-top: 1px solid var(--color-carbon-line);
+}
+.prod-rows > .prow:first-child {
+  border-top: 0;
+}
+.prow--off .prow__main {
+  opacity: 0.55;
+}
+.prow__main {
+  flex: 1;
   min-width: 0;
-}
-
-.products-toolbar__add {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0 1rem;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: var(--color-orange);
-  color: var(--color-carbon);
-  font-weight: 700;
-  cursor: pointer;
-  transition: filter 150ms ease-out;
+  gap: 12px;
+  padding: 4px 0 4px 14px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-md);
 }
-
-.products-toolbar__add:hover {
-  filter: brightness(0.96);
+.prow__main:hover .prow__name {
+  color: var(--color-accent-700);
 }
-
-.products-toolbar__add:focus-visible {
-  outline: 2px solid var(--color-carbon);
+.prow__main:focus-visible {
+  outline: 2px solid var(--color-orange);
   outline-offset: 2px;
 }
-
-.products-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  margin-inline-start: auto;
-}
-
-.products-summary__item {
-  padding: 0.25rem 0.625rem;
-  border-radius: 999px;
-  background: var(--color-surface);
-  color: var(--color-carbon-muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.products-summary__item--low {
-  background: color-mix(in srgb, var(--status-amber) 14%, var(--color-white));
-  color: var(--status-amber);
-}
-
-.products-summary__item--out {
-  background: color-mix(in srgb, var(--status-red) 14%, var(--color-white));
-  color: var(--status-red);
-}
-
-/* --- Bulk-action bar: a highlighted card, not a flat gray strip. --- */
-.product-bulkbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
-  width: 95%;
-  max-width: 64rem;
-  margin: 0.75rem auto 0;
-  padding: 0.625rem 1rem;
+.prow__thumb {
+  width: 48px;
+  height: 48px;
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-orange) 8%, var(--color-white));
-  border: 1px solid color-mix(in srgb, var(--color-orange) 24%, transparent);
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
-
-/* --- Quick-add: a proper inline card, not a dashed placeholder box. --- */
-.product-quickadd {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.625rem;
-  width: 95%;
-  max-width: 64rem;
-  margin: 0.75rem auto 0;
-  padding: 0.875rem 1rem;
-  border: 0;
-  border-radius: var(--radius-md);
-  background: var(--color-white);
-  box-shadow: var(--shadow-sm);
-}
-
-.product-quickadd .primary-btn {
-  width: auto;
-  min-height: 44px;
-  padding: 0 1.25rem;
-  border-radius: var(--radius-sm);
-}
-
-/* --- Header row: column labels above the card list, hidden on mobile where
-   the cards stack instead. --- */
-.product-grid__head {
+  background: var(--color-accent-50);
+  color: var(--color-accent-700);
   display: grid;
-  grid-template-columns: 2rem 3.5rem minmax(0, 1fr) 7rem 9rem 6.5rem 3.5rem;
-  gap: 0.75rem;
-  width: 95%;
-  max-width: 64rem;
-  margin: 1.25rem auto 0;
-  padding: 0 0.875rem;
-  color: var(--color-carbon-muted);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.product-row__thumb {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  flex-shrink: 0;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  place-items: center;
   overflow: hidden;
-  font-size: 0.625rem;
-  color: var(--color-carbon-muted);
-  text-align: center;
 }
-
-.product-row__thumb img {
+.prow__thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-
-.product-row__inactive {
-  background: var(--color-carbon-soft);
-  color: var(--color-carbon-muted);
-}
-
-.product-row__stock--out {
-  background: color-mix(in srgb, var(--status-red) 14%, var(--color-white));
-  color: var(--status-red);
-}
-
-.product-row__stock--low {
-  background: color-mix(in srgb, var(--status-amber) 14%, var(--color-white));
-  color: var(--status-amber);
-}
-
-.product-form__image-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.product-form__image-preview {
-  width: 72px;
-  height: 72px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-  background: var(--color-carbon-soft);
-}
-
-.product-form__active {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-/* --- Editor de producto: dos columnas en desktop, apilado en mobile --------- */
-.product-editor {
+.prow__info {
   display: grid;
-  gap: 1.5rem;
-  grid-template-columns: 1fr;
+  gap: 4px;
+  min-width: 0;
 }
-
-@media (min-width: 900px) {
-  .product-editor {
-    grid-template-columns: minmax(0, 1fr) 20rem;
-    align-items: start;
+.prow__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  transition: color 0.15s;
+  overflow-wrap: anywhere;
+}
+.prow__parts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.8125rem;
+}
+.prow__parts .swatch {
+  width: 12px;
+  height: 12px;
+}
+.prow__parts > span:last-child {
+  margin-left: 4px;
+}
+.prow__noparts {
+  color: var(--status-amber);
+  font-weight: 700;
+}
+.prow__price {
+  font-weight: 800;
+}
+.prow__stock {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--color-carbon-line);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+}
+.prow__stock .icon-btn {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+.prow__stock .num {
+  min-width: 2ch;
+  text-align: center;
+  font-weight: 800;
+}
+@media (max-width: 599px) {
+  .prow__main {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .prow__price {
+    grid-column: 2;
+    font-size: 0.875rem;
   }
 }
 
-.product-editor__aside {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+/* ---------- Product sheet ---------- */
+.pform__grid {
+  display: grid;
+  gap: 16px;
 }
-
-.product-editor__hint {
+@media (min-width: 980px) {
+  .pform__grid {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+  }
+}
+.pform__side {
+  display: grid;
+  gap: 16px;
+}
+.pform__hint {
   font-size: 0.8125rem;
-  color: var(--color-carbon-muted);
-  margin-top: 0.5rem;
+  margin: 6px 0 12px;
+}
+.pform__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.pform__textarea {
+  resize: vertical;
+  min-height: 72px;
+  font: inherit;
+}
+.pform__err {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--status-red);
+  margin-top: 4px;
+}
+.pform__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+.pform__check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-teal);
+}
+.pform .input[aria-invalid='true'] {
+  border-color: var(--status-red);
 }
 
-/* --- Galería de medios ---------------------------------------------------- */
+/* Parts editor: swatch · pieza · color · ×qty · actions */
+.parts-editor {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.parts-editor__list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  counter-reset: part;
+}
+.parts-editor__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1fr) 84px auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  animation: part-in 0.2s var(--ease-out);
+}
+.parts-editor__row .swatch {
+  width: 18px;
+  height: 18px;
+}
+.parts-editor__qty {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 800;
+  color: var(--color-carbon-muted);
+}
+.parts-editor__qty .input {
+  text-align: center;
+  padding-inline: 6px;
+}
+.parts-editor__actions {
+  display: flex;
+}
+.parts-editor__actions .icon-btn {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  font-weight: 800;
+}
+.parts-editor__actions .icon-btn:disabled {
+  opacity: 0.3;
+}
+@media (max-width: 599px) {
+  .parts-editor__row {
+    grid-template-columns: auto minmax(0, 1fr) 72px;
+  }
+  .parts-editor__row > .input:nth-of-type(2) {
+    grid-column: 2;
+  }
+  .parts-editor__actions {
+    grid-column: 2 / -1;
+    justify-content: flex-end;
+  }
+}
+@keyframes part-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+/* ---------- Photo gallery ---------- */
+.product-gallery input[type='file'] {
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
 .product-gallery__grid {
   list-style: none;
   margin: 0.75rem 0 0;
@@ -233,21 +254,18 @@
   grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
   gap: 0.75rem;
 }
-
 .product-gallery__item {
   position: relative;
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--color-carbon-soft);
 }
-
 .product-gallery__item img {
   display: block;
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
 }
-
 .product-gallery__badge {
   position: absolute;
   inset-block-start: 0.25rem;
@@ -258,14 +276,12 @@
   background: var(--color-carbon);
   color: var(--color-white);
 }
-
 .product-gallery__controls {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
   padding: 0.25rem;
 }
-
 .product-gallery__controls button {
   font-size: 0.6875rem;
   padding: 0.125rem 0.375rem;
@@ -274,276 +290,7 @@
   background: var(--color-white);
   cursor: pointer;
 }
-
 .product-gallery__controls button:disabled {
   opacity: 0.4;
   cursor: default;
-}
-
-/* --- Card list ------------------------------------------------------------ */
-.product-grid {
-  display: grid;
-  gap: 0.5rem;
-  width: 95%;
-  max-width: 64rem;
-  margin: 0.375rem auto 0;
-}
-
-.product-grid__row {
-  display: grid;
-  grid-template-columns: 2rem 3.5rem minmax(0, 1fr) 7rem 9rem 6.5rem 3.5rem;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.625rem 0.875rem;
-  border-radius: var(--radius-md);
-  border-left: 3px solid transparent;
-  background: var(--color-white);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 150ms ease-out;
-}
-
-.product-grid__row:hover {
-  box-shadow: var(--shadow-md);
-}
-
-/* Stock-health semaphore — same language as the orders table's urgency rail. */
-.product-grid__row--low {
-  border-left-color: var(--status-amber);
-}
-
-.product-grid__row--out {
-  border-left-color: var(--status-red);
-}
-
-.product-grid__select {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--color-orange);
-  cursor: pointer;
-}
-
-.product-grid__cell-input {
-  width: 100%;
-  min-width: 0;
-}
-
-.product-row__info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  min-width: 0;
-}
-
-.product-row__name {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 700;
-  color: var(--color-carbon);
-  text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.product-row__name:hover {
-  text-decoration: underline;
-}
-
-.product-row__name:focus-visible {
-  outline: 2px solid var(--color-orange);
-  outline-offset: 2px;
-  border-radius: 0.25rem;
-}
-
-.product-row__category {
-  font-size: 0.8125rem;
-  color: var(--color-carbon-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Price — a fixed "$" prefix inside the field, like a real currency input. */
-.product-row__price {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.product-row__price-prefix {
-  position: absolute;
-  left: 0.75rem;
-  color: var(--color-carbon-muted);
-  font-weight: 600;
-  pointer-events: none;
-}
-
-.product-row__price .product-grid__cell-input {
-  padding-left: 1.5rem;
-}
-
-/* Stepper — a single bordered pill (−, count, +) instead of three loose
-   controls; the count itself has no border of its own. */
-.product-stepper {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--color-carbon-soft);
-  border-radius: 999px;
-  overflow: hidden;
-  background: var(--color-white);
-}
-
-.product-stepper__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  flex-shrink: 0;
-  border: 0;
-  background: transparent;
-  color: var(--color-carbon);
-  font-size: 1.125rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  transition: background-color 150ms ease-out;
-}
-
-.product-stepper__btn:hover {
-  background: var(--color-carbon-soft);
-}
-
-.product-stepper__btn:focus-visible {
-  outline: 2px solid var(--color-orange);
-  outline-offset: -2px;
-}
-
-.product-stepper__btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.product-stepper .product-grid__cell-input {
-  width: 3rem;
-  min-height: 2.25rem;
-  padding: 0;
-  border: 0;
-  border-left: 1px solid var(--color-carbon-soft);
-  border-right: 1px solid var(--color-carbon-soft);
-  border-radius: 0;
-  text-align: center;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.product-stepper .product-grid__cell-input:focus-visible {
-  outline: none;
-  background: color-mix(in srgb, var(--color-orange) 8%, var(--color-white));
-}
-
-/* Active toggle — a real switch, matched to how "visible in store" reads in
-   any modern storefront admin, instead of a bare checkbox. */
-.product-grid__active {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  width: 2.5rem;
-  height: 1.5rem;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.product-grid__active input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.product-grid__active::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  background: var(--color-carbon-soft);
-  transition: background-color 150ms ease-out;
-}
-
-.product-grid__active::after {
-  content: '';
-  position: absolute;
-  top: 0.1875rem;
-  left: 0.1875rem;
-  width: 1.125rem;
-  height: 1.125rem;
-  border-radius: 50%;
-  background: var(--color-white);
-  box-shadow: var(--shadow-sm);
-  transition: transform 150ms ease-out;
-}
-
-.product-grid__active:has(input:checked)::before {
-  background: var(--color-teal);
-}
-
-.product-grid__active:has(input:checked)::after {
-  transform: translateX(1rem);
-}
-
-.product-grid__active:has(input:focus-visible)::before {
-  outline: 2px solid var(--color-orange);
-  outline-offset: 2px;
-}
-
-@media (max-width: 760px) {
-  .product-grid__head {
-    display: none;
-  }
-
-  .product-grid__row {
-    grid-template-columns: 1.5rem 1fr 1fr;
-    grid-template-areas:
-      'check info info'
-      'check price stock'
-      'check badge active';
-    row-gap: 0.625rem;
-  }
-
-  .product-grid__select {
-    grid-area: check;
-    align-self: start;
-    margin-top: 0.25rem;
-  }
-
-  .product-row__thumb {
-    display: none;
-  }
-
-  .product-row__info {
-    grid-area: info;
-  }
-
-  .product-row__price {
-    grid-area: price;
-  }
-
-  .product-stepper {
-    grid-area: stock;
-    justify-self: start;
-  }
-
-  .product-row__stock-badge {
-    grid-area: badge;
-    justify-self: start;
-  }
-
-  .product-grid__active {
-    grid-area: active;
-    justify-self: end;
-  }
 }

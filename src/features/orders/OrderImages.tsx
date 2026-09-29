@@ -51,9 +51,7 @@ export default function OrderImages({ orderId }: OrderImagesProps) {
     }
   }, [viewerIndex])
 
-  async function handleFileChange(
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) {
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
@@ -67,7 +65,11 @@ export default function OrderImages({ orderId }: OrderImagesProps) {
     setUploading(true)
     setError(null)
     try {
-      const uploaded = await uploadOrderImage(orderId, file, note.trim() || null)
+      const uploaded = await uploadOrderImage(
+        orderId,
+        file,
+        note.trim() || null,
+      )
       setImages((prev) => [...prev, uploaded])
       setNote('')
     } catch (err) {

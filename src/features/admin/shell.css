@@ -1,0 +1,203 @@
+.shell {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+/* ---------- Sidebar (desktop) ---------- */
+.shell-side {
+  display: none;
+}
+.shell-nav__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: var(--radius-md);
+  border: 0;
+  background: none;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.shell-nav__link:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 1px;
+}
+
+.shell-main {
+  padding: 20px 16px calc(120px + env(safe-area-inset-bottom));
+  max-width: 88rem;
+  margin-inline: auto;
+}
+
+/* ---------- Bottom nav + FAB (mobile) ---------- */
+.shell-bottom {
+  position: fixed;
+  z-index: 40;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--color-white);
+  border-top: 1px solid var(--color-carbon-line);
+  padding: 6px 6px calc(8px + env(safe-area-inset-bottom));
+}
+.shell-bottom .shell-nav__link {
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-carbon-muted);
+  align-items: center;
+  text-align: center;
+}
+.shell-bottom .shell-nav__link.is-active {
+  color: var(--color-accent-700);
+}
+.shell-fab {
+  position: fixed;
+  z-index: 41;
+  right: 18px;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: var(--color-orange);
+  color: var(--color-carbon);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 24px rgba(243, 112, 33, 0.4);
+  transition: transform 0.15s;
+}
+.shell-fab:active {
+  transform: scale(0.92);
+}
+
+.shell-more {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+.shell-more__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(29, 29, 27, 0.35);
+}
+.shell-more__panel {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 8px;
+  box-shadow: var(--shadow-float);
+  animation: rise 0.2s var(--ease-out);
+}
+.shell-more__panel .shell-nav__link.is-active {
+  background: var(--color-accent-50);
+}
+
+@media (min-width: 900px) {
+  .shell {
+    display: grid;
+    grid-template-columns: 248px 1fr;
+  }
+  .shell-bottom,
+  .shell-fab,
+  .shell-more {
+    display: none;
+  }
+  .shell-side {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 20px 14px;
+    background: var(--color-carbon);
+    color: var(--color-white);
+  }
+  .shell-side__brand {
+    padding: 4px 10px 22px;
+    color: var(--color-white);
+    text-decoration: none;
+  }
+  .shell-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .shell-side .shell-nav__link {
+    color: rgba(255, 255, 255, 0.72);
+  }
+  .shell-side .shell-nav__link:hover {
+    background: var(--color-carbon-2);
+    color: var(--color-white);
+  }
+  .shell-side .shell-nav__link.is-active {
+    background: var(--color-orange);
+    color: var(--color-carbon);
+  }
+  .shell-nav__section {
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 18px 12px 6px;
+  }
+  .shell-me {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: var(--radius-md);
+    background: var(--color-carbon-2);
+  }
+  .shell-me__who {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .shell-me__who strong {
+    font-size: 0.875rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .shell-me__who button {
+    background: none;
+    border: 0;
+    padding: 0;
+    text-align: left;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  .shell-me__who button:hover {
+    color: var(--color-orange);
+  }
+  .shell-me__out {
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .shell-me__out:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-white);
+  }
+  .shell-main {
+    width: 100%;
+    padding: 28px 32px 60px;
+  }
+}

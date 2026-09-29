@@ -376,6 +376,11 @@ allow_dynamic_registration = false
 # — keep the default Supabase JWT check on.
 verify_jwt = true
 
+[functions.sync-order-to-sheet]
+# Called by Postgres via pg_net (trg_orders_sync_to_sheet); gated by the
+# X-Webhook-Secret header inside the function.
+verify_jwt = false
+
 [functions.sync-insumo-to-sheet]
 # Called by Postgres via pg_net (trg_inventory_sync_to_sheet); the real gate is
 # the X-Webhook-Secret header check inside the function.

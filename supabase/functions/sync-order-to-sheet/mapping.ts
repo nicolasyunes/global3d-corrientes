@@ -6,6 +6,8 @@ export interface OrderRecord {
   id: string
   customer_id: string
   product_type: string
+  title?: string | null
+  description?: string | null
   personalization: string | null
   measurements: string | null
   observations: string | null
@@ -27,14 +29,18 @@ const PRODUCT_TYPE_ES: Record<string, string> = {
 const ORIGIN_CHANNEL_ES: Record<string, string> = {
   facebook: 'Facebook',
   whatsapp: 'WhatsApp',
+  whatsapp_personal: 'WhatsApp personal',
   instagram: 'Instagram',
+  local: 'Local',
+  web: 'Web',
   other: 'Otro',
 }
 
+// Mirrors the ESTADO values the team already types in the sheet.
 const STATUS_ES: Record<string, string> = {
-  new: '',
-  in_queue: '',
-  printing: '',
+  new: 'No comenzado',
+  in_queue: 'No comenzado',
+  printing: 'Imprimiendo',
   post_processing: 'Post-procesado',
   finished: 'Listo',
   delivered: 'Entregado',
@@ -57,20 +63,25 @@ function formatDate(iso: string): string {
 // Columna 1 | CLIENTE | PRODUCTO | DESCRIPCION | FECHA DE ENTREGA |
 // Total (ARS) | SEÑA | SALDO | CANAL | ESTADO | (K, hidden) order id
 export function toSheetRow(order: OrderRecord, customerName: string): string[] {
-  const description = [order.personalization, order.measurements, order.observations]
-    .filter((part): part is string => Boolean(part && part.trim() !== ''))
-    .join(' — ')
+  const description =
+    order.description?.trim() ||
+    [order.personalization, order.measurements, order.observations]
+      .filter((part): part is string => Boolean(part && part.trim() !== ''))
+      .join(' — ')
 
   return [
     '', // Columna 1 — left blank; matches the ~90% of existing rows with no manual number
     customerName,
-    PRODUCT_TYPE_ES[order.product_type] ?? order.product_type,
+    order.title?.trim() ||
+      (PRODUCT_TYPE_ES[order.product_type] ?? order.product_type),
     description,
     formatDate(order.due_date),
     formatMoney(order.total_amount),
     formatMoney(order.deposit),
     formatMoney(order.pending_balance),
-    order.origin_channel ? (ORIGIN_CHANNEL_ES[order.origin_channel] ?? order.origin_channel) : '',
+    order.origin_channel
+      ? (ORIGIN_CHANNEL_ES[order.origin_channel] ?? order.origin_channel)
+      : '',
     STATUS_ES[order.status] ?? '',
     order.id,
   ]

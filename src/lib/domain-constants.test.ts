@@ -27,9 +27,12 @@ describe('open-list constants', () => {
 
   it('ORIGIN_CHANNEL matches the CHECK constraint list', () => {
     expect(ORIGIN_CHANNEL).toEqual([
-      'facebook',
       'whatsapp',
+      'whatsapp_personal',
       'instagram',
+      'facebook',
+      'local',
+      'web',
       'other',
     ])
   })
