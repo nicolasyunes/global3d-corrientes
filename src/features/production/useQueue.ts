@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { ToastAction } from '@/components/useToast'
 import { useOperator } from '@/features/operators/operator-context'
 import { groupQueueByColor } from './pieces'
 import {
@@ -7,7 +8,9 @@ import {
   type QueuePiece,
 } from './production.api'
 
-export function useQueue(onToast?: (text: string) => void) {
+export function useQueue(
+  onToast?: (text: string, action?: ToastAction) => void,
+) {
   const { current } = useOperator()
   const [pieces, setPieces] = useState<QueuePiece[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,29 +34,46 @@ export function useQueue(onToast?: (text: string) => void) {
     void reload()
   }, [reload])
 
-  const plus = useCallback(
-    async (piece: QueuePiece) => {
+  // Adds `delta` finished units in one call (a held "+" or "Completar"),
+  // with an undo that takes them back.
+  const add = useCallback(
+    async (piece: QueuePiece, delta: number) => {
+      if (delta <= 0) return
       setBusyId(piece.id)
+      const operator = current?.id ?? null
       try {
-        const updated = await incrementPiece(piece.id, 1, current?.id ?? null)
+        const updated = await incrementPiece(piece.id, delta, operator)
         setPieces((prev) =>
           updated.status === 'done'
             ? prev.filter((p) => p.id !== piece.id)
             : prev.map((p) => (p.id === piece.id ? { ...p, ...updated } : p)),
         )
-        onToast?.(
+        const text =
           updated.status === 'done'
             ? `${piece.label}: ¡lista!`
-            : `+1 ${piece.label} · ${updated.quantity_done}/${updated.quantity_total}`,
-        )
+            : `+${delta} ${piece.label} · ${updated.quantity_done}/${updated.quantity_total}`
+        onToast?.(text, {
+          label: 'Deshacer',
+          onClick: () => {
+            void incrementPiece(piece.id, -delta, operator)
+              .then(() => reload())
+              .catch((err) =>
+                setError(
+                  err instanceof Error ? err.message : 'No se pudo deshacer.',
+                ),
+              )
+          },
+        })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'No se pudo registrar.')
       } finally {
         setBusyId(null)
       }
     },
-    [current, onToast],
+    [current, onToast, reload],
   )
+
+  const plus = useCallback((piece: QueuePiece) => add(piece, 1), [add])
 
   // "Sin apuro" pieces are kept apart from the urgent queue.
   const urgent = useMemo(() => pieces.filter((p) => !p.flexible), [pieces])
@@ -67,6 +87,7 @@ export function useQueue(onToast?: (text: string) => void) {
     error,
     busyId,
     plus,
+    add,
     reload,
   }
 }

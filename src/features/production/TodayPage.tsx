@@ -322,7 +322,7 @@ export default function TodayPage() {
               groups={queue.groups}
               today={today}
               busyId={queue.busyId}
-              onPlus={queue.plus}
+              onAdd={(piece, delta) => void queue.add(piece, delta)}
               limit={8}
             />
           )}
