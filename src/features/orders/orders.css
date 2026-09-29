@@ -820,14 +820,16 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Status stamp — semantic token as a bordered mark, not a filled pill. Reads
-   like a rubber stamp on a docket. */
+/* Status chip — semantic token (color) drives a soft filled pill via
+   currentColor, so callers that only set `color` (StatusBadge et al.) get a
+   tinted background for free. */
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.1875rem 0.5rem;
-  border: 1.5px solid currentColor;
+  padding: 0.25rem 0.625rem;
+  border: 0;
   border-radius: 999px;
+  background: color-mix(in srgb, currentColor 14%, var(--color-white));
   font-size: 0.75rem;
   font-weight: 700;
   white-space: nowrap;

@@ -1,44 +1,153 @@
-/* Products admin — reuses orders.css's field/row/button vocabulary; only the
-   image thumbnail/preview and stock/inactive indicators are new here. */
+/* Products admin — a card-list in the vein of modern storefront back-offices
+   (Tiendanube/Tienda Nube): a floating toolbar, a labeled header row, and one
+   elevated card per product instead of a dense spreadsheet line. Reuses
+   orders.css's field/button vocabulary; the grid, stepper, stock chip and
+   active toggle are all new here.
 
-/* Toolbar: search + active-only chip + stock-health summary. Wraps to its
-   own line on narrow screens rather than compressing the search field. */
+   Signature: the left rail on each card carries the same stock-health
+   semaphore already used on the orders table/kanban (amber = low, red =
+   out) — one glance tells you what needs restocking, no separate legend. */
+
+/* --- Toolbar: floats as its own card above the list, not pinned under the
+   sticky shell header (a card look reads oddly while stuck to the top). --- */
 .products-toolbar {
+  position: static;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  width: 95%;
+  max-width: 64rem;
+  margin: 1.25rem auto 0;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  border-bottom: none;
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
 }
 
 .products-toolbar__search {
-  flex: 1 1 12rem;
+  flex: 1 1 14rem;
   min-width: 0;
+}
+
+.products-toolbar__add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-orange);
+  color: var(--color-carbon);
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 150ms ease-out;
+}
+
+.products-toolbar__add:hover {
+  filter: brightness(0.96);
+}
+
+.products-toolbar__add:focus-visible {
+  outline: 2px solid var(--color-carbon);
+  outline-offset: 2px;
 }
 
 .products-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
+  align-items: center;
+  gap: 0.5rem;
+  margin-inline-start: auto;
+}
+
+.products-summary__item {
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  background: var(--color-surface);
   color: var(--color-carbon-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .products-summary__item--low {
+  background: color-mix(in srgb, var(--status-amber) 14%, var(--color-white));
   color: var(--status-amber);
-  font-weight: 600;
 }
 
 .products-summary__item--out {
+  background: color-mix(in srgb, var(--status-red) 14%, var(--color-white));
   color: var(--status-red);
+}
+
+/* --- Bulk-action bar: a highlighted card, not a flat gray strip. --- */
+.product-bulkbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  width: 95%;
+  max-width: 64rem;
+  margin: 0.75rem auto 0;
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-orange) 8%, var(--color-white));
+  border: 1px solid color-mix(in srgb, var(--color-orange) 24%, transparent);
+  font-size: 0.8125rem;
   font-weight: 600;
+}
+
+/* --- Quick-add: a proper inline card, not a dashed placeholder box. --- */
+.product-quickadd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  width: 95%;
+  max-width: 64rem;
+  margin: 0.75rem auto 0;
+  padding: 0.875rem 1rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.product-quickadd .primary-btn {
+  width: auto;
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border-radius: var(--radius-sm);
+}
+
+/* --- Header row: column labels above the card list, hidden on mobile where
+   the cards stack instead. --- */
+.product-grid__head {
+  display: grid;
+  grid-template-columns: 2rem 3.5rem minmax(0, 1fr) 7rem 9rem 6.5rem 3.5rem;
+  gap: 0.75rem;
+  width: 95%;
+  max-width: 64rem;
+  margin: 1.25rem auto 0;
+  padding: 0 0.875rem;
+  color: var(--color-carbon-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .product-row__thumb {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 3rem;
+  height: 3rem;
   flex-shrink: 0;
-  border-radius: 0.5rem;
-  background: var(--color-carbon-soft);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
   overflow: hidden;
   font-size: 0.625rem;
   color: var(--color-carbon-muted);
@@ -52,7 +161,6 @@
 }
 
 .product-row__inactive {
-  margin-left: 0.5rem;
   background: var(--color-carbon-soft);
   color: var(--color-carbon-muted);
 }
@@ -76,7 +184,7 @@
 .product-form__image-preview {
   width: 72px;
   height: 72px;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   object-fit: cover;
   background: var(--color-carbon-soft);
 }
@@ -128,7 +236,7 @@
 
 .product-gallery__item {
   position: relative;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--color-carbon-soft);
 }
@@ -172,23 +280,46 @@
   cursor: default;
 }
 
-/* --- Grilla de carga rápida -------------------------------------------------- */
+/* --- Card list ------------------------------------------------------------ */
 .product-grid {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.5rem;
+  width: 95%;
+  max-width: 64rem;
+  margin: 0.375rem auto 0;
 }
 
 .product-grid__row {
   display: grid;
-  grid-template-columns: 2rem 2.75rem minmax(0, 1fr) 8rem 7rem 7rem 3rem;
+  grid-template-columns: 2rem 3.5rem minmax(0, 1fr) 7rem 9rem 6.5rem 3.5rem;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius-md);
+  border-left: 3px solid transparent;
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 150ms ease-out;
 }
 
 .product-grid__row:hover {
-  background: var(--color-carbon-soft);
+  box-shadow: var(--shadow-md);
+}
+
+/* Stock-health semaphore — same language as the orders table's urgency rail. */
+.product-grid__row--low {
+  border-left-color: var(--status-amber);
+}
+
+.product-grid__row--out {
+  border-left-color: var(--status-red);
+}
+
+.product-grid__select {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-orange);
+  cursor: pointer;
 }
 
 .product-grid__cell-input {
@@ -196,39 +327,223 @@
   min-width: 0;
 }
 
-.product-bulkbar {
+.product-row__info {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  background: var(--color-carbon-soft);
-  font-size: 0.8125rem;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
 }
 
-.product-quickadd {
+.product-row__name {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 0.75rem;
-  border: 1px dashed var(--color-carbon-muted);
-  border-radius: 0.5rem;
-  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: var(--color-carbon);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+.product-row__name:hover {
+  text-decoration: underline;
+}
+
+.product-row__name:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+.product-row__category {
+  font-size: 0.8125rem;
+  color: var(--color-carbon-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Price — a fixed "$" prefix inside the field, like a real currency input. */
+.product-row__price {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.product-row__price-prefix {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--color-carbon-muted);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.product-row__price .product-grid__cell-input {
+  padding-left: 1.5rem;
+}
+
+/* Stepper — a single bordered pill (−, count, +) instead of three loose
+   controls; the count itself has no border of its own. */
 .product-stepper {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  border: 1px solid var(--color-carbon-soft);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--color-white);
+}
+
+.product-stepper__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-carbon);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.product-stepper__btn:hover {
+  background: var(--color-carbon-soft);
+}
+
+.product-stepper__btn:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: -2px;
+}
+
+.product-stepper__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.product-stepper .product-grid__cell-input {
+  width: 3rem;
+  min-height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--color-carbon-soft);
+  border-right: 1px solid var(--color-carbon-soft);
+  border-radius: 0;
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-stepper .product-grid__cell-input:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--color-orange) 8%, var(--color-white));
+}
+
+/* Active toggle — a real switch, matched to how "visible in store" reads in
+   any modern storefront admin, instead of a bare checkbox. */
+.product-grid__active {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 2.5rem;
+  height: 1.5rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.product-grid__active input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.product-grid__active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--color-carbon-soft);
+  transition: background-color 150ms ease-out;
+}
+
+.product-grid__active::after {
+  content: '';
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  transition: transform 150ms ease-out;
+}
+
+.product-grid__active:has(input:checked)::before {
+  background: var(--color-teal);
+}
+
+.product-grid__active:has(input:checked)::after {
+  transform: translateX(1rem);
+}
+
+.product-grid__active:has(input:focus-visible)::before {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
 }
 
 @media (max-width: 760px) {
+  .product-grid__head {
+    display: none;
+  }
+
   .product-grid__row {
-    grid-template-columns: 1fr auto;
-    grid-auto-rows: min-content;
-    row-gap: 0.375rem;
-    border: 1px solid var(--color-carbon-soft);
+    grid-template-columns: 1.5rem 1fr 1fr;
+    grid-template-areas:
+      'check info info'
+      'check price stock'
+      'check badge active';
+    row-gap: 0.625rem;
+  }
+
+  .product-grid__select {
+    grid-area: check;
+    align-self: start;
+    margin-top: 0.25rem;
+  }
+
+  .product-row__thumb {
+    display: none;
+  }
+
+  .product-row__info {
+    grid-area: info;
+  }
+
+  .product-row__price {
+    grid-area: price;
+  }
+
+  .product-stepper {
+    grid-area: stock;
+    justify-self: start;
+  }
+
+  .product-row__stock-badge {
+    grid-area: badge;
+    justify-self: start;
+  }
+
+  .product-grid__active {
+    grid-area: active;
+    justify-self: end;
   }
 }

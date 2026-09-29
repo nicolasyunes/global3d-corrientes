@@ -1,46 +1,25 @@
 /* ---------------------------------------------------------------------------
-   Ficha de taller — the /admin visual system. Scoped entirely to
-   .admin-shell so the public storefront bundle never inherits it. Anchored
-   to the shop-floor traveler card, redrawn with Müller-Brockmann grid
-   rigor: three inks (carbon, paper, stencil-orange), no fourth structural
-   color, no radius, no elevation. Numbers — not icons, not color families —
-   carry wayfinding; separation comes from hairline rule and space alone.
-   Semantic status colors (red/amber/green) are untouched: they signal
-   state, not brand, and sit outside this palette constraint.
+   Admin visual system — a light, card-based shell for /admin, in the style
+   of modern storefront back-offices (Tiendanube, Tienda Nube). Scoped to
+   .admin-shell so the public storefront bundle never inherits it. White
+   cards float on a soft neutral canvas; radius, shadow, and pastel status
+   tints come from the shared component styles (orders.css/auth.css/
+   products.css) — this file no longer fights them. Archivo carries the
+   brand's geometric-grotesque voice in headings; IBM Plex Mono is reserved
+   for money figures, where tabular digits actually help scanning a column
+   of totals.
 --------------------------------------------------------------------------- */
 
-@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,700;0,900;1,400&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
 .admin-shell {
-  --color-white: #f6f2ea; /* paper, not screen-white */
-  --color-surface: #ece5d6; /* paper, raised a shade */
-  --color-carbon-soft: rgba(29, 29, 27, 0.16); /* hairline rule — a touch
-    stronger than the storefront's 6% so it still reads on warm paper */
   --font-head: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
   --font-body: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
   font-family: var(--font-body);
-  background: var(--color-white);
+  background: var(--color-surface);
 }
 
-/* Flat, printed-ticket surface: no radius, no elevation anywhere in admin.
-   Components that relied on shadow alone for separation get a hairline
-   border instead, further down this file. */
-.admin-shell,
-.admin-shell *,
-.admin-shell *::before,
-.admin-shell *::after {
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-.admin-shell .pending-card,
-.admin-shell .kanban-card,
-.admin-shell .quick-order-sheet__panel {
-  border: 1px solid var(--color-carbon-soft);
-}
-
-/* Headings — Archivo, heavy, doing the work shadows and color used to. */
 .admin-shell h1,
 .admin-shell h2,
 .admin-shell .order-form__title,
@@ -50,139 +29,25 @@
 .admin-shell .production-checklist__header,
 .admin-shell .admin-shell__wordmark {
   font-family: var(--font-head);
-  font-weight: 900;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .admin-shell .form-section__heading {
   font-family: var(--font-head);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: var(--color-carbon-muted);
 }
 
-/* Data and counts read as ticket-printer register: mono, tabular. Matches
-   any BEM modifier ending in these tokens across the admin components. */
-.admin-shell [class*='__pending'],
+/* Money figures read as a ledger column; everything else stays in the body
+   face so the page doesn't feel like a receipt printer. */
 .admin-shell [class*='__balance'],
 .admin-shell [class*='__amount'],
-.admin-shell [class*='__num'],
-.admin-shell [class*='__due'],
-.admin-shell [class*='__count'],
-.admin-shell [class*='__progress'],
-.admin-shell [class*='__index'] {
+.admin-shell [class*='__total'],
+.admin-shell [class*='__pending'] {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-}
-
-.admin-shell .orders-table thead th,
-.admin-shell .sheet-table thead th {
-  font-family: var(--font-mono);
-}
-
-/* Status stamp — a bordered mark, not a filled pill. Reads like a rubber
-   stamp on a docket. Semantic color (the status itself) is untouched; only
-   the tinted-fill treatment is dropped. */
-.admin-shell .badge {
-  background: none !important;
-  border: 1.5px solid currentColor;
-  padding: 0.1875rem 0.5rem;
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.6875rem;
-  transform: rotate(-1deg);
-}
-
-/* Step numerals — the wayfinding device is the number itself, not a color
-   family. Every step reads the same: ink on paper, no per-step tint. The
-   compound selector matches the per-step rule's specificity (two classes)
-   so this neutralization isn't left to stylesheet load order. */
-.admin-shell .form-section__step-badge,
-.admin-shell .form-section--step-1 .form-section__step-badge,
-.admin-shell .form-section--step-2 .form-section__step-badge,
-.admin-shell .form-section--step-3 .form-section__step-badge,
-.admin-shell .form-section--step-4 .form-section__step-badge {
-  width: auto;
-  height: auto;
-  min-width: 1.5rem;
-  background: none;
-  color: var(--color-carbon);
-  font-family: var(--font-mono);
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.admin-shell .form-section--step-1,
-.admin-shell .form-section--step-2,
-.admin-shell .form-section--step-3,
-.admin-shell .form-section--step-4 {
-  border-left-color: var(--color-carbon-soft);
-}
-
-.admin-shell .form-section__toggle-icon {
-  background: none;
-  border: 1px solid var(--color-carbon-soft);
-  font-family: var(--font-mono);
-}
-
-/* Quick-order field groups separate by rule, not a second accent color —
-   the palette keeps exactly one accent, reserved for the submit action. */
-.admin-shell .quick-order-row__group {
-  background: none;
-  border-left-color: var(--color-carbon-soft);
-}
-
-.admin-shell .quick-order-row__group--when {
-  border-left-color: var(--color-carbon);
-}
-
-/* Toggles and tabs — flat segmented rule, no pill backgrounds. */
-.admin-shell .view-toggle,
-.admin-shell .mode-toggle,
-.admin-shell .sheet-view-toggle {
-  background: none;
-  border: 1px solid var(--color-carbon-soft);
-  padding: 0;
-  gap: 0;
-}
-
-.admin-shell .view-toggle__button,
-.admin-shell .mode-toggle__button {
-  border-right: 1px solid var(--color-carbon-soft);
-}
-
-.admin-shell .view-toggle__button:last-child,
-.admin-shell .mode-toggle__button:last-child {
-  border-right: 0;
-}
-
-.admin-shell .view-toggle__button[aria-pressed='true'],
-.admin-shell .mode-toggle__button[aria-pressed='true'] {
-  background: var(--color-carbon);
-  color: var(--color-white);
-}
-
-.admin-shell .chip {
-  background: none;
-  border: 1px solid var(--color-carbon-soft);
-}
-
-.admin-shell .chip--selected {
-  background: var(--color-orange);
-  border-color: var(--color-orange);
-}
-
-/* Header masthead — a hairline rule, not a soft border; tracked mono nav
-   labels instead of a body-weight link list. */
-.admin-shell__header {
-  border-bottom: 2px solid var(--color-carbon);
-}
-
-.admin-shell__nav-link,
-.admin-shell__signout {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }

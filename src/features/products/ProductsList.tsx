@@ -197,12 +197,12 @@ export default function ProductsList() {
         </button>
         <button
           type="button"
-          className="chip"
+          className="products-toolbar__add"
           onClick={() => setQuickAddOpen((v) => !v)}
         >
           + Producto
         </button>
-        <Link to="/admin/productos/nuevo" className="link-btn">
+        <Link to="/admin/productos/nuevo" className="link-btn link-btn--inline">
           Nuevo producto (detalle)
         </Link>
         {!loading && !error && products.length > 0 && (
@@ -333,108 +333,132 @@ export default function ProductsList() {
       )}
 
       {!loading && !error && visible.length > 0 && (
-        <div className="product-grid">
-          {visible.map((product) => {
-            const level = stockLevel(product)
-            return (
-              <div key={product.id} className="product-grid__row">
-                <input
-                  type="checkbox"
-                  aria-label={`Seleccionar ${product.name}`}
-                  checked={selected.has(product.id)}
-                  onChange={() => toggleSelected(product.id)}
-                />
-                <div className="product-row__thumb">
-                  {product.image_url ? (
-                    <img src={product.image_url} alt="" />
-                  ) : (
-                    <span aria-hidden="true">Sin foto</span>
-                  )}
-                </div>
-                <Link
-                  to={`/admin/productos/${product.id}`}
-                  className="order-row__customer"
+        <>
+          <div className="product-grid__head" aria-hidden="true">
+            <span />
+            <span />
+            <span>Producto</span>
+            <span>Precio</span>
+            <span>Stock</span>
+            <span>Estado</span>
+            <span>Activo</span>
+          </div>
+          <div className="product-grid">
+            {visible.map((product) => {
+              const level = stockLevel(product)
+              return (
+                <div
+                  key={product.id}
+                  className={`product-grid__row${level !== 'ok' ? ` product-grid__row--${level}` : ''}`}
                 >
-                  {product.name}
-                  {!product.active && (
-                    <span className="badge product-row__inactive">
-                      Inactivo
-                    </span>
-                  )}
-                  <span className="product-editor__hint">
-                    {' '}
-                    · {catName(product.category_id)}
-                  </span>
-                </Link>
-                <input
-                  className="field__input product-grid__cell-input"
-                  aria-label={`Precio de ${product.name}`}
-                  defaultValue={
-                    product.base_price === null
-                      ? ''
-                      : String(product.base_price)
-                  }
-                  inputMode="decimal"
-                  onBlur={(e) => commitPrice(product, e.target.value)}
-                  disabled={busyId === product.id}
-                />
-                <div className="product-stepper">
-                  <button
-                    type="button"
-                    className="insumo-step"
-                    aria-label={`Restar stock de ${product.name}`}
-                    disabled={
-                      busyId === product.id || product.stock_quantity <= 0
-                    }
-                    onClick={() =>
-                      void patchRow(product.id, {
-                        stock_quantity: Math.max(0, product.stock_quantity - 1),
-                      })
-                    }
-                  >
-                    −
-                  </button>
-                  <input
-                    className="field__input product-grid__cell-input"
-                    aria-label={`Stock de ${product.name}`}
-                    defaultValue={String(product.stock_quantity)}
-                    inputMode="numeric"
-                    onBlur={(e) => commitStock(product, e.target.value)}
-                    disabled={busyId === product.id}
-                  />
-                  <button
-                    type="button"
-                    className="insumo-step"
-                    aria-label={`Sumar stock de ${product.name}`}
-                    disabled={busyId === product.id}
-                    onClick={() =>
-                      void patchRow(product.id, {
-                        stock_quantity: product.stock_quantity + 1,
-                      })
-                    }
-                  >
-                    +
-                  </button>
-                </div>
-                <span
-                  className={`badge${level !== 'ok' ? ` product-row__stock--${level}` : ''}`}
-                >
-                  {STOCK_LEVEL_LABEL[level]}
-                </span>
-                <label className="product-grid__active">
                   <input
                     type="checkbox"
-                    aria-label={`Activo: ${product.name}`}
-                    checked={product.active}
-                    onChange={(e) =>
-                      void patchRow(product.id, { active: e.target.checked })
-                    }
+                    className="product-grid__select"
+                    aria-label={`Seleccionar ${product.name}`}
+                    checked={selected.has(product.id)}
+                    onChange={() => toggleSelected(product.id)}
                   />
-                </label>
-              </div>
-            )
-          })}
-        </div>
+                  <div className="product-row__thumb">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt="" />
+                    ) : (
+                      <span aria-hidden="true">Sin foto</span>
+                    )}
+                  </div>
+                  <div className="product-row__info">
+                    <Link
+                      to={`/admin/productos/${product.id}`}
+                      className="product-row__name"
+                    >
+                      {product.name}
+                      {!product.active && (
+                        <span className="badge product-row__inactive">
+                          Inactivo
+                        </span>
+                      )}
+                    </Link>
+                    <span className="product-row__category">
+                      {catName(product.category_id)}
+                    </span>
+                  </div>
+                  <div className="product-row__price">
+                    <span className="product-row__price-prefix" aria-hidden="true">
+                      $
+                    </span>
+                    <input
+                      className="field__input product-grid__cell-input"
+                      aria-label={`Precio de ${product.name}`}
+                      defaultValue={
+                        product.base_price === null
+                          ? ''
+                          : String(product.base_price)
+                      }
+                      inputMode="decimal"
+                      onBlur={(e) => commitPrice(product, e.target.value)}
+                      disabled={busyId === product.id}
+                    />
+                  </div>
+                  <div className="product-stepper">
+                    <button
+                      type="button"
+                      className="product-stepper__btn"
+                      aria-label={`Restar stock de ${product.name}`}
+                      disabled={
+                        busyId === product.id || product.stock_quantity <= 0
+                      }
+                      onClick={() =>
+                        void patchRow(product.id, {
+                          stock_quantity: Math.max(
+                            0,
+                            product.stock_quantity - 1,
+                          ),
+                        })
+                      }
+                    >
+                      −
+                    </button>
+                    <input
+                      className="field__input product-grid__cell-input"
+                      aria-label={`Stock de ${product.name}`}
+                      defaultValue={String(product.stock_quantity)}
+                      inputMode="numeric"
+                      onBlur={(e) => commitStock(product, e.target.value)}
+                      disabled={busyId === product.id}
+                    />
+                    <button
+                      type="button"
+                      className="product-stepper__btn"
+                      aria-label={`Sumar stock de ${product.name}`}
+                      disabled={busyId === product.id}
+                      onClick={() =>
+                        void patchRow(product.id, {
+                          stock_quantity: product.stock_quantity + 1,
+                        })
+                      }
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span
+                    className={`badge product-row__stock-badge${level !== 'ok' ? ` product-row__stock--${level}` : ''}`}
+                  >
+                    {STOCK_LEVEL_LABEL[level]}
+                  </span>
+                  <label className="product-grid__active">
+                    <input
+                      type="checkbox"
+                      aria-label={`Activo: ${product.name}`}
+                      checked={product.active}
+                      onChange={(e) =>
+                        void patchRow(product.id, { active: e.target.checked })
+                      }
+                    />
+                  </label>
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
 
       <p className="product-editor__hint">
