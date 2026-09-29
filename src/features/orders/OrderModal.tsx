@@ -31,6 +31,11 @@ import { findTemplate, type ProductTemplate } from '@/features/products/parts'
 import { colorSwatch } from '@/features/production/pieces'
 import { AddAttachment, AttachmentGrid } from './attachments'
 import {
+  DEFAULT_WAITING_REASON,
+  FOLLOW_UP_CHOICES,
+  WAITING_REASONS,
+} from './orderFlow'
+import {
   deleteOrderImage,
   isPdf,
   listOrderImages,
@@ -587,10 +592,110 @@ export default function OrderModal({
               <h3 className="omodal__step">
                 <span>3</span>Entrega y pago
               </h3>
+              <div
+                className="segmented omodal__confirm"
+                role="group"
+                aria-label="¿Está confirmado?"
+              >
+                <button
+                  type="button"
+                  aria-pressed={!draft.waiting}
+                  onClick={() => set('waiting', false)}
+                >
+                  <Icon name="check" size={16} />
+                  Confirmado
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={draft.waiting}
+                  onClick={() => {
+                    set('waiting', true)
+                    if (!draft.followUpOn)
+                      set('followUpOn', addDaysISO(today, 7))
+                  }}
+                >
+                  <Icon name="alert" size={16} />
+                  En espera
+                </button>
+              </div>
+              {draft.waiting ? (
+                <div className="omodal__waiting">
+                  <p className="omodal__hint">
+                    No entra a producción hasta que lo confirmes. Vuelve a
+                    aparecer en <strong>Hoy</strong> el día que elijas para
+                    revisarlo.
+                  </p>
+                  <div className="chips" role="group" aria-label="Motivo">
+                    {WAITING_REASONS.map((reason) => (
+                      <button
+                        key={reason}
+                        type="button"
+                        className="chip"
+                        aria-pressed={
+                          (draft.waitingReason || DEFAULT_WAITING_REASON) ===
+                          reason
+                        }
+                        onClick={() => set('waitingReason', reason)}
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="omodal__row omodal__row--wrap">
+                    <div className="omodal__field">
+                      <label className="field-label" htmlFor="om-follow">
+                        Revisar el
+                      </label>
+                      <input
+                        id="om-follow"
+                        className="input"
+                        type="date"
+                        value={draft.followUpOn}
+                        onChange={(e) => set('followUpOn', e.target.value)}
+                      />
+                    </div>
+                    <div className="chips omodal__quick">
+                      {FOLLOW_UP_CHOICES.map(([label, days]) => {
+                        const value = addDaysISO(today, days)
+                        return (
+                          <button
+                            key={label}
+                            type="button"
+                            className="chip"
+                            aria-pressed={draft.followUpOn === value}
+                            onClick={() => set('followUpOn', value)}
+                          >
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <label className="omodal__flex">
+                  <input
+                    type="checkbox"
+                    checked={draft.flexible}
+                    onChange={(e) => set('flexible', e.target.checked)}
+                  />
+                  <span>
+                    <strong>Sin apuro</strong>
+                    <small>
+                      La fecha es orientativa: se imprime cuando haya tiempo y
+                      no cuenta como atrasado.
+                    </small>
+                  </span>
+                </label>
+              )}
               <div className="omodal__row omodal__row--wrap">
                 <div className="omodal__field">
                   <label className="field-label" htmlFor="om-due">
-                    Fecha de entrega
+                    {draft.waiting
+                      ? 'Fecha estimada (opcional)'
+                      : draft.flexible
+                        ? 'Fecha orientativa'
+                        : 'Fecha de entrega'}
                   </label>
                   <input
                     id="om-due"

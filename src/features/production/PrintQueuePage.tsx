@@ -7,7 +7,9 @@ import {
   groupQueueByColor,
   groupQueueByCustomer,
   normalizeColor,
+  sortQueueGroups,
 } from './pieces'
+import SortSelect, { useStoredSort } from './SortSelect'
 import type { QueuePiece } from './production.api'
 import { useQueue } from './useQueue'
 import './production.css'
@@ -36,11 +38,12 @@ const leftOf = (list: readonly QueuePiece[]) =>
 
 export default function PrintQueuePage() {
   const [toast, showToast] = useToast()
-  const { pieces, loading, error, busyId, plus } = useQueue(showToast)
+  const { pieces, relaxed, loading, error, busyId, plus } = useQueue(showToast)
   const [week, setWeek] = useState<WeekBucket | null>(null)
   const [customer, setCustomer] = useState('')
   const [color, setColor] = useState<string | null>(null)
   const [groupBy, setGroupBy] = useState<GroupBy>(readGroup)
+  const [sort, setSort] = useStoredSort('g3d.queueSort')
   const today = toISODate(new Date())
 
   function changeGroup(next: GroupBy) {
@@ -70,10 +73,13 @@ export default function PrintQueuePage() {
   )
   const groups = useMemo(
     () =>
-      groupBy === 'customer'
-        ? groupQueueByCustomer(filtered)
-        : groupQueueByColor(filtered),
-    [filtered, groupBy],
+      sortQueueGroups(
+        groupBy === 'customer'
+          ? groupQueueByCustomer(filtered)
+          : groupQueueByColor(filtered),
+        sort,
+      ),
+    [filtered, groupBy, sort],
   )
 
   const weekCounts = useMemo(() => {
@@ -97,6 +103,22 @@ export default function PrintQueuePage() {
     }
     return [...map.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name))
   }, [pieces])
+
+  // "Sin apuro": same customer/color filters, no week (their date is a guide).
+  const relaxedGroups = useMemo(() => {
+    const list = relaxed.filter(
+      (p) =>
+        (!customer || p.customer_id === customer) &&
+        (color === null || normalizeColor(p.color) === color),
+    )
+    return sortQueueGroups(
+      groupBy === 'customer'
+        ? groupQueueByCustomer(list)
+        : groupQueueByColor(list),
+      sort,
+    )
+  }, [relaxed, customer, color, groupBy, sort])
+  const relaxedLeft = relaxedGroups.reduce((s, g) => s + leftOf(g.entries), 0)
 
   const colors = useMemo(() => groupQueueByColor(pieces), [pieces])
   const total = leftOf(filtered)
@@ -189,6 +211,8 @@ export default function PrintQueuePage() {
             </option>
           ))}
         </select>
+        <SortSelect value={sort} onChange={setSort} />
+
         {anyFilter && (
           <button
             type="button"
@@ -248,6 +272,28 @@ export default function PrintQueuePage() {
           onPlus={plus}
           by={groupBy}
         />
+      )}
+
+      {!loading && relaxedGroups.length > 0 && (
+        <details className="qrelaxed">
+          <summary>
+            <span className="qrelaxed__title">Cuando haya tiempo</span>
+            <span className="qrelaxed__count num">
+              {relaxedLeft} {relaxedLeft === 1 ? 'pieza' : 'piezas'}
+            </span>
+            <span className="qrelaxed__hint">
+              Pedidos sin apuro: para aprovechar una impresora libre.
+            </span>
+          </summary>
+          <QueueList
+            groups={relaxedGroups}
+            today={today}
+            busyId={busyId}
+            onPlus={plus}
+            by={groupBy}
+            relaxed
+          />
+        </details>
       )}
       {toast}
     </main>

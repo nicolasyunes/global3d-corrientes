@@ -17,6 +17,10 @@ vi.mock('./orders.api', () => ({
   listOrderItems: listOrderItemsMock,
   updateOrder: updateOrderMock,
 }))
+const { listPiecesMock } = vi.hoisted(() => ({ listPiecesMock: vi.fn() }))
+vi.mock('@/features/production/production.api', () => ({
+  listPieces: listPiecesMock,
+}))
 vi.mock('./OrderImages', () => ({ default: () => <div>IMAGES</div> }))
 vi.mock('@/features/production/OrderPieces', () => ({
   default: () => <div>PIECES</div>,
@@ -51,6 +55,9 @@ function order(overrides: Partial<OrderWithCustomer> = {}): OrderWithCustomer {
     reference_link: 'https://makerworld.com/x',
     title: null,
     description: null,
+    waiting_reason: null,
+    follow_up_on: null,
+    flexible: false,
     customers: { name: 'Ada', phone: null },
     ...overrides,
   }
@@ -72,6 +79,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   getOrderMock.mockResolvedValue(order())
   listOrderItemsMock.mockResolvedValue([])
+  listPiecesMock.mockResolvedValue([])
   updateOrderMock.mockResolvedValue(order({ status: 'post_processing' }))
 })
 
@@ -84,6 +92,49 @@ describe('OrderProduction', () => {
     expect(screen.getAllByText('Feliz cumple Ada').length).toBeGreaterThan(0)
     expect(screen.getByText('PIECES')).toBeInTheDocument()
     expect(screen.getByText('ACTIVITY')).toBeInTheDocument()
+  })
+
+  it('summarizes each item with its title and details, money and progress', async () => {
+    getOrderMock.mockResolvedValue(
+      order({
+        title: '30× Llaveros de psicologa',
+        observations: 'Retira el viernes',
+        customers: { name: 'Maria Noel', phone: '3794123456' },
+      }),
+    )
+    listOrderItemsMock.mockResolvedValue([
+      {
+        id: 'i1',
+        order_id: 'order-1',
+        product_type: 'other',
+        product_id: null,
+        description: 'Llaveros de psicologa',
+        personalization: 'con QR (armar uno de muestra)',
+        color_spec: {},
+        quantity: 30,
+        unit_price: null,
+        line_total: null,
+        position: 0,
+        created_at: '',
+        updated_at: '',
+      },
+    ])
+    listPiecesMock.mockResolvedValue([
+      { status: 'printing', quantity_total: 30, quantity_done: 12 },
+    ])
+    await renderAt()
+    expect(screen.getByText('Llaveros de psicologa')).toBeInTheDocument()
+    expect(
+      screen.getByText('con QR (armar uno de muestra)'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('30×')).toBeInTheDocument()
+    expect(screen.getByText('12/30')).toBeInTheDocument()
+    expect(screen.getByText('$3.000,00')).toBeInTheDocument()
+    expect(screen.getByText('Retira el viernes')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /WhatsApp/ })).toHaveAttribute(
+      'href',
+      'https://wa.me/5493794123456',
+    )
   })
 
   it('shows the stage line with the current stage', async () => {

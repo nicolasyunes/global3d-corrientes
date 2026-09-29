@@ -327,10 +327,16 @@ export type Database = {
           reference_link: string | null
           title: string | null
           description: string | null
+          waiting_reason: string | null
+          follow_up_on: string | null
+          flexible: boolean
         }
         Insert: {
           id?: string
           customer_id: string
+          waiting_reason?: string | null
+          follow_up_on?: string | null
+          flexible?: boolean
           product_type?: string
           title?: string | null
           description?: string | null
@@ -353,6 +359,9 @@ export type Database = {
         Update: {
           id?: string
           customer_id?: string
+          waiting_reason?: string | null
+          follow_up_on?: string | null
+          flexible?: boolean
           product_type?: string
           title?: string | null
           description?: string | null

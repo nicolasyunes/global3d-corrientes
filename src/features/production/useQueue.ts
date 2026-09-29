@@ -55,6 +55,18 @@ export function useQueue(onToast?: (text: string) => void) {
     [current, onToast],
   )
 
-  const groups = useMemo(() => groupQueueByColor(pieces), [pieces])
-  return { pieces, groups, loading, error, busyId, plus, reload }
+  // "Sin apuro" pieces are kept apart from the urgent queue.
+  const urgent = useMemo(() => pieces.filter((p) => !p.flexible), [pieces])
+  const relaxed = useMemo(() => pieces.filter((p) => p.flexible), [pieces])
+  const groups = useMemo(() => groupQueueByColor(urgent), [urgent])
+  return {
+    pieces: urgent,
+    relaxed,
+    groups,
+    loading,
+    error,
+    busyId,
+    plus,
+    reload,
+  }
 }

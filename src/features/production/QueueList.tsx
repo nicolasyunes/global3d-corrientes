@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from '@/components/Icon'
 import { initialsFrom } from '@/features/operators/operators.api'
+import { formatDueDate } from '@/features/orders/format'
 import { dueInfo } from './due'
 import { colorSwatch, type QueueGroup } from './pieces'
 import type { QueuePiece } from './production.api'
@@ -14,6 +15,8 @@ interface QueueListProps {
   limit?: number
   // Color groups show who each piece is for; customer groups show its color.
   by?: 'color' | 'customer'
+  // "Sin apuro" pieces: their date is a guide, never shown as late.
+  relaxed?: boolean
 }
 
 function Swatch({ color, size }: { color: string | null; size?: number }) {
@@ -37,7 +40,12 @@ export default function QueueList({
   onPlus,
   limit,
   by = 'color',
+  relaxed = false,
 }: QueueListProps) {
+  const dueOf = (date: string) =>
+    relaxed
+      ? { label: `Sin apuro · ${formatDueDate(date)}`, tone: 'ok' as const }
+      : dueInfo(date, today)
   let remaining = limit ?? Infinity
   return (
     <div className="queue">
@@ -49,7 +57,7 @@ export default function QueueList({
           (sum, p) => sum + (p.quantity_total - p.quantity_done),
           0,
         )
-        const groupDue = dueInfo(group.earliest, today)
+        const groupDue = dueOf(group.earliest)
         return (
           <section
             key={group.key}
@@ -78,12 +86,13 @@ export default function QueueList({
             </header>
             <ul className="queue__items">
               {entries.map((piece) => {
-                const due = dueInfo(piece.due_date, today)
+                const due = dueOf(piece.due_date)
                 const left = piece.quantity_total - piece.quantity_done
                 return (
                   <li
                     key={piece.id}
                     className={`queue-item queue-item--${due.tone}`}
+                    title={due.label}
                   >
                     <span className="queue-item__left num" title="Faltan">
                       {left}
@@ -124,9 +133,6 @@ export default function QueueList({
                         )}
                       </p>
                     </div>
-                    <span className={`qdue qdue--${due.tone}`}>
-                      {due.label}
-                    </span>
                     <button
                       type="button"
                       className="queue-item__plus"

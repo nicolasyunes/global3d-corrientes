@@ -24,6 +24,9 @@ function order(overrides: Partial<OrderWithCustomer>): OrderWithCustomer {
     reference_link: null,
     title: null,
     description: null,
+    waiting_reason: null,
+    follow_up_on: null,
+    flexible: false,
     customers: { name: 'Ada', phone: null },
     ...overrides,
   }

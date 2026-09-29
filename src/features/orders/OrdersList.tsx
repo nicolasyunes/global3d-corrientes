@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Icon from '@/components/Icon'
 import OrderRow from '@/features/production/OrderRow'
+import SortSelect, { useStoredSort } from '@/features/production/SortSelect'
 import {
   listOrderProgress,
   type OrderProgress,
@@ -15,11 +16,13 @@ import {
   type OrderWithCustomer,
 } from './orders.api'
 import OrdersBoard from './OrdersBoard'
+import { isWaiting, needsReview } from './orderFlow'
+import WaitingOrders from './WaitingOrders'
 import { nextOrderStatus } from './status'
 import { toISODate } from './validation'
 
 type View = 'list' | 'board'
-type Filter = 'active' | 'week' | 'ready'
+type Filter = 'active' | 'week' | 'waiting' | 'ready'
 
 const VIEW_KEY = 'g3d.ordersView'
 const CLOSED = ['finished', 'delivered', 'cancelled']
@@ -57,6 +60,7 @@ export default function OrdersList() {
   const [view, setViewState] = useState<View>(readView)
   const [filter, setFilter] = useState<Filter>('active')
   const [query, setQuery] = useState('')
+  const [sort, setSort] = useStoredSort('g3d.ordersSort')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [advancingId, setAdvancingId] = useState<string | null>(null)
@@ -119,28 +123,52 @@ export default function OrdersList() {
     [orders, query],
   )
 
+  // "En curso" = confirmed and open (flexible ones included, marked);
+  // "Esta semana" = real deadlines only; "En espera" = not confirmed yet.
   const rows = useMemo(() => {
     const byDue = (a: OrderWithCustomer, b: OrderWithCustomer) =>
-      a.due_date.localeCompare(b.due_date)
-    const active = searched.filter((o) => !CLOSED.includes(o.status))
+      sort === 'due'
+        ? a.due_date.localeCompare(b.due_date)
+        : (sort === 'newest' ? -1 : 1) *
+          a.created_at.localeCompare(b.created_at)
+    const open = searched.filter((o) => !CLOSED.includes(o.status))
+    const active = open.filter((o) => !isWaiting(o))
     if (filter === 'ready')
       return searched.filter((o) => o.status === 'finished').sort(byDue)
+    if (filter === 'waiting')
+      return open
+        .filter(isWaiting)
+        .sort(
+          sort === 'due'
+            ? (a, b) =>
+                (a.follow_up_on ?? '').localeCompare(b.follow_up_on ?? '')
+            : byDue,
+        )
     if (filter === 'week') {
       const horizon = addDaysISO(today, 7)
-      return active.filter((o) => o.due_date <= horizon).sort(byDue)
+      return active
+        .filter((o) => !o.flexible && o.due_date <= horizon)
+        .sort(byDue)
     }
     return active.sort(byDue)
-  }, [searched, filter, today])
+  }, [searched, filter, today, sort])
 
   const counts = useMemo(() => {
     const horizon = addDaysISO(today, 7)
-    const active = orders.filter((o) => !CLOSED.includes(o.status))
+    const open = orders.filter((o) => !CLOSED.includes(o.status))
+    const active = open.filter((o) => !isWaiting(o))
     return {
       active: active.length,
-      week: active.filter((o) => o.due_date <= horizon).length,
+      week: active.filter((o) => !o.flexible && o.due_date <= horizon).length,
+      waiting: open.filter(isWaiting).length,
+      review: open.filter((o) => needsReview(o, today)).length,
       ready: orders.filter((o) => o.status === 'finished').length,
     }
   }, [orders, today])
+
+  function replaceOrder(updated: OrderWithCustomer) {
+    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)))
+  }
 
   return (
     <main>
@@ -190,6 +218,7 @@ export default function OrdersList() {
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
+        {view === 'list' && <SortSelect value={sort} onChange={setSort} />}
         {view === 'list' && (
           <div className="segmented" role="group" aria-label="Filtro">
             <button
@@ -205,6 +234,23 @@ export default function OrdersList() {
               onClick={() => setFilter('week')}
             >
               Esta semana <span className="count num">{counts.week}</span>
+            </button>
+            <button
+              type="button"
+              aria-pressed={filter === 'waiting'}
+              onClick={() => setFilter('waiting')}
+              title={
+                counts.review
+                  ? `${counts.review} para revisar hoy`
+                  : 'Pedidos sin confirmar'
+              }
+            >
+              En espera{' '}
+              <span
+                className={`count num${counts.review ? ' count--alert' : ''}`}
+              >
+                {counts.waiting}
+              </span>
             </button>
             <button
               type="button"
@@ -239,12 +285,20 @@ export default function OrdersList() {
           <strong>
             {query
               ? 'Ningún pedido coincide con la búsqueda'
-              : 'No hay pedidos acá'}
+              : filter === 'waiting'
+                ? 'Nada en espera'
+                : 'No hay pedidos acá'}
           </strong>
           {query
             ? 'Probá con otra palabra.'
-            : 'Tocá “Nuevo pedido” para cargar uno.'}
+            : filter === 'waiting'
+              ? 'Los pedidos sin confirmar (falta seña, diseño o respuesta) quedan acá hasta que los confirmes.'
+              : 'Tocá “Nuevo pedido” para cargar uno.'}
         </div>
+      ) : filter === 'waiting' ? (
+        <section className="card">
+          <WaitingOrders orders={rows} today={today} onChanged={replaceOrder} />
+        </section>
       ) : (
         <section className="card">
           <ul className="order-rows" aria-label={`${rows.length} pedidos`}>

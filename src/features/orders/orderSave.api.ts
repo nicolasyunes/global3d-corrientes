@@ -15,6 +15,8 @@ import {
   type OrderDraft,
 } from './orderDraft'
 import { piecesForItem } from '@/features/products/parts'
+import { DEFAULT_WAITING_REASON, followUpFrom } from './orderFlow'
+import { toISODate } from './validation'
 import type { OrderRow } from './orders.api'
 
 export interface CustomerHit {
@@ -62,12 +64,21 @@ function orderFields(draft: OrderDraft) {
     title: buildTitle(items),
     description: buildDescription(items, draft.notes) || null,
     observations: draft.notes.trim() || null,
-    due_date: draft.dueDate,
+    // due_date is required; a waiting order without one gets a placeholder
+    // two weeks out (it's replaced when the order is confirmed).
+    due_date: draft.dueDate || followUpFrom(toISODate(new Date()), 14),
     total_amount: parseMoney(draft.total),
     deposit: parseMoney(draft.deposit),
     pending_balance: balanceOf(draft),
     origin_channel: draft.channel,
     reference_link: draft.referenceLink.trim() || null,
+    waiting_reason: draft.waiting
+      ? draft.waitingReason.trim() || DEFAULT_WAITING_REASON
+      : null,
+    follow_up_on: draft.waiting
+      ? draft.followUpOn || followUpFrom(toISODate(new Date()))
+      : null,
+    flexible: draft.flexible,
   }
 }
 
@@ -300,5 +311,9 @@ export async function loadDraft(orderId: string): Promise<OrderDraft> {
     channel: (order.origin_channel as OriginChannel | null) ?? null,
     referenceLink: order.reference_link ?? '',
     notes: order.observations ?? '',
+    waiting: Boolean(order.waiting_reason),
+    waitingReason: order.waiting_reason ?? '',
+    followUpOn: order.follow_up_on ?? '',
+    flexible: order.flexible ?? false,
   }
 }
