@@ -352,7 +352,9 @@ export interface QuickOrderDraft {
   originChannel: string // '' or an OriginChannel
 }
 
-export type QuickOrderFieldErrors = Partial<Record<keyof QuickOrderDraft, string>>
+export type QuickOrderFieldErrors = Partial<
+  Record<keyof QuickOrderDraft, string>
+>
 
 export function emptyQuickOrderDraft(now: Date = new Date()): QuickOrderDraft {
   return {
@@ -370,7 +372,9 @@ export function emptyQuickOrderDraft(now: Date = new Date()): QuickOrderDraft {
 // incomplete row is still a row. The money checks below aren't "required
 // field" friction, they reject combinations that can't be true (a deposit
 // bigger than a total, or a deposit with no total to draw down).
-export function validateQuickOrder(draft: QuickOrderDraft): QuickOrderFieldErrors {
+export function validateQuickOrder(
+  draft: QuickOrderDraft,
+): QuickOrderFieldErrors {
   const errors: QuickOrderFieldErrors = {}
 
   if (draft.customerName.trim() === '') {
@@ -410,7 +414,9 @@ export function validateQuickOrder(draft: QuickOrderDraft): QuickOrderFieldError
 // total − deposit (nulls treated as 0), or null when neither is set. Unlike
 // the full form's resolvedPendingBalance, quick capture has no explicit
 // override field — there's nowhere in a 5-field row to put one.
-export function quickOrderPendingBalance(draft: QuickOrderDraft): number | null {
+export function quickOrderPendingBalance(
+  draft: QuickOrderDraft,
+): number | null {
   const total = parseMoney(draft.totalAmount)
   const deposit = parseMoney(draft.deposit)
   if (total === null && deposit === null) return null

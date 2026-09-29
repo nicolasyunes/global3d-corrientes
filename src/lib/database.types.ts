@@ -158,6 +158,7 @@ export type Database = {
           unit_price: number | null
           line_total: number | null
           position: number
+          product_id: string | null
           created_at: string
           updated_at: string
         }
@@ -165,6 +166,7 @@ export type Database = {
           id?: string
           order_id: string
           product_type: string
+          product_id?: string | null
           description: string
           personalization?: string | null
           color_spec?: Json
@@ -179,6 +181,7 @@ export type Database = {
           id?: string
           order_id?: string
           product_type?: string
+          product_id?: string | null
           description?: string
           personalization?: string | null
           color_spec?: Json
@@ -203,9 +206,14 @@ export type Database = {
         Row: {
           id: string
           order_id: string
+          order_item_id: string | null
           label: string
           location: string | null
-          done: boolean
+          color: string | null
+          quantity_total: number
+          quantity_done: number
+          status: string
+          updated_by: string | null
           position: number
           created_at: string
           updated_at: string
@@ -213,9 +221,14 @@ export type Database = {
         Insert: {
           id?: string
           order_id: string
+          order_item_id?: string | null
           label: string
           location?: string | null
-          done?: boolean
+          color?: string | null
+          quantity_total?: number
+          quantity_done?: number
+          status?: string
+          updated_by?: string | null
           position?: number
           created_at?: string
           updated_at?: string
@@ -223,9 +236,14 @@ export type Database = {
         Update: {
           id?: string
           order_id?: string
+          order_item_id?: string | null
           label?: string
           location?: string | null
-          done?: boolean
+          color?: string | null
+          quantity_total?: number
+          quantity_done?: number
+          status?: string
+          updated_by?: string | null
           position?: number
           created_at?: string
           updated_at?: string
@@ -236,6 +254,89 @@ export type Database = {
             columns: ['order_id']
             isOneToOne: false
             referencedRelation: 'orders'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'order_production_tasks_order_item_id_fkey'
+            columns: ['order_item_id']
+            isOneToOne: false
+            referencedRelation: 'order_items'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'order_production_tasks_updated_by_fkey'
+            columns: ['updated_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      operators: {
+        Row: {
+          id: string
+          name: string
+          initials: string
+          color: string
+          role: string
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          initials: string
+          color?: string
+          role?: string
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          name?: string
+          initials?: string
+          color?: string
+          role?: string
+          active?: boolean
+        }
+        Relationships: []
+      }
+      production_events: {
+        Row: {
+          id: string
+          order_id: string
+          task_id: string | null
+          operator_id: string | null
+          kind: string
+          label: string
+          from_status: string | null
+          to_status: string | null
+          delta: number | null
+          created_at: string
+        }
+        Insert: {
+          order_id: string
+          kind: string
+          label: string
+          task_id?: string | null
+          operator_id?: string | null
+          from_status?: string | null
+          to_status?: string | null
+          delta?: number | null
+        }
+        Update: Record<string, never>
+        Relationships: [
+          {
+            foreignKeyName: 'production_events_order_id_fkey'
+            columns: ['order_id']
+            isOneToOne: false
+            referencedRelation: 'orders'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'production_events_operator_id_fkey'
+            columns: ['operator_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
             referencedColumns: ['id']
           },
         ]
@@ -260,11 +361,15 @@ export type Database = {
           updated_at: string
           origin_channel: string | null
           reference_link: string | null
+          title: string | null
+          description: string | null
         }
         Insert: {
           id?: string
           customer_id: string
-          product_type: string
+          product_type?: string
+          title?: string | null
+          description?: string | null
           color_spec?: Json
           personalization?: string | null
           measurements?: string | null
@@ -285,6 +390,8 @@ export type Database = {
           id?: string
           customer_id?: string
           product_type?: string
+          title?: string | null
+          description?: string | null
           color_spec?: Json
           personalization?: string | null
           measurements?: string | null
@@ -342,6 +449,95 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'product_images_product_id_fkey'
+            columns: ['product_id']
+            isOneToOne: false
+            referencedRelation: 'products'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      calc_profiles: {
+        Row: {
+          id: string
+          name: string
+          currency: string
+          filament_price: number
+          kwh_price: number
+          printer_model: string | null
+          printer_watts: number
+          machine_life_hours: number
+          spare_parts_cost: number
+          error_margin_pct: number
+          ml_surcharge: number
+          updated_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          currency?: string
+          filament_price?: number
+          kwh_price?: number
+          printer_model?: string | null
+          printer_watts?: number
+          machine_life_hours?: number
+          spare_parts_cost?: number
+          error_margin_pct?: number
+          ml_surcharge?: number
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          currency?: string
+          filament_price?: number
+          kwh_price?: number
+          printer_model?: string | null
+          printer_watts?: number
+          machine_life_hours?: number
+          spare_parts_cost?: number
+          error_margin_pct?: number
+          ml_surcharge?: number
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_parts: {
+        Row: {
+          id: string
+          product_id: string
+          label: string
+          color: string | null
+          quantity: number
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          label: string
+          color?: string | null
+          quantity?: number
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          label?: string
+          color?: string | null
+          quantity?: number
+          position?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'product_parts_product_id_fkey'
             columns: ['product_id']
             isOneToOne: false
             referencedRelation: 'products'
@@ -596,6 +792,39 @@ export type Database = {
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      verify_operator_pin: {
+        Args: { p_operator: string; p_pin: string }
+        Returns: boolean
+      }
+      create_operator: {
+        Args: {
+          p_name: string
+          p_initials: string
+          p_color: string
+          p_role: string
+          p_pin: string
+          p_admin?: string | null
+          p_admin_pin?: string | null
+        }
+        Returns: string
+      }
+      set_operator_pin: {
+        Args: {
+          p_operator: string
+          p_new_pin: string
+          p_admin: string
+          p_admin_pin: string
+        }
+        Returns: undefined
+      }
+      increment_task: {
+        Args: { p_task: string; p_delta: number; p_operator: string | null }
+        Returns: Database['public']['Tables']['order_production_tasks']['Row']
+      }
+      register_task_failure: {
+        Args: { p_task: string; p_operator: string | null }
+        Returns: undefined
       }
     }
     Enums: {

@@ -6,11 +6,7 @@ import {
   listProductSales,
   type ProductSaleRow,
 } from './productSales.api'
-import {
-  groupVentasByMonth,
-  toVentaRows,
-  ventasTotal,
-} from './deliveredOrders'
+import { groupVentasByMonth, toVentaRows, ventasTotal } from './deliveredOrders'
 import ProductSaleSheet from './ProductSaleSheet'
 import { formatDueDate, formatMoney } from './format'
 import { toISODate } from './validation'
@@ -77,8 +73,8 @@ export default function DeliveredOrdersList() {
     () => groups.find((group) => group.month === month) ?? null,
     [groups, month],
   )
-  const visibleRows = month === '' ? rows : selectedGroup?.rows ?? []
-  const total = month === '' ? ventasTotal(rows) : selectedGroup?.total ?? 0
+  const visibleRows = month === '' ? rows : (selectedGroup?.rows ?? [])
+  const total = month === '' ? ventasTotal(rows) : (selectedGroup?.total ?? 0)
 
   // A just-created sale is only cleanly reversible when it isn't a catalog
   // sale — deleting the transaction won't restock, and the client can't write
@@ -89,7 +85,10 @@ export default function DeliveredOrdersList() {
     setProductSales((prev) => [sale, ...prev])
     setJustCreated(sale)
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
-    undoTimerRef.current = setTimeout(() => setJustCreated(null), UNDO_WINDOW_MS)
+    undoTimerRef.current = setTimeout(
+      () => setJustCreated(null),
+      UNDO_WINDOW_MS,
+    )
   }
 
   async function handleUndoCreate() {
@@ -192,7 +191,9 @@ export default function DeliveredOrdersList() {
 
       {!loading && !error && rows.length === 0 && (
         <div className="empty-state">
-          <p className="empty-state__title">Todavía no hay ventas registradas</p>
+          <p className="empty-state__title">
+            Todavía no hay ventas registradas
+          </p>
           <p className="empty-state__hint">
             Una venta aparece acá cuando marcás un pedido como "Entregado" o
             cargás una venta directa con "Agregar venta".

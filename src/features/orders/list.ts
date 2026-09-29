@@ -78,10 +78,7 @@ export function filterOrders(
     if (filters.dueTo && order.due_date > filters.dueTo) return false
     if (filters.productType && order.product_type !== filters.productType)
       return false
-    if (
-      search &&
-      !(order.customers?.name ?? '').toLowerCase().includes(search)
-    )
+    if (search && !(order.customers?.name ?? '').toLowerCase().includes(search))
       return false
     return true
   })

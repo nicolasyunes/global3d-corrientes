@@ -36,9 +36,14 @@ Deno.serve(async (req: Request) => {
 
   // Phase 0 (Google Cloud service account) not completed yet — skip cleanly
   // rather than error, so the order save is never affected either way.
-  if (!cfg.google_service_account_email || !cfg.google_service_account_private_key) {
+  if (
+    !cfg.google_service_account_email ||
+    !cfg.google_service_account_private_key
+  ) {
     console.log('sync skipped: Google service account not configured yet')
-    return new Response('OK (skipped — Google credentials not configured)', { status: 200 })
+    return new Response('OK (skipped — Google credentials not configured)', {
+      status: 200,
+    })
   }
 
   let payload: { type: string; record: OrderRecord }
@@ -82,6 +87,8 @@ Deno.serve(async (req: Request) => {
     // It only means this particular sync attempt needs a retry (e.g. re-save
     // the order, or a future scheduled reconciliation).
     console.error('sheet sync failed', err)
-    return new Response(`Sync failed: ${(err as Error).message}`, { status: 500 })
+    return new Response(`Sync failed: ${(err as Error).message}`, {
+      status: 500,
+    })
   }
 })

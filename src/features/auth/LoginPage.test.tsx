@@ -4,27 +4,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Session, User } from '@supabase/supabase-js'
 import LoginPage from './LoginPage'
 
-// The supabase client and the auth hook are mocked so the page can be
-// exercised for the full flow (submit → check-email → resend → change email)
-// and the already-signed-in redirect without credentials or a network.
-
-const { signInWithOtpMock } = vi.hoisted(() => ({
-  signInWithOtpMock: vi.fn(),
+const { signInWithPasswordMock } = vi.hoisted(() => ({
+  signInWithPasswordMock: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase', () => ({
-  supabase: { auth: { signInWithOtp: signInWithOtpMock } },
+  supabase: { auth: { signInWithPassword: signInWithPasswordMock } },
 }))
 
-const { useAuthMock } = vi.hoisted(() => ({
-  useAuthMock: vi.fn(),
-}))
+const { useAuthMock } = vi.hoisted(() => ({ useAuthMock: vi.fn() }))
+vi.mock('./useAuth', () => ({ useAuth: useAuthMock }))
 
-vi.mock('./useAuth', () => ({
-  useAuth: useAuthMock,
-}))
-
-const EMAIL = 'owner@global3d.local'
+const EMAIL = 'taller@example.com'
 
 const user: User = {
   id: 'user-1',
@@ -37,162 +28,81 @@ const user: User = {
 }
 
 const session: Session = {
-  access_token: 'access-token',
-  refresh_token: 'refresh-token',
+  access_token: 'a',
+  refresh_token: 'r',
   expires_in: 3600,
   expires_at: 4_102_444_800,
   token_type: 'bearer',
   user,
 }
 
-interface FromState {
-  from?: { pathname: string }
-}
-
-function renderLogin(initialEntry?: { pathname: string; state?: FromState }) {
+function renderLogin() {
   return render(
-    <MemoryRouter
-      initialEntries={[initialEntry ?? { pathname: '/admin/login' }]}
-    >
+    <MemoryRouter initialEntries={['/admin/login']}>
       <Routes>
         <Route path="/admin/login" element={<LoginPage />} />
-        <Route path="/admin/orders" element={<div>Orders landing</div>} />
-        <Route path="/admin/orders/42" element={<div>Order 42 detail</div>} />
+        <Route path="/admin/hoy" element={<div>Hoy</div>} />
       </Routes>
     </MemoryRouter>,
   )
 }
 
+function fill(email: string, password: string) {
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: email } })
+  fireEvent.change(screen.getByLabelText('Contraseña'), {
+    target: { value: password },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }))
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   useAuthMock.mockReturnValue({ session: null, loading: false })
-  signInWithOtpMock.mockResolvedValue({ data: { user: null }, error: null })
+  signInWithPasswordMock.mockResolvedValue({ data: {}, error: null })
 })
 
 describe('LoginPage', () => {
-  it('sends a sign-in link and transitions to the check-your-email state', async () => {
+  it('signs in with email and password', async () => {
     renderLogin()
-
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: EMAIL },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }))
+    fill(EMAIL, 'secreto')
     await act(async () => {})
-
-    expect(signInWithOtpMock).toHaveBeenCalledTimes(1)
-    expect(signInWithOtpMock).toHaveBeenCalledWith({
+    expect(signInWithPasswordMock).toHaveBeenCalledWith({
       email: EMAIL,
-      options: { emailRedirectTo: expect.stringContaining('/admin/orders') },
-    })
-
-    expect(
-      screen.getByRole('heading', { name: 'Revisá tu email' }),
-    ).toBeInTheDocument()
-    expect(screen.getByText(EMAIL)).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Reenviar enlace' }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Usar otro email' }),
-    ).toBeInTheDocument()
-  })
-
-  it('targets the emailRedirectTo at the deep link carried in state.from', async () => {
-    renderLogin({
-      pathname: '/admin/login',
-      state: { from: { pathname: '/admin/orders/42' } },
-    })
-
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: EMAIL },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }))
-    await act(async () => {})
-
-    expect(signInWithOtpMock).toHaveBeenCalledWith({
-      email: EMAIL,
-      options: {
-        emailRedirectTo: expect.stringContaining('/admin/orders/42'),
-      },
+      password: 'secreto',
     })
   })
 
-  it('requests another link for the same email when resend is tapped', async () => {
+  it('asks for both fields before calling Supabase', () => {
     renderLogin()
-
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: EMAIL },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }))
-    await act(async () => {})
-
-    fireEvent.click(screen.getByRole('button', { name: 'Reenviar enlace' }))
-    await act(async () => {})
-
-    expect(signInWithOtpMock).toHaveBeenCalledTimes(2)
-    expect(signInWithOtpMock).toHaveBeenLastCalledWith({
-      email: EMAIL,
-      options: { emailRedirectTo: expect.stringContaining('/admin/orders') },
-    })
-  })
-
-  it('returns to the email input on change-email and replaces the address', async () => {
-    renderLogin()
-
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: EMAIL },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }))
-    await act(async () => {})
-
-    fireEvent.click(screen.getByRole('button', { name: 'Usar otro email' }))
-
-    const input = screen.getByLabelText('Email') as HTMLInputElement
-    expect(input.value).toBe(EMAIL)
-
-    const nextEmail = 'operator@global3d.local'
-    fireEvent.change(input, { target: { value: nextEmail } })
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }))
-    await act(async () => {})
-
-    expect(signInWithOtpMock).toHaveBeenLastCalledWith({
-      email: nextEmail,
-      options: { emailRedirectTo: expect.stringContaining('/admin/orders') },
-    })
-  })
-
-  it('surfaces a sign-in error instead of transitioning', async () => {
-    signInWithOtpMock.mockResolvedValue({
-      data: { user: null },
-      error: { message: 'Unable to validate email address' },
-    })
-    renderLogin()
-
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: EMAIL },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }))
-    await act(async () => {})
-
+    fill(EMAIL, '')
+    expect(signInWithPasswordMock).not.toHaveBeenCalled()
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Unable to validate email address',
+      'Completá el email y la contraseña',
     )
-    expect(screen.queryByText('Revisá tu email')).not.toBeInTheDocument()
   })
 
-  it('redirects to the admin area when a session already exists', async () => {
+  it('translates invalid credentials', async () => {
+    signInWithPasswordMock.mockResolvedValue({
+      data: {},
+      error: { message: 'Invalid login credentials' },
+    })
+    renderLogin()
+    fill(EMAIL, 'mal')
+    await act(async () => {})
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Email o contraseña incorrectos.',
+    )
+  })
+
+  it('redirects to Hoy when a session already exists', async () => {
     useAuthMock.mockReturnValue({ session, loading: false })
     renderLogin()
-
-    expect(await screen.findByText('Orders landing')).toBeInTheDocument()
-    expect(signInWithOtpMock).not.toHaveBeenCalled()
+    expect(await screen.findByText('Hoy')).toBeInTheDocument()
   })
 
-  it('waits for session resolution before redirecting', () => {
+  it('renders nothing while the session resolves', () => {
     useAuthMock.mockReturnValue({ session: null, loading: true })
     renderLogin()
-
-    expect(screen.queryByText('Iniciar sesión')).not.toBeInTheDocument()
-    expect(screen.queryByText('Orders landing')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument()
   })
 })

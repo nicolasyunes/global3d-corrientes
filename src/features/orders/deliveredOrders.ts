@@ -36,11 +36,12 @@ export function orderToVentaRow(order: OrderWithCustomer): VentaRow {
     date: order.due_date,
     customerName: order.customers?.name ?? null,
     productLabel:
-      PRODUCT_TYPE_LABELS[order.product_type as ProductType] ??
-      order.product_type,
+      order.title?.trim() ||
+      (PRODUCT_TYPE_LABELS[order.product_type as ProductType] ??
+        order.product_type),
     channelLabel: order.origin_channel
-      ? ORIGIN_CHANNEL_LABELS[order.origin_channel as OriginChannel] ??
-        order.origin_channel
+      ? (ORIGIN_CHANNEL_LABELS[order.origin_channel as OriginChannel] ??
+        order.origin_channel)
       : null,
     amount: order.total_amount,
     href: `/admin/orders/${order.id}`,

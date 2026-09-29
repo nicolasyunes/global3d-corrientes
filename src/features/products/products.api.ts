@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/database.types'
+import type { PartLine, ProductTemplate } from './parts'
 
 // Thin typed helpers over Supabase, same shape as orders.api.ts / sales.api.ts
 // — no repository layer, RLS is the security boundary (products_all is
@@ -53,6 +54,88 @@ export async function updateProduct(
     .single()
   if (error) throw error
   return data
+}
+
+export type ProductPartRow =
+  Database['public']['Tables']['product_parts']['Row']
+
+export async function listProductParts(
+  productId: string,
+): Promise<ProductPartRow[]> {
+  const { data, error } = await supabase
+    .from('product_parts')
+    .select('*')
+    .eq('product_id', productId)
+    .order('position', { ascending: true })
+  if (error) throw error
+  return data ?? []
+}
+
+// Parts are a small ordered list edited as a whole, and nothing references
+// them (orders copy them into pieces), so replace them wholesale.
+export async function saveProductParts(
+  productId: string,
+  parts: readonly PartLine[],
+): Promise<void> {
+  const { error: delError } = await supabase
+    .from('product_parts')
+    .delete()
+    .eq('product_id', productId)
+  if (delError) throw delError
+  if (parts.length === 0) return
+  const { error } = await supabase.from('product_parts').insert(
+    parts.map((p, position) => ({
+      product_id: productId,
+      label: p.label,
+      color: p.color || null,
+      quantity: p.quantity,
+      position,
+    })),
+  )
+  if (error) throw error
+}
+
+type PartSlim = Pick<
+  ProductPartRow,
+  'product_id' | 'label' | 'color' | 'quantity' | 'position'
+>
+
+// Every product's parts in one query, grouped by product id.
+export async function listAllParts(): Promise<Record<string, PartLine[]>> {
+  const { data, error } = await supabase
+    .from('product_parts')
+    .select('product_id, label, color, quantity, position')
+    .order('position', { ascending: true })
+  if (error) throw error
+  const out: Record<string, PartLine[]> = {}
+  for (const row of (data ?? []) as PartSlim[]) {
+    ;(out[row.product_id] ??= []).push({
+      label: row.label,
+      color: row.color ?? '',
+      quantity: row.quantity,
+    })
+  }
+  return out
+}
+
+// Active presets with their parts, for the order modal.
+export async function listProductTemplates(): Promise<ProductTemplate[]> {
+  const [{ data, error }, parts] = await Promise.all([
+    supabase
+      .from('products')
+      .select('id, name, base_price, image_url')
+      .eq('active', true)
+      .order('name', { ascending: true }),
+    listAllParts(),
+  ])
+  if (error) throw error
+  return (data ?? []).map((p) => ({
+    id: p.id,
+    name: p.name,
+    basePrice: p.base_price,
+    imageUrl: p.image_url,
+    parts: parts[p.id] ?? [],
+  }))
 }
 
 export async function listCategories(): Promise<CategoryRow[]> {

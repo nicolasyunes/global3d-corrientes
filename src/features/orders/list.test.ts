@@ -30,6 +30,8 @@ function order(overrides: Partial<OrderWithCustomer>): OrderWithCustomer {
     updated_at: '2026-01-01T00:00:00Z',
     origin_channel: null,
     reference_link: null,
+    title: null,
+    description: null,
     customers: { name: 'Ada', phone: null },
     ...overrides,
   }
@@ -153,7 +155,10 @@ describe('groupOrdersByStatus', () => {
       ],
       ['new'],
     )
-    expect(allIds(groups.new)).toEqual(['late-due-early-entry', 'early-due-late-entry'])
+    expect(allIds(groups.new)).toEqual([
+      'late-due-early-entry',
+      'early-due-late-entry',
+    ])
   })
 
   it('breaks a same-day order_date tie with created_at', () => {

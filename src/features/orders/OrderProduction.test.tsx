@@ -4,11 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { OrderWithCustomer } from './orders.api'
 import OrderProduction from './OrderProduction'
 
-const { getOrderMock, listOrderItemsMock, updateOrderMock } = vi.hoisted(() => ({
-  getOrderMock: vi.fn(),
-  listOrderItemsMock: vi.fn(),
-  updateOrderMock: vi.fn(),
-}))
+const { getOrderMock, listOrderItemsMock, updateOrderMock } = vi.hoisted(
+  () => ({
+    getOrderMock: vi.fn(),
+    listOrderItemsMock: vi.fn(),
+    updateOrderMock: vi.fn(),
+  }),
+)
 
 vi.mock('./orders.api', () => ({
   getOrder: getOrderMock,
@@ -16,7 +18,16 @@ vi.mock('./orders.api', () => ({
   updateOrder: updateOrderMock,
 }))
 vi.mock('./OrderImages', () => ({ default: () => <div>IMAGES</div> }))
-vi.mock('./ProductionChecklist', () => ({ default: () => <div>CHECKLIST</div> }))
+vi.mock('@/features/production/OrderPieces', () => ({
+  default: () => <div>PIECES</div>,
+}))
+vi.mock('@/features/production/ActivityFeed', () => ({
+  default: () => <div>ACTIVITY</div>,
+}))
+const { openEditMock } = vi.hoisted(() => ({ openEditMock: vi.fn() }))
+vi.mock('./order-modal-context', () => ({
+  useOrderModal: () => ({ openEdit: openEditMock }),
+}))
 
 function order(overrides: Partial<OrderWithCustomer> = {}): OrderWithCustomer {
   return {
@@ -38,6 +49,8 @@ function order(overrides: Partial<OrderWithCustomer> = {}): OrderWithCustomer {
     updated_at: '2026-01-01T00:00:00Z',
     origin_channel: 'whatsapp',
     reference_link: 'https://makerworld.com/x',
+    title: null,
+    description: null,
     customers: { name: 'Ada', phone: null },
     ...overrides,
   }
@@ -66,10 +79,19 @@ describe('OrderProduction', () => {
   it('shows the production spec: colours, measurements, engraving text', async () => {
     await renderAt()
     expect(screen.getByText('Qué hay que hacer')).toBeInTheDocument()
-    expect(screen.getByText(/tapa:/)).toBeInTheDocument()
-    expect(screen.getByText(/negro/)).toBeInTheDocument()
+    expect(screen.getByText(/tapa: negro/)).toBeInTheDocument()
     expect(screen.getByText('10x10 cm')).toBeInTheDocument()
-    expect(screen.getByText('Feliz cumple Ada')).toBeInTheDocument()
+    expect(screen.getAllByText('Feliz cumple Ada').length).toBeGreaterThan(0)
+    expect(screen.getByText('PIECES')).toBeInTheDocument()
+    expect(screen.getByText('ACTIVITY')).toBeInTheDocument()
+  })
+
+  it('shows the stage line with the current stage', async () => {
+    await renderAt()
+    const current = screen.getByText('Imprimiendo', {
+      selector: '.stages span',
+    })
+    expect(current).toHaveAttribute('aria-current', 'step')
   })
 
   it('omits a spec row when its field is empty', async () => {
@@ -108,10 +130,11 @@ describe('OrderProduction', () => {
     })
   })
 
-  it('links to the edit screen', async () => {
+  it('opens the edit modal', async () => {
     await renderAt()
-    expect(
-      screen.getByRole('link', { name: /Datos y edición/i }),
-    ).toHaveAttribute('href', '/admin/orders/order-1/editar')
+    await act(async () => {
+      screen.getByRole('button', { name: /Editar datos/i }).click()
+    })
+    expect(openEditMock).toHaveBeenCalledWith('order-1', expect.any(Function))
   })
 })

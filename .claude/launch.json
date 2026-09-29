@@ -7,6 +7,12 @@
       "runtimeArgs": ["run", "dev"],
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "previews",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "docs/previews", "--port", "5199", "--strictPort"],
+      "port": 5199
     }
   ]
 }
