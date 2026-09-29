@@ -1,25 +1,32 @@
+import type { ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { AdminOnlyRoute } from '@/features/auth/AdminOnlyRoute'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import LoginPage from '@/features/auth/LoginPage'
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
-import OrderForm from '@/features/orders/OrderForm'
+import { OperatorProvider } from '@/features/operators/OperatorProvider'
+import OperatorGate from '@/features/operators/OperatorGate'
+import { useOperator } from '@/features/operators/operator-context'
+import PeoplePage from '@/features/operators/PeoplePage'
 import OrdersList from '@/features/orders/OrdersList'
 import OrderProduction from '@/features/orders/OrderProduction'
-import OrderEdit from '@/features/orders/OrderEdit'
 import DeliveredOrdersList from '@/features/orders/DeliveredOrdersList'
 import SalesForm from '@/features/sales/SalesForm'
 import SalesList from '@/features/sales/SalesList'
 import InsumosList from '@/features/insumos/InsumosList'
 import ProductForm from '@/features/products/ProductForm'
 import ProductsList from '@/features/products/ProductsList'
+import TodayPage from '@/features/production/TodayPage'
+import PrintQueuePage from '@/features/production/PrintQueuePage'
+import CalculatorPage from '@/features/calculator/CalculatorPage'
 import AdminLayout from './AdminLayout'
 
-// Admin boundary: everything here lives in the lazy /admin chunk, so auth
-// libraries never enter the public bundle. AuthProvider is the session source
-// of truth; /admin/login is the open sign-in surface; the orders subtree is
-// gated by ProtectedRoute and rendered inside the AdminLayout shell. The old
-// env-gated dev-session seam is retired — real magic-link auth replaces it.
+function OperatorAdminOnly({ children }: { children: ReactNode }) {
+  const { isAdmin } = useOperator()
+  return isAdmin ? <>{children}</> : <Navigate to="/admin/hoy" replace />
+}
+
+// Two gates: the workshop Supabase session (ProtectedRoute → /admin/login),
+// then who is working (OperatorGate → profile + PIN).
 export function Component() {
   return (
     <AuthProvider>
@@ -28,44 +35,57 @@ export function Component() {
         <Route
           element={
             <ProtectedRoute>
-              <AdminLayout />
+              <OperatorProvider>
+                <OperatorGate>
+                  <AdminLayout />
+                </OperatorGate>
+              </OperatorProvider>
             </ProtectedRoute>
           }
         >
+          <Route path="hoy" element={<TodayPage />} />
+          <Route path="imprimir" element={<PrintQueuePage />} />
           <Route path="orders" element={<OrdersList />} />
-          <Route path="orders/new" element={<OrderForm />} />
           <Route path="orders/:id" element={<OrderProduction />} />
-          <Route path="orders/:id/editar" element={<OrderEdit />} />
+          <Route path="ventas-pedidos" element={<DeliveredOrdersList />} />
+          <Route path="calculadora" element={<CalculatorPage />} />
+          {/* Reventa (etapa posterior): rutas vivas pero fuera del menú. */}
           <Route path="ventas" element={<SalesList />} />
           <Route path="ventas/new" element={<SalesForm />} />
           <Route path="insumos" element={<InsumosList />} />
-          <Route path="ventas-pedidos" element={<DeliveredOrdersList />} />
           <Route
             path="productos"
             element={
-              <AdminOnlyRoute>
+              <OperatorAdminOnly>
                 <ProductsList />
-              </AdminOnlyRoute>
+              </OperatorAdminOnly>
             }
           />
           <Route
             path="productos/nuevo"
             element={
-              <AdminOnlyRoute>
+              <OperatorAdminOnly>
                 <ProductForm />
-              </AdminOnlyRoute>
+              </OperatorAdminOnly>
             }
           />
           <Route
             path="productos/:id"
             element={
-              <AdminOnlyRoute>
+              <OperatorAdminOnly>
                 <ProductForm />
-              </AdminOnlyRoute>
+              </OperatorAdminOnly>
             }
           />
-          {/* The former placeholder landing now forwards to the orders queue. */}
-          <Route path="*" element={<Navigate to="/admin/orders" replace />} />
+          <Route
+            path="personas"
+            element={
+              <OperatorAdminOnly>
+                <PeoplePage />
+              </OperatorAdminOnly>
+            }
+          />
+          <Route path="*" element={<Navigate to="/admin/hoy" replace />} />
         </Route>
       </Routes>
     </AuthProvider>

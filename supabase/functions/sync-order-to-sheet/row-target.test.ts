@@ -17,12 +17,18 @@ describe('resolveTargetRow', () => {
       bkRow('Ada', 'order-1'),
       bkRow('Linus', 'order-2'),
     ]
-    expect(resolveTargetRow(rows, 'order-2')).toEqual({ row: 3, mode: 'updated' })
+    expect(resolveTargetRow(rows, 'order-2')).toEqual({
+      row: 3,
+      mode: 'updated',
+    })
   })
 
   it('appends after the last row when no id matches', () => {
     const rows = [bkRow('CLIENTE'), bkRow('Ada', 'order-1'), bkRow('Linus')]
-    expect(resolveTargetRow(rows, 'order-9')).toEqual({ row: 4, mode: 'appended' })
+    expect(resolveTargetRow(rows, 'order-9')).toEqual({
+      row: 4,
+      mode: 'appended',
+    })
   })
 
   it('counts hand-typed rows with an empty id toward the row count', () => {
@@ -33,10 +39,16 @@ describe('resolveTargetRow', () => {
       bkRow('Grace'), // no id
       bkRow('Katherine'), // no id
     ]
-    expect(resolveTargetRow(rows, 'order-x')).toEqual({ row: 5, mode: 'appended' })
+    expect(resolveTargetRow(rows, 'order-x')).toEqual({
+      row: 5,
+      mode: 'appended',
+    })
   })
 
   it('writes to row 1 when the sheet read comes back empty', () => {
-    expect(resolveTargetRow([], 'order-1')).toEqual({ row: 1, mode: 'appended' })
+    expect(resolveTargetRow([], 'order-1')).toEqual({
+      row: 1,
+      mode: 'appended',
+    })
   })
 })

@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  groupVentasByMonth,
-  toVentaRows,
-  ventasTotal,
-} from './deliveredOrders'
+import { groupVentasByMonth, toVentaRows, ventasTotal } from './deliveredOrders'
 import type { OrderWithCustomer } from './orders.api'
 import type { ProductSaleRow } from './productSales.api'
 
@@ -27,6 +23,8 @@ function order(overrides: Partial<OrderWithCustomer>): OrderWithCustomer {
     updated_at: '2026-01-01T00:00:00Z',
     origin_channel: null,
     reference_link: null,
+    title: null,
+    description: null,
     customers: { name: 'Ada', phone: null },
     ...overrides,
   }
@@ -74,7 +72,7 @@ describe('toVentaRows', () => {
       date: '2026-02-03',
       customerName: 'Ada',
       productLabel: 'Taza',
-      channelLabel: 'WhatsApp',
+      channelLabel: 'WhatsApp negocio',
       amount: 1200,
       href: '/admin/orders/o1',
     })
@@ -161,7 +159,9 @@ describe('ventasTotal', () => {
   })
 
   it('treats a null amount as 0', () => {
-    expect(ventasTotal(toVentaRows([order({ total_amount: null })], []))).toBe(0)
+    expect(ventasTotal(toVentaRows([order({ total_amount: null })], []))).toBe(
+      0,
+    )
   })
 
   it('is 0 for an empty list', () => {

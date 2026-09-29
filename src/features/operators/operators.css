@@ -1,0 +1,225 @@
+.gate {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+.gate__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.28;
+  pointer-events: none;
+  animation: gate-drift 12s ease-in-out infinite;
+}
+.gate__orb--a {
+  width: 340px;
+  height: 340px;
+  left: -80px;
+  top: -60px;
+  background: var(--color-orange);
+}
+.gate__orb--b {
+  width: 300px;
+  height: 300px;
+  right: -60px;
+  bottom: -80px;
+  background: var(--color-teal);
+  animation-delay: -5s;
+}
+@keyframes gate-drift {
+  50% {
+    transform: translate(30px, -20px);
+  }
+}
+.gate__box {
+  position: relative;
+  z-index: 1;
+  width: min(440px, 100%);
+  text-align: center;
+  animation: rise 0.4s var(--ease-out);
+}
+.gate__card {
+  text-align: left;
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 30px;
+  box-shadow: var(--shadow-float);
+}
+.gate__card .brand {
+  justify-content: flex-start;
+}
+.gate__card .btn {
+  margin-top: 18px;
+}
+.gate__title {
+  font-size: clamp(2rem, 1.6rem + 2vw, 2.6rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  margin: 18px 0 8px;
+}
+.gate__title span {
+  color: var(--color-orange);
+}
+.gate__title--sm {
+  font-size: 1.75rem;
+}
+.gate__sub {
+  color: var(--color-carbon-muted);
+  margin-bottom: 22px;
+}
+.gate__people {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.gate__person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: var(--color-carbon-muted);
+}
+.gate__person .avatar {
+  outline: 3px solid transparent;
+  outline-offset: 3px;
+  transition:
+    outline-color 0.15s,
+    transform 0.15s;
+}
+.gate__person:hover .avatar {
+  transform: translateY(-2px);
+}
+.gate__person.is-on {
+  color: var(--color-carbon);
+}
+.gate__person.is-on .avatar {
+  outline-color: var(--color-orange);
+}
+.gate__msg {
+  min-height: 1.5em;
+  color: var(--status-red);
+  font-weight: 700;
+  font-size: 0.875rem;
+  margin-top: 6px;
+}
+.gate__link {
+  background: none;
+  border: 0;
+  color: var(--color-carbon-muted);
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.people-grid {
+  display: grid;
+  gap: 18px;
+  align-items: start;
+}
+@media (min-width: 1000px) {
+  .people-grid {
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
+.people-list {
+  list-style: none;
+}
+.people-list__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 4px;
+  border-top: 1px solid var(--color-carbon-line);
+}
+.people-list__who {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.875rem;
+}
+.people-done {
+  background: var(--color-teal-50);
+  color: var(--color-teal);
+}
+.people-color {
+  padding: 8px;
+}
+
+.pinpad__dots {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.pinpad__dots i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-bg-deep);
+  box-shadow: inset 0 0 0 1px var(--color-carbon-line);
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.pinpad__dots i.is-filled {
+  background: var(--color-orange);
+  transform: scale(1.15);
+  box-shadow: none;
+}
+.pinpad__dots--error {
+  animation: shake 0.35s;
+}
+.pinpad__dots--error i {
+  background: var(--status-red-50);
+}
+@keyframes shake {
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+.pinpad__keys {
+  display: grid;
+  grid-template-columns: repeat(3, 76px);
+  gap: 10px;
+  justify-content: center;
+}
+.pinpad__key {
+  height: 58px;
+  border-radius: var(--radius-lg);
+  border: 0;
+  background: var(--color-white);
+  box-shadow: var(--shadow-card);
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-carbon);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    transform 0.1s,
+    background 0.1s;
+}
+.pinpad__key:active {
+  transform: scale(0.94);
+  background: var(--color-orange);
+}
+.pinpad__key:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}

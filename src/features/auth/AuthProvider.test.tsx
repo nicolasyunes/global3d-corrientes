@@ -51,7 +51,14 @@ const session: Session = {
 
 // Reads the context so tests can assert on the exposed value.
 function AuthProbe() {
-  const { session, user: currentUser, loading, roleLoading, isAdmin, signOut } = useAuth()
+  const {
+    session,
+    user: currentUser,
+    loading,
+    roleLoading,
+    isAdmin,
+    signOut,
+  } = useAuth()
   return (
     <div>
       <span data-testid="loading">{String(loading)}</span>

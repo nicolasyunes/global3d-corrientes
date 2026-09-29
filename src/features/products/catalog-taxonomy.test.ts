@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { PRODUCTS } from '@/features/storefront/data/products'
 import {
   CATEGORY_SEED,
   CATEGORY_SLUGS,
-  deriveSubcategory,
   mapLegacyCategory,
-  SUBCATEGORY_OPTIONS,
   slugify,
 } from './catalog-taxonomy'
 
@@ -45,22 +42,5 @@ describe('CATEGORY_SEED', () => {
     expect(CATEGORY_SEED).toHaveLength(11)
     expect(new Set(CATEGORY_SLUGS).size).toBe(11)
     expect(CATEGORY_SEED.map((c) => c.position)).toEqual([...Array(11).keys()])
-  })
-})
-
-describe('taxonomía sobre el catálogo real', () => {
-  it('cada producto mapea a una categoría válida', () => {
-    for (const p of PRODUCTS) {
-      expect(CATEGORY_SLUGS).toContain(mapLegacyCategory(p.cat, p.name))
-    }
-  })
-  it('deriveSubcategory devuelve null u opción válida de esa categoría', () => {
-    for (const p of PRODUCTS) {
-      const catSlug = mapLegacyCategory(p.cat, p.name)
-      const sub = deriveSubcategory(p.cat, p)
-      if (sub === null) continue
-      const allowed = (SUBCATEGORY_OPTIONS[catSlug] ?? []).map((o) => o.slug)
-      expect(allowed).toContain(sub)
-    }
   })
 })

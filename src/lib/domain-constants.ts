@@ -40,9 +40,12 @@ export const PRODUCT_TYPE = ['cup', 'trophy', 'keychain', 'other'] as const
 export type ProductType = (typeof PRODUCT_TYPE)[number]
 
 export const ORIGIN_CHANNEL = [
-  'facebook',
   'whatsapp',
+  'whatsapp_personal',
   'instagram',
+  'facebook',
+  'local',
+  'web',
   'other',
 ] as const
 export type OriginChannel = (typeof ORIGIN_CHANNEL)[number]
@@ -85,9 +88,12 @@ export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
 }
 
 export const ORIGIN_CHANNEL_LABELS: Record<OriginChannel, string> = {
-  facebook: 'Facebook',
-  whatsapp: 'WhatsApp',
+  whatsapp: 'WhatsApp negocio',
+  whatsapp_personal: 'WhatsApp personal',
   instagram: 'Instagram',
+  facebook: 'Facebook',
+  local: 'En el local',
+  web: 'Web',
   other: 'Otro',
 }
 

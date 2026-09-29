@@ -97,9 +97,9 @@ describe('validateProductSale', () => {
   })
 
   it('requires a product choice', () => {
-    expect(validateProductSale(draft({ productId: '' }), products)).toHaveProperty(
-      'productId',
-    )
+    expect(
+      validateProductSale(draft({ productId: '' }), products),
+    ).toHaveProperty('productId')
   })
 
   it('requires a name when the free-text option is chosen', () => {
@@ -113,7 +113,11 @@ describe('validateProductSale', () => {
   it('accepts a free-text sale with a name and no catalog link', () => {
     expect(
       validateProductSale(
-        draft({ productId: FREE_TEXT_PRODUCT, productName: 'Sticker', quantity: '1' }),
+        draft({
+          productId: FREE_TEXT_PRODUCT,
+          productName: 'Sticker',
+          quantity: '1',
+        }),
         products,
       ),
     ).toEqual({})
@@ -129,7 +133,10 @@ describe('validateProductSale', () => {
 
   it('rejects a non-positive quantity', () => {
     expect(
-      validateProductSale(draft({ productId: 'prod-1', quantity: '0' }), products),
+      validateProductSale(
+        draft({ productId: 'prod-1', quantity: '0' }),
+        products,
+      ),
     ).toHaveProperty('quantity')
   })
 
@@ -138,13 +145,20 @@ describe('validateProductSale', () => {
       validateProductSale(draft({ productId: 'prod-1', amount: '' }), products),
     ).toHaveProperty('amount')
     expect(
-      validateProductSale(draft({ productId: 'prod-1', amount: '-5' }), products),
+      validateProductSale(
+        draft({ productId: 'prod-1', amount: '-5' }),
+        products,
+      ),
     ).toHaveProperty('amount')
   })
 
   it('does not flag stock when the sale is free-text', () => {
     const errors = validateProductSale(
-      draft({ productId: FREE_TEXT_PRODUCT, productName: 'Algo', quantity: '99' }),
+      draft({
+        productId: FREE_TEXT_PRODUCT,
+        productName: 'Algo',
+        quantity: '99',
+      }),
       products,
     )
     expect(errors).toEqual({})

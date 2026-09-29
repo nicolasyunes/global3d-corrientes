@@ -198,9 +198,7 @@ export default function ProductSaleSheet({
             value={draft.quantity}
             onChange={(e) => setField('quantity', e.target.value)}
           />
-          {errors.quantity && (
-            <p className="field__error">{errors.quantity}</p>
-          )}
+          {errors.quantity && <p className="field__error">{errors.quantity}</p>}
           {!errors.quantity && remaining !== null && (
             <p className="field__hint">
               Quedan {remaining} en stock después de esta venta.

@@ -360,7 +360,11 @@
   position: sticky;
   bottom: 0;
   padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(to bottom, var(--color-white), color-mix(in srgb, var(--color-orange) 4%, var(--color-white)));
+  background: linear-gradient(
+    to bottom,
+    var(--color-white),
+    color-mix(in srgb, var(--color-orange) 4%, var(--color-white))
+  );
   border-top: 2px solid var(--color-orange);
   box-shadow: 0 -2px 8px color-mix(in srgb, var(--color-carbon) 6%, transparent);
 }
@@ -818,21 +822,6 @@
 .order-row__pending {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-}
-
-/* Status chip — semantic token (color) drives a soft filled pill via
-   currentColor, so callers that only set `color` (StatusBadge et al.) get a
-   tinted background for free. */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.625rem;
-  border: 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, currentColor 14%, var(--color-white));
-  font-size: 0.75rem;
-  font-weight: 700;
-  white-space: nowrap;
 }
 
 /* Empty state — teaches, not blames. */
@@ -1900,8 +1889,13 @@
   margin: 2rem auto 0;
   padding: 1.5rem 1rem;
   border-radius: var(--radius-md);
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--color-orange) 2%, var(--color-white)), var(--color-white));
-  border: 1px solid color-mix(in srgb, var(--color-orange) 16%, var(--color-carbon-soft));
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-orange) 2%, var(--color-white)),
+    var(--color-white)
+  );
+  border: 1px solid
+    color-mix(in srgb, var(--color-orange) 16%, var(--color-carbon-soft));
 }
 
 .quick-order-section__title {

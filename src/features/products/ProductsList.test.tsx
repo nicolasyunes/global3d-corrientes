@@ -3,26 +3,18 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProductRow } from './products.api'
 
-const {
-  listProductsMock,
-  listCategoriesMock,
-  updateProductMock,
-  createProductMock,
-  bulkUpdateProductsMock,
-} = vi.hoisted(() => ({
-  listProductsMock: vi.fn(),
-  listCategoriesMock: vi.fn(),
-  updateProductMock: vi.fn(),
-  createProductMock: vi.fn(),
-  bulkUpdateProductsMock: vi.fn(),
-}))
+const { listProductsMock, listAllPartsMock, updateProductMock } = vi.hoisted(
+  () => ({
+    listProductsMock: vi.fn(),
+    listAllPartsMock: vi.fn(),
+    updateProductMock: vi.fn(),
+  }),
+)
 
 vi.mock('./products.api', () => ({
   listProducts: listProductsMock,
-  listCategories: listCategoriesMock,
+  listAllParts: listAllPartsMock,
   updateProduct: updateProductMock,
-  createProduct: createProductMock,
-  bulkUpdateProducts: bulkUpdateProductsMock,
 }))
 
 import ProductsList from './ProductsList'
@@ -30,49 +22,39 @@ import ProductsList from './ProductsList'
 function row(over: Partial<ProductRow> = {}): ProductRow {
   return {
     id: 'p1',
-    name: 'Llavero Zelda',
+    name: 'Vaso milkshake Spiderman',
     description: null,
-    base_price: 1500,
+    base_price: 15000,
     compare_at_price: null,
-    stock_quantity: 10,
+    stock_quantity: 2,
     image_url: null,
     active: true,
-    slug: 'llavero-zelda',
+    slug: null,
     sku: null,
     custom_on_request: false,
     personalizable: false,
     weight_grams: null,
-    category_id: 'c1',
+    category_id: null,
     subcategory: null,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     ...over,
   }
 }
-const CATS = [
-  {
-    id: 'c1',
-    slug: 'llaveros',
-    name: 'Llaveros',
-    icon: '🔑',
-    position: 5,
-    featured: false,
-    created_at: '',
-    updated_at: '',
-  },
-]
 
 beforeEach(() => {
   vi.clearAllMocks()
-  listProductsMock.mockResolvedValue([row()])
-  listCategoriesMock.mockResolvedValue(CATS)
-  updateProductMock.mockImplementation((_id, patch) =>
-    Promise.resolve({ ...row(), ...patch }),
-  )
-  createProductMock.mockResolvedValue(
-    row({ id: 'p2', name: 'Nuevo', slug: 'nuevo' }),
-  )
-  bulkUpdateProductsMock.mockResolvedValue(undefined)
+  listProductsMock.mockResolvedValue([
+    row(),
+    row({ id: 'p2', name: 'Llavero Zelda' }),
+  ])
+  listAllPartsMock.mockResolvedValue({
+    p1: [
+      { label: 'cabeza', color: 'rojo', quantity: 1 },
+      { label: 'ojos', color: 'negro', quantity: 2 },
+    ],
+  })
+  updateProductMock.mockResolvedValue(row())
 })
 
 function renderList() {
@@ -83,48 +65,32 @@ function renderList() {
   )
 }
 
-describe('ProductsList (grilla)', () => {
-  it('edita el precio inline y autoguarda al blur', async () => {
+describe('ProductsList', () => {
+  it('muestra el resumen de piezas de cada producto', async () => {
     renderList()
-    const priceInput = await screen.findByLabelText('Precio de Llavero Zelda')
-    fireEvent.change(priceInput, { target: { value: '1800' } })
-    fireEvent.blur(priceInput)
-    await waitFor(() =>
-      expect(updateProductMock).toHaveBeenCalledWith('p1', {
-        base_price: 1800,
+    expect(await screen.findByText('2 piezas · rojo, negro')).toBeVisible()
+    expect(screen.getByText('Sin piezas')).toBeVisible()
+  })
+
+  it('filtra por nombre', async () => {
+    renderList()
+    await screen.findByText('Llavero Zelda')
+    fireEvent.change(screen.getByLabelText('Buscar producto'), {
+      target: { value: 'zelda' },
+    })
+    expect(screen.queryByText('Vaso milkshake Spiderman')).toBeNull()
+  })
+
+  it('suma stock desde la fila', async () => {
+    renderList()
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Sumar stock de Vaso milkshake Spiderman',
       }),
     )
-  })
-
-  it('la fila de alta rápida crea un producto', async () => {
-    renderList()
-    fireEvent.click(await screen.findByRole('button', { name: /\+ producto/i }))
-    fireEvent.change(screen.getByLabelText('Nombre del nuevo producto'), {
-      target: { value: 'Nuevo' },
-    })
-    fireEvent.change(screen.getByLabelText('Precio del nuevo producto'), {
-      target: { value: '999' },
-    })
-    fireEvent.submit(screen.getByTestId('quick-add-form'))
-    await waitFor(() => expect(createProductMock).toHaveBeenCalledTimes(1))
-    expect(createProductMock.mock.calls[0][0]).toMatchObject({
-      name: 'Nuevo',
-      slug: 'nuevo',
-      base_price: 999,
-      stock_quantity: 0,
-      active: true,
-    })
-  })
-
-  it('desactiva en masa las filas tildadas', async () => {
-    listProductsMock.mockResolvedValue([row(), row({ id: 'p2', name: 'Otro' })])
-    renderList()
-    const checks = await screen.findAllByLabelText(/seleccionar/i)
-    fireEvent.click(checks[0])
-    fireEvent.click(screen.getByRole('button', { name: /desactivar/i }))
     await waitFor(() =>
-      expect(bulkUpdateProductsMock).toHaveBeenCalledWith(['p1'], {
-        active: false,
+      expect(updateProductMock).toHaveBeenCalledWith('p1', {
+        stock_quantity: 3,
       }),
     )
   })

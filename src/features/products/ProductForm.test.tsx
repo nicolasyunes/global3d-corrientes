@@ -6,22 +6,25 @@ const {
   getProductMock,
   createProductMock,
   updateProductMock,
-  listCategoriesMock,
   listProductImagesMock,
+  listProductPartsMock,
+  saveProductPartsMock,
 } = vi.hoisted(() => ({
   getProductMock: vi.fn(),
   createProductMock: vi.fn(),
   updateProductMock: vi.fn(),
-  listCategoriesMock: vi.fn(),
   listProductImagesMock: vi.fn(),
+  listProductPartsMock: vi.fn(),
+  saveProductPartsMock: vi.fn(),
 }))
 
 vi.mock('./products.api', () => ({
   getProduct: getProductMock,
   createProduct: createProductMock,
   updateProduct: updateProductMock,
-  listCategories: listCategoriesMock,
   listProductImages: listProductImagesMock,
+  listProductParts: listProductPartsMock,
+  saveProductParts: saveProductPartsMock,
   uploadProductImage: vi.fn(),
   deleteProductImage: vi.fn(),
   reorderProductImages: vi.fn(),
@@ -29,93 +32,97 @@ vi.mock('./products.api', () => ({
 
 import ProductForm from './ProductForm'
 
-const CATS = [
-  {
-    id: 'c1',
-    slug: 'llaveros',
-    name: 'Llaveros y Merch',
-    icon: '🔑',
-    position: 5,
-    featured: false,
-    created_at: '',
-    updated_at: '',
-  },
-  {
-    id: 'c2',
-    slug: 'trofeos',
-    name: 'Trofeos y Premios',
-    icon: '🏆',
-    position: 6,
-    featured: false,
-    created_at: '',
-    updated_at: '',
-  },
-]
-
 beforeEach(() => {
   vi.clearAllMocks()
-  listCategoriesMock.mockResolvedValue(CATS)
   listProductImagesMock.mockResolvedValue([])
+  listProductPartsMock.mockResolvedValue([])
   createProductMock.mockResolvedValue({ id: 'new-1' })
-  updateProductMock.mockResolvedValue({ id: 'new-1' })
+  updateProductMock.mockResolvedValue({ id: 'p1' })
+  saveProductPartsMock.mockResolvedValue(undefined)
 })
 
-function renderNew() {
+function renderAt(path: string) {
   return render(
-    <MemoryRouter initialEntries={['/admin/productos/nuevo']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/admin/productos/nuevo" element={<ProductForm />} />
         <Route path="/admin/productos" element={<div>lista</div>} />
-        <Route path="/admin/productos/:id" element={<div>editor detalle</div>} />
+        <Route path="/admin/productos/:id" element={<ProductForm />} />
       </Routes>
     </MemoryRouter>,
   )
 }
 
-describe('ProductForm (alta)', () => {
-  it('autogenera el slug desde el nombre', async () => {
-    renderNew()
-    await screen.findByLabelText('Nombre')
-    fireEvent.change(screen.getByLabelText('Nombre'), {
-      target: { value: 'Vaso Fernetero Boca' },
-    })
-    expect(screen.getByLabelText('Slug')).toHaveValue('vaso-fernetero-boca')
-  })
-
+describe('ProductForm', () => {
   it('bloquea el guardado si falta el nombre', async () => {
-    renderNew()
-    await screen.findByLabelText('Nombre')
-    fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+    renderAt('/admin/productos/nuevo')
+    fireEvent.click(await screen.findByRole('button', { name: /guardar/i }))
     expect(await screen.findByText('Ingresá un nombre.')).toBeInTheDocument()
     expect(createProductMock).not.toHaveBeenCalled()
   })
 
-  it('guarda y crea el producto con la organización elegida', async () => {
-    renderNew()
-    await screen.findByLabelText('Nombre')
-    fireEvent.change(screen.getByLabelText('Nombre'), {
-      target: { value: 'Trofeo pádel' },
+  it('crea el producto con sus piezas y colores', async () => {
+    renderAt('/admin/productos/nuevo')
+    fireEvent.change(await screen.findByLabelText('Nombre'), {
+      target: { value: 'Vaso milkshake Spiderman' },
     })
-    fireEvent.change(screen.getByLabelText('Categoría'), {
-      target: { value: 'c2' },
+    fireEvent.change(screen.getByLabelText('Precio de lista ($)'), {
+      target: { value: '15.000' },
     })
+    fireEvent.change(screen.getByLabelText('Pieza 1'), {
+      target: { value: 'cabeza' },
+    })
+    fireEvent.change(screen.getByLabelText('Color de la pieza 1'), {
+      target: { value: 'rojo' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /agregar pieza/i }))
+    fireEvent.change(screen.getByLabelText('Pieza 2'), {
+      target: { value: 'ojos' },
+    })
+    fireEvent.change(screen.getByLabelText('Color de la pieza 2'), {
+      target: { value: 'negro' },
+    })
+    fireEvent.change(
+      screen.getByLabelText('Cantidad por unidad de la pieza 2'),
+      { target: { value: '2' } },
+    )
     fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
-    await waitFor(() => expect(createProductMock).toHaveBeenCalledTimes(1))
+
+    await waitFor(() => expect(saveProductPartsMock).toHaveBeenCalledTimes(1))
     expect(createProductMock.mock.calls[0][0]).toMatchObject({
-      name: 'Trofeo pádel',
-      category_id: 'c2',
-      slug: 'trofeo-padel',
+      name: 'Vaso milkshake Spiderman',
+      base_price: 15000,
     })
+    expect(saveProductPartsMock).toHaveBeenCalledWith('new-1', [
+      { label: 'cabeza', color: 'rojo', quantity: 1 },
+      { label: 'ojos', color: 'negro', quantity: 2 },
+    ])
   })
 
-  it('las opciones de subcategoría dependen de la categoría', async () => {
-    renderNew()
-    await screen.findByLabelText('Nombre')
-    fireEvent.change(screen.getByLabelText('Categoría'), {
-      target: { value: 'c2' },
+  it('carga las piezas guardadas al editar', async () => {
+    getProductMock.mockResolvedValue({
+      id: 'p1',
+      name: 'Vaso Spiderman',
+      description: null,
+      base_price: null,
+      stock_quantity: 0,
+      active: true,
     })
-    const sub = screen.getByLabelText('Subcategoría') as HTMLSelectElement
-    const opts = Array.from(sub.options).map((o) => o.value)
-    expect(opts).toEqual(['', 'deportivos', 'placas'])
+    listProductPartsMock.mockResolvedValue([
+      {
+        id: 'x',
+        product_id: 'p1',
+        label: 'manos',
+        color: 'rojo',
+        quantity: 2,
+        position: 0,
+        created_at: '',
+      },
+    ])
+    renderAt('/admin/productos/p1')
+    expect(await screen.findByDisplayValue('manos')).toBeInTheDocument()
+    expect(
+      screen.getByLabelText('Cantidad por unidad de la pieza 1'),
+    ).toHaveValue(2)
   })
 })

@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Idea A · Panel de gestión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --orange:#F37021; --orange-700:#B3480A; --orange-50:#FDECE0;
+  --carbon:#1D1D1B; --carbon-2:#2A2A27; --white:#FFFFFF; --teal:#0E7C66; --teal-50:#E3F2EE;
+  --cream:#F8F5F0; --line:rgba(29,29,27,.08); --muted:rgba(29,29,27,.6);
+  --red:#C63D3D; --red-50:#F8E6E6; --amber:#C77D12; --amber-50:#FBF0DD;
+  --r:16px; --shadow:0 1px 2px rgba(29,29,27,.04),0 8px 24px rgba(29,29,27,.06);
+}
+*{box-sizing:border-box} html,body{margin:0}
+body{font-family:Manrope,system-ui,sans-serif;color:var(--carbon);background:#E9E6E1;font-size:15px}
+.num{font-variant-numeric:tabular-nums}
+svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* preview chrome */
+.chrome{position:sticky;top:0;z-index:50;display:flex;gap:8px;align-items:center;justify-content:center;padding:10px;background:var(--carbon);color:#fff;font-size:13px}
+.chrome b{margin-right:8px}
+.chrome button{border:0;border-radius:999px;padding:6px 14px;font:inherit;cursor:pointer;background:#3a3a36;color:#fff}
+.chrome button[aria-pressed=true]{background:var(--orange);color:var(--carbon);font-weight:700}
+.stage{display:flex;justify-content:center;padding:24px 12px}
+.device{width:100%;max-width:1320px;height:820px;border-radius:20px;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.18);container-type:inline-size;background:var(--cream);transition:max-width .35s ease}
+body.mobile .device{max-width:390px;height:780px;border-radius:36px;border:10px solid var(--carbon)}
+
+/* app shell */
+.app{display:grid;grid-template-columns:240px 1fr;height:100%}
+.side{background:var(--carbon);color:#fff;display:flex;flex-direction:column;padding:20px 14px;gap:4px}
+.logo{font-weight:800;font-size:22px;letter-spacing:-.02em;padding:4px 10px 22px;display:flex;align-items:center;gap:10px}
+.logo span{color:var(--orange)}
+.logo .cube{width:30px;height:30px;border-radius:9px;background:var(--orange);display:grid;place-items:center;color:var(--carbon)}
+.nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;color:rgba(255,255,255,.72);text-decoration:none;font-weight:600;cursor:pointer;transition:background .15s,color .15s}
+.nav a:hover{background:var(--carbon-2);color:#fff}
+.nav a.on{background:var(--orange);color:var(--carbon)}
+.nav .count{margin-left:auto;background:rgba(255,255,255,.12);border-radius:999px;padding:1px 8px;font-size:12px}
+.nav a.on .count{background:rgba(29,29,27,.15)}
+.side .sect{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);padding:18px 12px 6px}
+.me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:var(--carbon-2)}
+.av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;flex:none}
+.me small{display:block;color:rgba(255,255,255,.55);font-size:12px}
+
+.main{overflow:auto;padding:28px 32px 100px}
+.top{display:flex;align-items:flex-end;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.eyebrow{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--orange-700)}
+.eyebrow:before{content:"";width:24px;height:2px;background:var(--orange)}
+h1{font-size:30px;letter-spacing:-.03em;margin:6px 0 0;font-weight:800}
+.top .sp{flex:1}
+.search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:9px 14px;color:var(--muted);min-width:240px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:11px 16px;font:inherit;font-weight:700;cursor:pointer;transition:transform .12s,box-shadow .15s}
+.btn:active{transform:scale(.97)}
+.btn.pri{background:var(--orange);color:var(--carbon);box-shadow:0 6px 16px rgba(243,112,33,.28)}
+.btn.sec{background:var(--carbon);color:#fff}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:var(--carbon)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.kpi{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;animation:rise .45s both}
+.kpi:nth-child(2){animation-delay:.05s}.kpi:nth-child(3){animation-delay:.1s}.kpi:nth-child(4){animation-delay:.15s}
+.kpi .lab{font-size:13px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+.kpi .val{font-size:34px;font-weight:800;letter-spacing:-.03em;margin-top:6px}
+.kpi .dot{width:9px;height:9px;border-radius:50%}
+.kpi .foot{font-size:12px;color:var(--muted)}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.grid2{display:grid;grid-template-columns:1.7fr 1fr;gap:18px}
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:18px 20px}
+.card h2{font-size:17px;margin:0;font-weight:800;letter-spacing:-.01em}
+.card .hd{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.card .hd .sp{flex:1}
+.tabs{display:flex;gap:4px;background:var(--cream);padding:4px;border-radius:999px}
+.tabs button{border:0;background:transparent;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer}
+.tabs button.on{background:#fff;color:var(--carbon);box-shadow:var(--shadow)}
+
+.row{display:grid;grid-template-columns:auto 1fr 150px 110px;gap:14px;align-items:center;padding:13px 6px;border-top:1px solid var(--line);cursor:pointer;border-radius:10px;transition:background .15s}
+.row:hover{background:var(--cream)}
+.row .t{font-weight:700}
+.row .s{font-size:13px;color:var(--muted);margin-top:2px}
+.due{font-size:13px;font-weight:700;text-align:right}
+.due.late{color:var(--red)} .due.today{color:var(--orange-700)} .due.ok{color:var(--muted)}
+.prog{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.prog i{display:block;height:100%;border-radius:99px;background:var(--orange);width:0;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.prog.done i{background:var(--teal)}
+.pl{font-size:12px;color:var(--muted);margin-top:5px;display:flex;justify-content:space-between}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.b-prod{background:var(--orange-50);color:var(--orange-700)} .b-post{background:#EFE7F6;color:#6B3E8E}
+.b-dis{background:var(--amber-50);color:var(--amber)} .b-ok{background:var(--teal-50);color:var(--teal)} .b-late{background:var(--red-50);color:var(--red)}
+.thumb{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--cream)}
+
+.q{display:flex;flex-direction:column;gap:10px}
+.qc{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:800;margin-top:6px}
+.sw{width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.qi{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--cream)}
+.qi .t{font-weight:700;font-size:14px} .qi .s{font-size:12px;color:var(--muted)}
+.qi .sp{flex:1}
+.plus{border:0;border-radius:10px;width:36px;height:36px;background:var(--carbon);color:#fff;display:grid;place-items:center;cursor:pointer;transition:transform .12s}
+.plus:active{transform:scale(.9)}
+.tip{display:flex;gap:10px;padding:12px;border-radius:12px;border:1px dashed rgba(14,124,102,.45);background:var(--teal-50);color:#0a5a4a;font-size:13px;margin-top:6px}
+
+/* detail */
+.detail{display:none}
+.pieces{display:grid;gap:10px;margin-top:6px}
+.pc{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:14px;border-radius:14px;background:var(--cream)}
+.step{display:flex;gap:8px;align-items:center}
+.step button{border:0;border-radius:10px;padding:8px 12px;font:inherit;font-weight:800;cursor:pointer}
+.step .ok{background:var(--carbon);color:#fff} .step .ko{background:#fff;color:var(--red);border:1px solid var(--line)}
+.log{font-size:13px}
+.log div{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.log time{color:var(--muted);min-width:48px}
+.stages{display:flex;gap:6px;margin:6px 0 18px;flex-wrap:wrap}
+.stages span{flex:1;min-width:90px;text-align:center;font-size:12px;font-weight:700;padding:8px;border-radius:10px;background:#fff;color:var(--muted);box-shadow:var(--shadow)}
+.stages span.done{background:var(--teal-50);color:var(--teal)} .stages span.cur{background:var(--orange);color:var(--carbon)}
+
+/* login */
+.login{display:none;height:100%;place-items:center;position:relative;overflow:hidden;background:var(--cream)}
+.login .box{position:relative;z-index:2;background:#fff;border-radius:22px;padding:34px;width:min(380px,90%);box-shadow:0 20px 50px rgba(29,29,27,.12)}
+.login h2{font-size:28px;letter-spacing:-.03em;margin:0 0 6px;line-height:1.1}
+.login h2 span{color:var(--orange)}
+.login p{color:var(--muted);margin:0 0 22px}
+.login label{font-size:13px;font-weight:700;display:block;margin:12px 0 6px}
+.login input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);font:inherit;background:var(--cream)}
+.login input:focus{outline:2px solid var(--orange);outline-offset:1px}
+.login .btn{width:100%;justify-content:center;margin-top:18px;padding:13px}
+.shape{position:absolute;opacity:.5;animation:float 9s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(12deg)}}
+
+.toast{position:absolute;left:50%;bottom:26px;transform:translate(-50%,30px);opacity:0;background:var(--carbon);color:#fff;padding:12px 16px;border-radius:12px;font-weight:700;display:flex;gap:10px;align-items:center;transition:all .25s;z-index:10}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.device{position:relative}
+.fab{display:none}
+.bottom{display:none}
+
+.btn,.eyebrow{white-space:nowrap}
+/* multi-item + checklist */
+.multi{display:none}
+.item{border-radius:14px;background:var(--cream);padding:14px;margin-top:10px}
+.item .ih{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.item .ih .n{width:26px;height:26px;border-radius:8px;background:var(--carbon);color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px}
+.item .ih .t{font-weight:800}
+.item .ih .s{font-size:13px;color:var(--muted)}
+.item .ih .sp{flex:1}
+.item.ok{background:var(--teal-50)}
+.prs{margin-top:10px;display:grid;gap:6px}
+.pr{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;background:#fff;border-radius:10px;padding:9px 10px;font-size:14px}
+.pr .st{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;cursor:pointer;transition:all .15s;background:#fff}
+.pr[data-s=printing] .st{border-color:var(--orange);background:var(--orange-50)}
+.pr[data-s=printing] .st:after{content:"";width:9px;height:9px;border-radius:50%;background:var(--orange);animation:blink 1.2s infinite}
+.pr[data-s=done] .st{border-color:var(--teal);background:var(--teal)}
+.pr[data-s=done] .st:after{content:"✓";color:#fff;font-weight:800;font-size:14px}
+.pr[data-s=done] .nm{text-decoration:line-through;color:var(--muted)}
+@keyframes blink{50%{opacity:.25}}
+.pr .nm b{font-weight:700}
+.pr .who{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
+.pr .cs{width:18px;height:18px;border-radius:50%;box-shadow:0 0 0 1px var(--line),inset 0 0 0 2px #fff}
+.add{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.add input{flex:1;min-width:150px;padding:9px 12px;border-radius:10px;border:1px dashed rgba(29,29,27,.25);font:inherit;background:#fff}
+.add input:focus{outline:2px solid var(--orange);border-style:solid}
+.pal{display:flex;gap:5px}
+.pal button{width:24px;height:24px;border-radius:50%;border:0;cursor:pointer;box-shadow:0 0 0 1px var(--line),inset 0 0 0 2px #fff;transition:transform .1s}
+.pal button.on{box-shadow:0 0 0 2px var(--orange),inset 0 0 0 2px #fff;transform:scale(1.1)}
+.add .btn{padding:8px 12px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:4px;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:4px;border:2px solid var(--line)}
+.note{font-size:13px;color:var(--muted);background:#fff;border-radius:12px;padding:12px;border:1px solid var(--line);margin-top:10px}
+@container (max-width:1050px){ .grid2{grid-template-columns:1fr} .kpis{grid-template-columns:repeat(2,1fr)} }
+/* mobile via container query */
+@container (max-width:700px){
+  .app{grid-template-columns:1fr;grid-template-rows:1fr auto}
+  .side{display:none}
+  .main{padding:18px 16px 110px}
+  .top{flex-wrap:wrap}
+  .top .search,.top .btn{display:none}
+  h1{font-size:24px}
+  .kpis{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi .val{font-size:26px}
+  .grid2{grid-template-columns:1fr}
+  .row{grid-template-columns:auto 1fr auto;}
+  .row .pcol{grid-column:2/4}
+  .row .due{grid-column:3;grid-row:1}
+  .card .hd{flex-wrap:wrap}
+  .card{padding:16px}
+  .bottom{display:flex;position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 6px 14px;justify-content:space-around;z-index:5}
+  .bottom a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:10px}
+  .bottom a.on{color:var(--orange-700)}
+  .fab{display:grid;place-items:center;position:absolute;right:18px;bottom:84px;width:56px;height:56px;border-radius:18px;background:var(--orange);color:var(--carbon);box-shadow:0 10px 24px rgba(243,112,33,.4);z-index:6;border:0}
+  .pc{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="printer" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="4" rx="1"/><path d="M6 7v10M18 7v10M4 17h16v4H4z"/><path d="M10 12h4v5h-4z"/></symbol>
+  <symbol id="box" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></symbol>
+  <symbol id="brush" viewBox="0 0 24 24"><path d="M14 4l6 6-8 8H6v-6z"/><path d="M4 20c2 0 2-2 2-2"/></symbol>
+  <symbol id="layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.3-5 6.5-5s5.7 1.5 6.5 5"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.4 0 4 1.3 4.6 4"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></symbol>
+  <symbol id="cup" viewBox="0 0 24 24"><path d="M6 3h12l-1.5 17a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1z"/><path d="M6.5 8h11"/></symbol>
+  <symbol id="trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8M9 17h6v4H9z"/></symbol>
+  <symbol id="key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M16 7l2 2M14 9l2 2"/></symbol>
+  <symbol id="figure" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v7M8 11h8M9 21l3-6 3 6"/></symbol>
+  <symbol id="sign" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="10" rx="1.5"/><path d="M8 15v5M16 15v5"/></symbol>
+</svg>
+
+<div class="chrome">
+  <b>Idea A · Panel de gestión</b>
+  <button data-dev="desk" aria-pressed="true">Escritorio</button>
+  <button data-dev="mobile" aria-pressed="false">Celular</button>
+  <span style="opacity:.4">|</span>
+  <button data-view="dash" aria-pressed="true">Hoy</button>
+  <button data-view="detail" aria-pressed="false">Detalle de pedido</button>
+  <button data-view="multi" aria-pressed="false">3 vasos + checklist</button>
+  <button data-view="login" aria-pressed="false">Login</button>
+</div>
+
+<div class="stage"><div class="device">
+  <div class="app" id="app">
+    <aside class="side">
+      <div class="logo"><div class="cube"><svg class="i"><use href="#box"/></svg></div>Global<span>3D</span></div>
+      <nav class="nav">
+        <a class="on" data-go="dash"><svg class="i"><use href="#home"/></svg>Hoy</a>
+        <a data-go="dash"><svg class="i"><use href="#printer"/></svg>¿Qué imprimo?<span class="count">18</span></a>
+        <a data-go="dash"><svg class="i"><use href="#brush"/></svg>Post-proceso<span class="count">4</span></a>
+        <a data-go="dash"><svg class="i"><use href="#box"/></svg>Pedidos<span class="count">23</span></a>
+        <div class="sect">Taller</div>
+        <a><svg class="i"><use href="#layers"/></svg>Plantillas</a>
+        <a><svg class="i"><use href="#cup"/></svg>Stock terminado</a>
+        <a><svg class="i"><use href="#users"/></svg>Clientes</a>
+      </nav>
+      <div class="me"><div class="av" style="background:var(--orange);color:var(--carbon)">NY</div><div>Nicolás<small>Taller · casa</small></div></div>
+    </aside>
+
+    <main class="main">
+      <!-- DASHBOARD -->
+      <section id="dash">
+        <div class="top">
+          <div><div class="eyebrow">01 · Martes 29 de septiembre</div><h1>Buen día, Nicolás</h1></div>
+          <div class="sp"></div>
+          <div class="search"><svg class="i"><use href="#search"/></svg>Buscar pedido, cliente…</div>
+          <button class="btn pri"><svg class="i"><use href="#plus"/></svg>Nuevo pedido</button>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi"><div class="lab"><span class="dot" style="background:var(--red)"></span>Atrasados</div><div class="val num" data-count="2">0</div><div class="foot">1 en post-proceso</div></div>
+          <div class="kpi"><div class="lab"><span class="dot" style="background:var(--orange)"></span>Vencen hoy / mañana</div><div class="val num" data-count="5">0</div><div class="foot">3 con piezas pendientes</div></div>
+          <div class="kpi"><div class="lab"><span class="dot" style="background:#6B3E8E"></span>En producción</div><div class="val num" data-count="14">0</div><div class="foot">18 piezas en cola</div></div>
+          <div class="kpi"><div class="lab"><span class="dot" style="background:var(--teal)"></span>Listos para avisar</div><div class="val num" data-count="4">0</div><div class="foot num">$72.500 de saldo a cobrar</div></div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="hd"><h2>Pedidos por fecha</h2><div class="sp"></div>
+              <div class="tabs"><button class="on">Urgentes</button><button>Todos</button><button>Listos</button></div></div>
+
+            <div class="row" data-go="detail">
+              <div class="thumb"><svg class="i"><use href="#trophy"/></svg></div>
+              <div><div class="t">Trofeos de pádel ×14</div><div class="s">Club Pádel Norte · #0142 · <span class="badge b-prod">En producción</span></div></div>
+              <div class="pcol"><div class="prog"><i data-w="64"></i></div><div class="pl num"><span>9/14 trofeos</span><span>64%</span></div></div>
+              <div class="due today">Vence hoy</div>
+            </div>
+            <div class="row">
+              <div class="thumb"><svg class="i"><use href="#figure"/></svg></div>
+              <div><div class="t">Spiderman 30 cm pintado</div><div class="s">Martín R. · #0139 · <span class="badge b-post">Post-proceso · Agustina</span></div></div>
+              <div class="pcol"><div class="prog"><i data-w="80"></i></div><div class="pl num"><span>pintura</span><span>80%</span></div></div>
+              <div class="due late">Atrasado 1 día</div>
+            </div>
+            <div class="row">
+              <div class="thumb"><svg class="i"><use href="#key"/></svg></div>
+              <div><div class="t">Llaveros robot ×33</div><div class="s">Lucía M. · #0143 · <span class="badge b-prod">En producción</span></div></div>
+              <div class="pcol"><div class="prog"><i data-w="63"></i></div><div class="pl num"><span>21/33</span><span>63%</span></div></div>
+              <div class="due today">Mañana</div>
+            </div>
+            <div class="row">
+              <div class="thumb"><svg class="i"><use href="#sign"/></svg></div>
+              <div><div class="t">Cartel 1 m × 50 cm</div><div class="s">Escuela Nº 12 · #0145 · <span class="badge b-dis">Esperando aprobación</span></div></div>
+              <div class="pcol"><div class="prog"><i data-w="10"></i></div><div class="pl num"><span>boceto enviado</span><span>—</span></div></div>
+              <div class="due ok">En 3 días</div>
+            </div>
+            <div class="row">
+              <div class="thumb"><svg class="i"><use href="#cup"/></svg></div>
+              <div><div class="t">Portalápices pelota ×13</div><div class="s">Carla P. · #0140 · <span class="badge b-ok">Listo · saldo $16.000</span></div></div>
+              <div class="pcol"><div class="prog done"><i data-w="100"></i></div><div class="pl num"><span>13/13</span><span>100%</span></div></div>
+              <div class="due ok">Viernes</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="hd"><svg class="i" style="color:var(--orange)"><use href="#printer"/></svg><h2>¿Qué imprimo ahora?</h2></div>
+            <div class="q">
+              <div class="qc"><span class="sw" style="background:#111"></span>Negro · 2 tandas</div>
+              <div class="qi"><div><div class="t">Base trofeo pádel</div><div class="s num">faltan 5 · #0142 · hoy</div></div><div class="sp"></div><button class="plus" data-toast="+1 Base trofeo registrada"><svg class="i"><use href="#plus"/></svg></button></div>
+              <div class="qi"><div><div class="t">Vaso texturizado River</div><div class="s num">falta 1 · #0146 · 4 días</div></div><div class="sp"></div><button class="plus" data-toast="+1 Vaso River registrado"><svg class="i"><use href="#plus"/></svg></button></div>
+              <div class="qc"><span class="sw" style="background:#D4AF37"></span>Dorado seda</div>
+              <div class="qi"><div><div class="t">Paleta de pádel</div><div class="s num">faltan 5 · #0142 · hoy</div></div><div class="sp"></div><button class="plus" data-toast="+1 Paleta registrada"><svg class="i"><use href="#plus"/></svg></button></div>
+              <div class="qc"><span class="sw" style="background:#fff"></span>Blanco</div>
+              <div class="qi"><div><div class="t">Llavero robot</div><div class="s num">faltan 12 · #0143 · mañana</div></div><div class="sp"></div><button class="plus" data-toast="+1 Llavero registrado"><svg class="i"><use href="#plus"/></svg></button></div>
+              <div class="tip"><svg class="i"><use href="#spark"/></svg><div><b>Sin urgencias en azul.</b> Stock de Vasos Boca: 1 (mínimo 4). ¿Imprimir 3 para stock?</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- DETAIL -->
+      <section id="detail" class="detail">
+        <div class="top">
+          <div><a data-go="dash" style="display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:700;cursor:pointer"><svg class="i"><use href="#back"/></svg>Hoy</a>
+          <div class="eyebrow" style="margin-top:10px">Pedido #0142 · Club Pádel Norte · WhatsApp negocio</div><h1>Trofeos de pádel ×14</h1></div>
+          <div class="sp"></div>
+          <span class="badge b-prod" style="font-size:13px;padding:8px 14px">Vence hoy 18:00</span>
+          <button class="btn ghost">Editar datos</button>
+        </div>
+        <div class="stages"><span class="done">Confirmado</span><span class="done">Diseño</span><span class="cur">Impresión 9/14</span><span>Post-proceso</span><span>Listo</span><span>Entregado</span></div>
+        <div class="grid2">
+          <div class="card">
+            <div class="hd"><h2>Piezas</h2><div class="sp"></div><span class="badge b-prod num">9 de 14 trofeos completos</span></div>
+            <div class="pieces">
+              <div class="pc"><span class="sw" style="background:#111;width:22px;height:22px"></span>
+                <div><b>Base</b> · negro<div class="prog done" style="margin-top:8px"><i data-w="100"></i></div><div class="pl num"><span>14/14</span><span>listo</span></div></div>
+                <div class="step"><button class="ok" disabled style="opacity:.35">+1</button></div></div>
+              <div class="pc"><span class="sw" style="background:#D4AF37;width:22px;height:22px"></span>
+                <div><b>Paleta</b> · dorado seda<div class="prog"><i data-w="64"></i></div><div class="pl num"><span>9/14</span><span>faltan 5</span></div></div>
+                <div class="step"><button class="ko" data-toast="Falla registrada · vuelve a la cola">Falla</button><button class="ok" data-toast="+1 Paleta · la registró Nicolás">+1</button></div></div>
+              <div class="pc"><span class="sw" style="background:#fff;width:22px;height:22px"></span>
+                <div><b>Placa con texto</b> · blanco / negro<div class="prog"><i data-w="43"></i></div><div class="pl num"><span>6/14</span><span>nombres: ver lista</span></div></div>
+                <div class="step"><button class="ko" data-toast="Falla registrada">Falla</button><button class="ok" data-toast="+1 Placa registrada">+1</button></div></div>
+            </div>
+            <div class="hd" style="margin-top:18px"><h2>Referencias</h2></div>
+            <div style="display:flex;gap:10px">
+              <div class="thumb" style="width:84px;height:84px"><svg class="i"><use href="#trophy"/></svg></div>
+              <div class="thumb" style="width:84px;height:84px;background:var(--orange-50)">captura<br>wpp</div>
+              <div class="thumb" style="width:84px;height:84px;border:2px dashed var(--line);background:#fff"><svg class="i"><use href="#plus"/></svg></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="hd"><h2>Actividad</h2></div>
+            <div class="log num">
+              <div><time>11:42</time><span><b>Nicolás</b> registró +3 paletas (Ender 3 · casa)</span></div>
+              <div><time>10:05</time><span><b>Agustina</b> registró +5 bases (local)</span></div>
+              <div><time>09:30</time><span><b>Nicolás</b> marcó falla en 1 paleta (warping)</span></div>
+              <div><time>Ayer</time><span><b>Cliente</b> aprobó el diseño</span></div>
+              <div><time>Lun</time><span><b>Agustina</b> cargó el pedido · seña $50.000</span></div>
+            </div>
+            <div class="tip" style="background:var(--cream);border-color:var(--line);color:var(--carbon)"><div class="num"><b>Saldo al entregar:</b> $146.000</div></div>
+          </div>
+        </div>
+      </section>
+      <!-- MULTI ITEM -->
+      <section id="multi" class="multi">
+        <div class="top">
+          <div><a data-go="dash" style="display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:700;cursor:pointer"><svg class="i"><use href="#back"/></svg>Hoy</a>
+          <div class="eyebrow" style="margin-top:10px">Pedido #0150 · Juan P. · WhatsApp personal</div><h1>3 vasos personalizados</h1></div>
+          <div class="sp"></div>
+          <span class="badge b-prod" style="font-size:13px;padding:8px 14px">Vence viernes</span>
+          <button class="btn ghost">Editar datos</button>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="hd"><h2>Ítems del pedido</h2><div class="sp"></div><span class="badge b-prod num" id="multiSum">1 de 3 listos</span></div>
+            <div class="legend"><span><i></i>Falta</span><span><i style="border-color:var(--orange);background:var(--orange-50)"></i>Imprimiendo</span><span><i style="border-color:var(--teal);background:var(--teal)"></i>Listo</span><span style="margin-left:auto">Tocá el cuadrado para avanzar</span></div>
+
+            <div class="item" data-item>
+              <div class="ih"><span class="n">1</span><div><div class="t">Vaso texturizado 1 L · Boca</div><div class="s">Nombre “Juan” · de plantilla</div></div><div class="sp"></div><span class="badge b-prod num" data-ib>Imprimiendo</span></div>
+              <div class="prs">
+                <div class="pr" data-s="done"><span class="st"></span><span class="cs" style="background:#1E4FA8"></span><span class="nm"><b>Cuerpo</b> · azul</span><span class="who">Agustina · 10:20</span></div>
+                <div class="pr" data-s="printing"><span class="st"></span><span class="cs" style="background:#F2C230"></span><span class="nm"><b>Franja</b> · amarillo</span><span class="who">Agustina · casa</span></div>
+                <div class="pr" data-s="todo"><span class="st"></span><span class="cs" style="background:#F2C230"></span><span class="nm"><b>Logo</b> · amarillo</span><span class="who">—</span></div>
+              </div>
+              <div class="add"><input placeholder="¿Qué falta? ej: nombre en negro" /><div class="pal"><button style="background:#111" data-c="#111" data-n="negro"></button><button style="background:#fff" data-c="#fff" data-n="blanco"></button><button class="on" style="background:#D93A2B" data-c="#D93A2B" data-n="rojo"></button><button style="background:#1E4FA8" data-c="#1E4FA8" data-n="azul"></button><button style="background:#F2C230" data-c="#F2C230" data-n="amarillo"></button><button style="background:#D4AF37" data-c="#D4AF37" data-n="dorado"></button></div><button class="btn sec" data-add>Agregar</button></div>
+            </div>
+
+            <div class="item" data-item>
+              <div class="ih"><span class="n">2</span><div><div class="t">Vaso clásico 650 ml · River</div><div class="s">Sin nombre · de plantilla</div></div><div class="sp"></div><span class="badge num" style="background:var(--line)" data-ib>Sin empezar</span></div>
+              <div class="prs">
+                <div class="pr" data-s="todo"><span class="st"></span><span class="cs" style="background:#fff"></span><span class="nm"><b>Cuerpo</b> · blanco</span><span class="who">—</span></div>
+                <div class="pr" data-s="todo"><span class="st"></span><span class="cs" style="background:#D93A2B"></span><span class="nm"><b>Banda</b> · rojo</span><span class="who">—</span></div>
+                <div class="pr" data-s="todo"><span class="st"></span><span class="cs" style="background:#111"></span><span class="nm"><b>Escudo</b> · negro / rojo</span><span class="who">—</span></div>
+              </div>
+            </div>
+
+            <div class="item ok" data-item>
+              <div class="ih"><span class="n">3</span><div><div class="t">Vaso 1 L · clásico negro</div><div class="s">Salió de stock (quedan 2)</div></div><div class="sp"></div><span class="badge b-ok" data-ib>Listo</span></div>
+            </div>
+            <button class="btn ghost" style="margin-top:12px;width:100%;justify-content:center"><svg class="i"><use href="#plus"/></svg>Agregar otro ítem al pedido</button>
+          </div>
+
+          <div class="card">
+            <div class="hd"><svg class="i" style="color:var(--orange)"><use href="#brush"/></svg><h2>Checklist libre</h2></div>
+            <div class="s" style="font-size:13px;color:var(--muted);margin-bottom:6px">Pedido #0151 · Vaso Spiderman · Agustina lo empezó sin plantilla y fue cargando lo que falta.</div>
+            <div class="item" data-item style="margin-top:4px">
+              <div class="ih"><span class="n">1</span><div><div class="t">Vaso Spiderman</div><div class="s">Personalizado</div></div><div class="sp"></div><span class="badge b-prod" data-ib>Imprimiendo</span></div>
+              <div class="prs">
+                <div class="pr" data-s="done"><span class="st"></span><span class="cs" style="background:#1E4FA8"></span><span class="nm"><b>Vaso base</b> · azul</span><span class="who">Agustina</span></div>
+                <div class="pr" data-s="printing"><span class="st"></span><span class="cs" style="background:#D93A2B"></span><span class="nm"><b>Cabeza</b> · rojo</span><span class="who">Agustina</span></div>
+                <div class="pr" data-s="todo"><span class="st"></span><span class="cs" style="background:#111"></span><span class="nm"><b>Ojos</b> · negro</span><span class="who">—</span></div>
+                <div class="pr" data-s="todo"><span class="st"></span><span class="cs" style="background:#D93A2B"></span><span class="nm"><b>Manos ×2</b> · rojo</span><span class="who">—</span></div>
+              </div>
+              <div class="add"><input placeholder="¿Qué falta? ej: telaraña" /><div class="pal"><button class="on" style="background:#111" data-c="#111" data-n="negro"></button><button style="background:#fff" data-c="#fff" data-n="blanco"></button><button style="background:#D93A2B" data-c="#D93A2B" data-n="rojo"></button><button style="background:#1E4FA8" data-c="#1E4FA8" data-n="azul"></button></div><button class="btn sec" data-add>Agregar</button></div>
+            </div>
+            <div class="note">Si guardás este checklist como <b>plantilla “Vaso Spiderman”</b>, la próxima vez las piezas se cargan solas.</div>
+            <div class="hd" style="margin-top:16px"><svg class="i" style="color:var(--orange)"><use href="#printer"/></svg><h2>Así aparece en “¿Qué imprimo?”</h2></div>
+            <div class="q">
+              <div class="qc"><span class="sw" style="background:#F2C230"></span>Amarillo</div>
+              <div class="qi"><div><div class="t">Logo Boca</div><div class="s">#0150 · ítem 1 · viernes</div></div></div>
+              <div class="qc"><span class="sw" style="background:#D93A2B"></span>Rojo</div>
+              <div class="qi"><div><div class="t">Manos ×2 · Spiderman</div><div class="s">#0151 · jueves</div></div></div>
+              <div class="qi"><div><div class="t">Banda River 650</div><div class="s">#0150 · ítem 2 · viernes</div></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <nav class="bottom">
+      <a class="on" data-go="dash"><svg class="i"><use href="#home"/></svg>Hoy</a>
+      <a data-go="dash"><svg class="i"><use href="#printer"/></svg>Imprimir</a>
+      <a data-go="dash"><svg class="i"><use href="#brush"/></svg>Post</a>
+      <a data-go="dash"><svg class="i"><use href="#box"/></svg>Pedidos</a>
+    </nav>
+    <button class="fab"><svg class="i" style="width:26px;height:26px"><use href="#plus"/></svg></button>
+  </div>
+
+  <div class="login" id="login">
+    <svg class="shape" style="left:8%;top:12%;width:90px;color:var(--orange)" viewBox="0 0 24 24"><use href="#box" /></svg>
+    <div class="shape" style="right:12%;top:18%;width:60px;height:60px;border-radius:50%;border:3px solid var(--teal);animation-delay:-2s"></div>
+    <div class="shape" style="left:14%;bottom:14%;width:70px;height:70px;border:3px solid var(--orange);transform:rotate(20deg);animation-delay:-4s"></div>
+    <svg class="shape" style="right:10%;bottom:12%;width:80px;color:var(--carbon);animation-delay:-6s" viewBox="0 0 24 24"><use href="#layers"/></svg>
+    <div class="box">
+      <div class="logo" style="padding:0 0 18px;color:var(--carbon)"><div class="cube"><svg class="i"><use href="#box"/></svg></div>Global<span>3D</span></div>
+      <h2>Taller <span>Global3D</span></h2>
+      <p>Ingresá para ver la producción del día.</p>
+      <label>Usuario</label><input placeholder="agustina" />
+      <label>Contraseña</label><input type="password" placeholder="••••••••" />
+      <button class="btn pri" data-go="dash">Ingresar</button>
+    </div>
+  </div>
+  <div class="toast" id="toast"><svg class="i"><use href="#check"/></svg><span></span></div>
+</div></div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+function bars(scope){$$('.prog i',scope).forEach(i=>{i.style.width='0';requestAnimationFrame(()=>requestAnimationFrame(()=>i.style.width=i.dataset.w+'%'))})}
+function counters(){$$('[data-count]').forEach(el=>{const n=+el.dataset.count;let k=0;const t=setInterval(()=>{el.textContent=++k;if(k>=n)clearInterval(t)},40)})}
+function show(v){
+  $('#app').style.display=v==='login'?'none':'grid';
+  $('#login').style.display=v==='login'?'grid':'none';
+  $('#dash').style.display=v==='dash'?'block':'none';
+  $('#detail').style.display=v==='detail'?'block':'none';
+  $('#multi').style.display=v==='multi'?'block':'none';
+  $$('[data-view]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===v));
+  if(v==='dash'){counters();bars($('#dash'))} if(v==='detail')bars($('#detail'));
+}
+$$('[data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
+$$('[data-go]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go)));
+$$('[data-dev]').forEach(b=>b.onclick=()=>{document.body.classList.toggle('mobile',b.dataset.dev==='mobile');$$('[data-dev]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+let tt;$$('[data-toast]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const t=$('#toast');$('span',t).textContent=b.dataset.toast;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),1800)}));
+const NEXT={todo:'printing',printing:'done',done:'todo'};
+const WHO={todo:'—',printing:'Nicolás · imprimiendo',done:'Nicolás · recién'};
+function refreshItem(item){
+  const rows=$$('.pr',item);if(!rows.length)return;
+  const st=rows.map(r=>r.dataset.s),b=$('[data-ib]',item);
+  const done=st.every(s=>s==='done'),started=st.some(s=>s!=='todo');
+  b.className='badge '+(done?'b-ok':started?'b-prod':'');b.style.background=done||started?'':'var(--line)';
+  b.textContent=done?'Listo':started?'Imprimiendo':'Sin empezar';
+  item.classList.toggle('ok',done);
+  const items=$$('#multi .grid2 > .card:first-child [data-item]');
+  $('#multiSum').textContent=items.filter(i=>i.classList.contains('ok')).length+' de '+items.length+' listos';
+}
+document.addEventListener('click',e=>{
+  const st=e.target.closest('.pr .st');
+  if(st){const r=st.parentElement;r.dataset.s=NEXT[r.dataset.s];$('.who',r).textContent=WHO[r.dataset.s];refreshItem(r.closest('[data-item]'));return}
+  const sw=e.target.closest('.pal button');
+  if(sw){$$('button',sw.parentElement).forEach(b=>b.classList.remove('on'));sw.classList.add('on');return}
+  const add=e.target.closest('[data-add]');
+  if(add){const box=add.closest('.add'),inp=$('input',box),c=$('.pal .on',box);if(!inp.value.trim()){inp.focus();return}
+    const r=document.createElement('div');r.className='pr';r.dataset.s='todo';
+    r.innerHTML='<span class="st"></span><span class="cs" style="background:'+c.dataset.c+'"></span><span class="nm"><b></b> · '+c.dataset.n+'</span><span class="who">—</span>';
+    $('b',r).textContent=inp.value.trim();r.style.animation='rise .3s both';
+    $('.prs',box.closest('[data-item]')).appendChild(r);inp.value='';refreshItem(box.closest('[data-item]'));}
+});
+$$('.add input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')$('[data-add]',i.closest('.add')).click()}));
+show('dash');
+</script>
+</body>
+</html>
