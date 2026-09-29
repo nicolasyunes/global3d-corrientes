@@ -27,6 +27,7 @@ function piece(over: Partial<QueuePiece>): QueuePiece {
     item_label: null,
     item_position: null,
     flexible: false,
+    urgent: false,
     order_created_at: '2026-09-01',
     ...over,
   }

@@ -71,7 +71,11 @@ export function progressOf(pieces: readonly PieceLike[]): {
 export interface QueueEntry {
   color: string | null
   due_date: string
+  // Belongs to an order marked "Urgente": it goes before everything else.
+  urgent?: boolean
 }
+
+const urgentRank = (e: { urgent?: boolean }) => (e.urgent ? 0 : 1)
 
 export interface QueueGroup<T extends QueueEntry> {
   key: string
@@ -79,6 +83,21 @@ export interface QueueGroup<T extends QueueEntry> {
   swatch: string | null
   earliest: string
   entries: T[]
+}
+
+export function groupHasUrgent<T extends QueueEntry>(
+  group: QueueGroup<T>,
+): boolean {
+  return group.entries.some((e) => e.urgent)
+}
+
+// Groups with an urgent piece lead; the rest keep their order (stable sort).
+function urgentGroupsFirst<T extends QueueEntry>(
+  groups: QueueGroup<T>[],
+): QueueGroup<T>[] {
+  return [...groups].sort(
+    (a, b) => Number(groupHasUrgent(b)) - Number(groupHasUrgent(a)),
+  )
 }
 
 export type QueueSort = 'due' | 'newest' | 'oldest'
@@ -91,6 +110,7 @@ export function sortQueueGroups<
   if (sort === 'due') return groups
   const dir = sort === 'newest' ? -1 : 1
   const cmp = (a: T, b: T) =>
+    urgentRank(a) - urgentRank(b) ||
     dir * a.order_created_at.localeCompare(b.order_created_at)
   const newestOf = (g: QueueGroup<T>) =>
     g.entries.reduce(
@@ -104,9 +124,11 @@ export function sortQueueGroups<
           : acc,
       g.entries[0]?.order_created_at ?? '',
     )
-  return groups
-    .map((g) => ({ ...g, entries: [...g.entries].sort(cmp) }))
-    .sort((a, b) => dir * newestOf(a).localeCompare(newestOf(b)))
+  return urgentGroupsFirst(
+    groups
+      .map((g) => ({ ...g, entries: [...g.entries].sort(cmp) }))
+      .sort((a, b) => dir * newestOf(a).localeCompare(newestOf(b))),
+  )
 }
 
 // "¿Qué imprimo?" by customer: one group per customer, most urgent first.
@@ -133,12 +155,15 @@ export function groupQueueByCustomer<
   for (const g of list)
     g.entries.sort(
       (a, b) =>
+        urgentRank(a) - urgentRank(b) ||
         a.due_date.localeCompare(b.due_date) ||
         normalizeColor(a.color).localeCompare(normalizeColor(b.color)),
     )
-  return list.sort(
-    (a, b) =>
-      a.earliest.localeCompare(b.earliest) || a.label.localeCompare(b.label),
+  return urgentGroupsFirst(
+    list.sort(
+      (a, b) =>
+        a.earliest.localeCompare(b.earliest) || a.label.localeCompare(b.label),
+    ),
   )
 }
 
@@ -166,9 +191,14 @@ export function groupQueueByColor<T extends QueueEntry>(
   }
   const list = [...groups.values()]
   for (const g of list)
-    g.entries.sort((a, b) => a.due_date.localeCompare(b.due_date))
-  return list.sort(
-    (a, b) =>
-      a.earliest.localeCompare(b.earliest) || a.label.localeCompare(b.label),
+    g.entries.sort(
+      (a, b) =>
+        urgentRank(a) - urgentRank(b) || a.due_date.localeCompare(b.due_date),
+    )
+  return urgentGroupsFirst(
+    list.sort(
+      (a, b) =>
+        a.earliest.localeCompare(b.earliest) || a.label.localeCompare(b.label),
+    ),
   )
 }

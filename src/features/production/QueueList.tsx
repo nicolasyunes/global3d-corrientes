@@ -4,7 +4,7 @@ import Icon from '@/components/Icon'
 import { formatDueDate } from '@/features/orders/format'
 import { initialsFrom } from '@/features/operators/operators.api'
 import { dueInfo } from './due'
-import { colorSwatch, type QueueGroup } from './pieces'
+import { colorSwatch, groupHasUrgent, type QueueGroup } from './pieces'
 import type { QueuePiece } from './production.api'
 
 interface QueueListProps {
@@ -138,11 +138,13 @@ export default function QueueList({
           (sum, p) => sum + (p.quantity_total - p.quantity_done),
           0,
         )
-        const groupDue = dueOf(group.earliest)
+        const groupDue = groupHasUrgent(group)
+          ? { label: 'Urgente', tone: 'late' as const }
+          : dueOf(group.earliest)
+        // Urgent pieces form their own block ahead of the dated ones.
+        const blockOf = (p: QueuePiece) => (p.urgent ? 'urgent' : p.due_date)
         const mixedDates =
-          dateSeparators &&
-          !relaxed &&
-          new Set(entries.map((e) => e.due_date)).size > 1
+          dateSeparators && !relaxed && new Set(entries.map(blockOf)).size > 1
         return (
           <section
             key={group.key}
@@ -175,19 +177,19 @@ export default function QueueList({
                 const left = piece.quantity_total - piece.quantity_done
                 const newDate =
                   mixedDates &&
-                  (i === 0 || entries[i - 1].due_date !== piece.due_date)
+                  (i === 0 || blockOf(entries[i - 1]) !== blockOf(piece))
                 return [
                   newDate && (
                     <li
-                      key={`sep-${piece.due_date}`}
-                      className={`queue__sep queue__sep--${due.tone}`}
+                      key={`sep-${blockOf(piece)}`}
+                      className={`queue__sep queue__sep--${piece.urgent ? 'late' : due.tone}`}
                     >
-                      {due.label}
+                      {piece.urgent ? 'Urgente' : due.label}
                     </li>
                   ),
                   <li
                     key={piece.id}
-                    className={`queue-item queue-item--${due.tone}`}
+                    className={`queue-item queue-item--${due.tone}${piece.urgent ? ' queue-item--urgent' : ''}`}
                   >
                     <span className="queue-item__left num" title="Faltan">
                       {left}
