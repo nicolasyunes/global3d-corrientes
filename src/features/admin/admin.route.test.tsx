@@ -15,6 +15,10 @@ vi.mock('@/features/auth/ProtectedRoute', () => ({
     <>{children}</>
   ),
 }))
+vi.mock('@/features/auth/RecoveryRedirect', () => ({ default: () => null }))
+vi.mock('@/features/auth/ResetPasswordPage', () => ({
+  default: () => <div>RESET</div>,
+}))
 vi.mock('@/features/auth/LoginPage', () => ({
   default: () => <div>LOGIN</div>,
 }))

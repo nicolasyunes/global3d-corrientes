@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import LoginPage from '@/features/auth/LoginPage'
+import RecoveryRedirect from '@/features/auth/RecoveryRedirect'
+import ResetPasswordPage from '@/features/auth/ResetPasswordPage'
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import { OperatorProvider } from '@/features/operators/OperatorProvider'
 import OperatorGate from '@/features/operators/OperatorGate'
@@ -27,8 +29,10 @@ function OperatorAdminOnly({ children }: { children: ReactNode }) {
 export function Component() {
   return (
     <AuthProvider>
+      <RecoveryRedirect />
       <Routes>
         <Route path="login" element={<LoginPage />} />
+        <Route path="nueva-clave" element={<ResetPasswordPage />} />
         <Route
           element={
             <ProtectedRoute>
