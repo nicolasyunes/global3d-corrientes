@@ -966,6 +966,9 @@
 .queue-item--late {
   background: color-mix(in srgb, var(--status-red-50) 55%, var(--color-white));
 }
+.queue-item--urgent {
+  background: var(--status-red-50);
+}
 .queue-item__left {
   flex: none;
   min-width: 40px;

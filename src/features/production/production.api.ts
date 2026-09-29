@@ -131,6 +131,7 @@ export interface QueuePiece extends PieceRow {
   item_label: string | null
   item_position: number | null
   flexible: boolean
+  urgent: boolean
   order_created_at: string
 }
 
@@ -139,6 +140,7 @@ type QueueRaw = PieceRow & {
     due_date: string
     status: string
     flexible: boolean
+    urgent: boolean
     created_at: string
     customer_id: string
     customers: { name: string } | null
@@ -154,7 +156,7 @@ export async function listOpenPieces(): Promise<QueuePiece[]> {
   const { data, error } = await supabase
     .from('order_production_tasks')
     .select(
-      '*, orders!inner(due_date, status, flexible, created_at, customer_id, customers(name)), order_items(description, position)',
+      '*, orders!inner(due_date, status, flexible, urgent, created_at, customer_id, customers(name)), order_items(description, position)',
     )
     .neq('status', 'done')
     .not('orders.status', 'in', CLOSED_ORDER_STATUSES)
@@ -169,6 +171,7 @@ export async function listOpenPieces(): Promise<QueuePiece[]> {
       order_status: orders!.status,
       customer_id: orders!.customer_id,
       flexible: orders!.flexible ?? false,
+      urgent: orders!.urgent ?? false,
       order_created_at: orders!.created_at,
       customer_name: orders!.customers?.name ?? 'Sin nombre',
       item_label: order_items?.description ?? null,

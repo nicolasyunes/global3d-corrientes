@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { isUrgentFlow, isWaiting, needsReview, urgentFirst } from './orderFlow'
-import { sortQueueGroups, type QueueGroup } from '@/features/production/pieces'
+import {
+  groupQueueByColor,
+  groupQueueByCustomer,
+  sortQueueGroups,
+  type QueueGroup,
+} from '@/features/production/pieces'
 
 const base = {
   waiting_reason: null as string | null,
@@ -99,5 +104,44 @@ describe('urgentFirst', () => {
       .map((r) => ({ ...r, urgent: false }))
       .sort(urgentFirst(byDue))
     expect(out.map((r) => r.id)).toEqual(['late', 'soon', 'event'])
+  })
+})
+
+describe('queue with urgent orders', () => {
+  const entry = (id: string, due: string, urgent: boolean, color: string) => ({
+    id,
+    color,
+    due_date: due,
+    urgent,
+    customer_id: id,
+    customer_name: id,
+    order_created_at: '2026-09-01',
+  })
+  const entries = [
+    entry('late', '2026-09-01', false, 'Rojo'),
+    entry('soon', '2026-09-02', false, 'Verde'),
+    entry('event', '2026-12-20', true, 'Azul'),
+  ]
+
+  it('puts the group with an urgent piece first, whatever its date', () => {
+    const groups = groupQueueByColor(entries)
+    expect(groups.map((g) => g.label)).toEqual(['Azul', 'Rojo', 'Verde'])
+  })
+
+  it('puts urgent pieces first inside a group', () => {
+    const groups = groupQueueByColor([
+      entry('late', '2026-09-01', false, 'Rojo'),
+      entry('event', '2026-12-20', true, 'Rojo'),
+    ])
+    expect(groups[0].entries.map((e) => e.id)).toEqual(['event', 'late'])
+  })
+
+  it('keeps urgent customers first too', () => {
+    expect(groupQueueByCustomer(entries).map((g) => g.key)[0]).toBe('event')
+  })
+
+  it('keeps urgent first when sorting by load date', () => {
+    const out = sortQueueGroups(groupQueueByColor(entries), 'oldest')
+    expect(out[0].label).toBe('Azul')
   })
 })
