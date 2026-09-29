@@ -295,6 +295,12 @@
   font-size: 0.8125rem;
   color: var(--color-carbon-muted);
 }
+.omodal__flex--urgent:has(input:checked) {
+  background: var(--status-red-50);
+}
+.omodal__flex--urgent input {
+  accent-color: var(--status-red);
+}
 .omodal__optional {
   font-style: normal;
   font-size: 0.6875rem;

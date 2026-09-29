@@ -183,6 +183,9 @@ export default function OrderProduction() {
           <h1 className="page-title">{title}</h1>
         </div>
         <div className="page-head__actions">
+          {order.urgent && !waiting && !isFinished && (
+            <span className="badge badge--late">Urgente</span>
+          )}
           {waiting ? (
             <span className="badge badge--post">En espera</span>
           ) : order.flexible ? (
@@ -318,9 +321,34 @@ export default function OrderProduction() {
               aria-pressed={order.flexible}
               disabled={busy}
               title="La fecha es orientativa: no cuenta como atrasado"
-              onClick={() => void patchOrder({ flexible: !order.flexible })}
+              onClick={() =>
+                void patchOrder({
+                  flexible: !order.flexible,
+                  ...(!order.flexible && { urgent: false }),
+                })
+              }
             >
               Sin apuro
+            </button>
+          )}
+        {!waiting &&
+          !isFinished &&
+          !isCancelled &&
+          order.status !== 'delivered' && (
+            <button
+              type="button"
+              className="chip chip--urgent"
+              aria-pressed={order.urgent}
+              disabled={busy}
+              title="Aparece primero en Pedidos, arriba de todo"
+              onClick={() =>
+                void patchOrder({
+                  urgent: !order.urgent,
+                  ...(!order.urgent && { flexible: false }),
+                })
+              }
+            >
+              Urgente
             </button>
           )}
         {isFinished && (

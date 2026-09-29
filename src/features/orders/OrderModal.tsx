@@ -688,6 +688,26 @@ export default function OrderModal({
                   </span>
                 </label>
               )}
+              {!draft.waiting && (
+                <label className="omodal__flex omodal__flex--urgent">
+                  <input
+                    type="checkbox"
+                    checked={draft.urgent}
+                    onChange={(e) => {
+                      set('urgent', e.target.checked)
+                      if (e.target.checked) set('flexible', false)
+                    }}
+                  />
+                  <span>
+                    <strong>Urgente</strong>
+                    <small>
+                      Aparece primero en Pedidos, arriba de todo, aunque haya
+                      otros atrasados. Sirve para eventos o fechas que no se
+                      pueden mover.
+                    </small>
+                  </span>
+                </label>
+              )}
               <div className="omodal__row omodal__row--wrap">
                 <div className="omodal__field">
                   <label className="field-label" htmlFor="om-due">

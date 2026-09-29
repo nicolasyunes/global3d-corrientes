@@ -67,14 +67,22 @@ export default function OrderRow({
 
   return (
     <li>
-      <Link to={`/admin/orders/${order.id}`} className="orow">
+      <Link
+        to={`/admin/orders/${order.id}`}
+        className={`orow${order.urgent && !finished ? ' orow--urgent' : ''}`}
+      >
         <span className="orow__thumb" aria-hidden="true">
           {order.title?.trim()
             ? markFrom(order.title)
             : (TYPE_MARK[order.product_type] ?? '3D')}
         </span>
         <div style={{ minWidth: 0 }}>
-          <p className="orow__title">{orderTitle(order, itemCount)}</p>
+          <p className="orow__title">
+            {order.urgent && !finished && (
+              <span className="urgent-tag">Urgente</span>
+            )}
+            {orderTitle(order, itemCount)}
+          </p>
           <p className="orow__sub">
             {order.customers?.name ?? 'Sin cliente'}
             <StatusBadge status={status} />

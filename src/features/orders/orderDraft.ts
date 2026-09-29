@@ -29,6 +29,8 @@ export interface OrderDraft {
   followUpOn: string
   // "Sin apuro": the due date is only a guide.
   flexible: boolean
+  // "Urgente": pinned above everything else, whatever its date.
+  urgent: boolean
 }
 
 export type DraftErrors = Partial<
@@ -55,6 +57,7 @@ export function emptyDraft(): OrderDraft {
     waitingReason: '',
     followUpOn: '',
     flexible: false,
+    urgent: false,
   }
 }
 
