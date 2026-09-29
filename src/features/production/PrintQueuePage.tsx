@@ -1,29 +1,27 @@
 import { useMemo, useState } from 'react'
+import Icon from '@/components/Icon'
 import { useToast } from '@/components/useToast'
 import { toISODate } from '@/features/orders/validation'
-import {
-  TASK_LOCATION,
-  TASK_LOCATION_LABELS,
-  type TaskLocation,
-} from '@/lib/domain-constants'
 import QueueList from './QueueList'
 import { weekBucket, type WeekBucket } from './due'
 import {
   groupQueueByColor,
   groupQueueByCustomer,
   normalizeColor,
+  sortQueueGroups,
 } from './pieces'
+import SortSelect, { useStoredSort } from './SortSelect'
 import type { QueuePiece } from './production.api'
 import { useQueue } from './useQueue'
 import './production.css'
 
 const GROUP_KEY = 'g3d.queueGroup'
 
-const WEEKS: { key: WeekBucket; label: string; hint: string }[] = [
-  { key: 'late', label: 'Atrasado', hint: 'ya pasó la fecha' },
-  { key: 'this', label: 'Esta semana', hint: 'hasta el domingo' },
-  { key: 'next', label: 'Próxima semana', hint: 'lunes a domingo' },
-  { key: 'later', label: 'Más adelante', hint: 'después' },
+const WEEKS: { key: WeekBucket; label: string }[] = [
+  { key: 'late', label: 'Atrasado' },
+  { key: 'this', label: 'Esta semana' },
+  { key: 'next', label: 'Próxima' },
+  { key: 'later', label: 'Más adelante' },
 ]
 
 type GroupBy = 'color' | 'customer'
@@ -39,15 +37,22 @@ function readGroup(): GroupBy {
 const leftOf = (list: readonly QueuePiece[]) =>
   list.reduce((sum, p) => sum + p.quantity_total - p.quantity_done, 0)
 
+// "¿Qué imprimo?": what's left to print, most urgent first. The pieces come
+// first; week chips stay one line and the rest of the filters fold away.
 export default function PrintQueuePage() {
   const [toast, showToast] = useToast()
-  const { pieces, loading, error, busyId, plus } = useQueue(showToast)
+  const { pieces, relaxed, loading, error, busyId, add } = useQueue(showToast)
   const [week, setWeek] = useState<WeekBucket | null>(null)
   const [customer, setCustomer] = useState('')
   const [color, setColor] = useState<string | null>(null)
-  const [location, setLocation] = useState<TaskLocation | null>(null)
   const [groupBy, setGroupBy] = useState<GroupBy>(readGroup)
+  const [sort, setSort] = useStoredSort('g3d.queueSort')
+  const [showFilters, setShowFilters] = useState(false)
   const today = toISODate(new Date())
+
+  // The color filter only makes sense when grouping by customer; grouped by
+  // color, each color is already its own block.
+  const activeColor = groupBy === 'customer' ? color : null
 
   function changeGroup(next: GroupBy) {
     setGroupBy(next)
@@ -58,30 +63,38 @@ export default function PrintQueuePage() {
     }
   }
 
-  // Everything except the week filter, so the week tiles show what each week
-  // holds under the other filters.
+  const matches = (p: QueuePiece) =>
+    (!customer || p.customer_id === customer) &&
+    (activeColor === null || normalizeColor(p.color) === activeColor)
+
+  // Everything except the week filter, so each week chip shows what that
+  // week holds under the other filters.
   const base = useMemo(
-    () =>
-      pieces.filter(
-        (p) =>
-          (!location || p.location === location) &&
-          (!customer || p.customer_id === customer) &&
-          (color === null || normalizeColor(p.color) === color),
-      ),
-    [pieces, location, customer, color],
+    () => pieces.filter(matches),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pieces, customer, activeColor],
   )
   const filtered = useMemo(
     () =>
       week ? base.filter((p) => weekBucket(p.due_date, today) === week) : base,
     [base, week, today],
   )
-  const groups = useMemo(
-    () =>
+  const group = (list: QueuePiece[]) =>
+    sortQueueGroups(
       groupBy === 'customer'
-        ? groupQueueByCustomer(filtered)
-        : groupQueueByColor(filtered),
-    [filtered, groupBy],
+        ? groupQueueByCustomer(list)
+        : groupQueueByColor(list),
+      sort,
+    )
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const groups = useMemo(() => group(filtered), [filtered, groupBy, sort])
+  // "Sin apuro": same filters except the week (their date is only a guide).
+  const relaxedGroups = useMemo(
+    () => group(relaxed.filter(matches)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [relaxed, customer, activeColor, groupBy, sort],
   )
+  const relaxedLeft = relaxedGroups.reduce((s, g) => s + leftOf(g.entries), 0)
 
   const weekCounts = useMemo(() => {
     const out: Record<WeekBucket, number> = {
@@ -107,14 +120,18 @@ export default function PrintQueuePage() {
 
   const colors = useMemo(() => groupQueueByColor(pieces), [pieces])
   const total = leftOf(filtered)
-  const anyFilter = Boolean(week || customer || color !== null || location)
+  // Filters inside the fold: shown as a count on its button.
+  const folded =
+    (customer ? 1 : 0) +
+    (activeColor !== null ? 1 : 0) +
+    (sort !== 'due' ? 1 : 0)
+  const anyFilter = Boolean(week || customer || activeColor !== null)
   const first = groups[0]
 
   function clearFilters() {
     setWeek(null)
     setCustomer('')
     setColor(null)
-    setLocation(null)
   }
 
   return (
@@ -167,87 +184,92 @@ export default function PrintQueuePage() {
         </div>
       </header>
 
-      <div className="qweeks" role="group" aria-label="Filtrar por semana">
-        {WEEKS.map((w) => (
-          <button
-            key={w.key}
-            type="button"
-            className={`qweek qweek--${w.key}`}
-            aria-pressed={week === w.key}
-            onClick={() => setWeek(week === w.key ? null : w.key)}
-          >
-            <span className="qweek__n num">{weekCounts[w.key]}</span>
-            <span className="qweek__label">{w.label}</span>
-            <span className="qweek__hint">{w.hint}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="queue-tools">
-        <select
-          className="input queue-tools__customer"
-          aria-label="Filtrar por cliente"
-          value={customer}
-          onChange={(e) => setCustomer(e.target.value)}
-        >
-          <option value="">Todos los clientes ({customers.length})</option>
-          {customers.map(([id, c]) => (
-            <option key={id} value={id}>
-              {c.name} · {c.left}
-            </option>
-          ))}
-        </select>
-        <div className="segmented" aria-label="Ubicación">
-          <button
-            type="button"
-            aria-pressed={location === null}
-            onClick={() => setLocation(null)}
-          >
-            Todo
-          </button>
-          {TASK_LOCATION.map((loc) => (
+      <div className="qbar">
+        <div className="qweeks" role="group" aria-label="Filtrar por semana">
+          {WEEKS.map((w) => (
             <button
-              key={loc}
+              key={w.key}
               type="button"
-              aria-pressed={location === loc}
-              onClick={() => setLocation(location === loc ? null : loc)}
+              className={`qweek qweek--${w.key}`}
+              aria-pressed={week === w.key}
+              disabled={weekCounts[w.key] === 0 && week !== w.key}
+              onClick={() => setWeek(week === w.key ? null : w.key)}
             >
-              {TASK_LOCATION_LABELS[loc]}
+              {w.label}
+              <span className="qweek__n num">{weekCounts[w.key]}</span>
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm qbar__filters"
+          aria-expanded={showFilters}
+          aria-controls="queue-filters"
+          onClick={() => setShowFilters((v) => !v)}
+        >
+          <Icon name="search" size={16} />
+          Filtros
+          {folded > 0 && <span className="qbar__badge num">{folded}</span>}
+        </button>
         {anyFilter && (
           <button
             type="button"
             className="btn btn--ghost btn--sm"
             onClick={clearFilters}
           >
-            Limpiar filtros
+            <Icon name="close" size={14} />
+            Limpiar
           </button>
         )}
       </div>
 
-      {colors.length > 1 && (
-        <div
-          className="chips queue-colors"
-          role="group"
-          aria-label="Filtrar por color"
-        >
-          {colors.map((g) => (
-            <button
-              key={g.key}
-              type="button"
-              className="chip"
-              aria-pressed={color === g.key}
-              onClick={() => setColor(color === g.key ? null : g.key)}
+      {showFilters && (
+        <div id="queue-filters" className="qfilters">
+          <label className="qfilters__field">
+            <span className="field-label">Cliente</span>
+            <select
+              className="input"
+              value={customer}
+              onChange={(e) => setCustomer(e.target.value)}
             >
-              <span
-                className={`swatch${g.swatch ? '' : ' swatch--unknown'}`}
-                style={g.swatch ? { background: g.swatch } : undefined}
-              />
-              {g.label} · {leftOf(g.entries)}
-            </button>
-          ))}
+              <option value="">Todos ({customers.length})</option>
+              {customers.map(([id, c]) => (
+                <option key={id} value={id}>
+                  {c.name} · {c.left}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="qfilters__field">
+            <span className="field-label">Ordenar</span>
+            <SortSelect value={sort} onChange={setSort} />
+          </label>
+          {groupBy === 'customer' && colors.length > 1 && (
+            <div className="qfilters__colors">
+              <span className="field-label">Color</span>
+              <div
+                className="chips"
+                role="group"
+                aria-label="Filtrar por color"
+              >
+                {colors.map((g) => (
+                  <button
+                    key={g.key}
+                    type="button"
+                    className="chip"
+                    aria-pressed={color === g.key}
+                    onClick={() => setColor(color === g.key ? null : g.key)}
+                  >
+                    <span
+                      className={`swatch${g.swatch ? '' : ' swatch--unknown'}`}
+                      style={g.swatch ? { background: g.swatch } : undefined}
+                    />
+                    {g.label} · {leftOf(g.entries)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -272,9 +294,32 @@ export default function PrintQueuePage() {
           groups={groups}
           today={today}
           busyId={busyId}
-          onPlus={plus}
+          onAdd={(piece, delta) => void add(piece, delta)}
           by={groupBy}
+          dateSeparators={sort === 'due'}
         />
+      )}
+
+      {!loading && relaxedGroups.length > 0 && (
+        <details className="qrelaxed">
+          <summary>
+            <span className="qrelaxed__title">Cuando haya tiempo</span>
+            <span className="qrelaxed__count num">
+              {relaxedLeft} {relaxedLeft === 1 ? 'pieza' : 'piezas'}
+            </span>
+            <span className="qrelaxed__hint">
+              Pedidos sin apuro: para aprovechar una impresora libre.
+            </span>
+          </summary>
+          <QueueList
+            groups={relaxedGroups}
+            today={today}
+            busyId={busyId}
+            onAdd={(piece, delta) => void add(piece, delta)}
+            by={groupBy}
+            relaxed
+          />
+        </details>
       )}
       {toast}
     </main>

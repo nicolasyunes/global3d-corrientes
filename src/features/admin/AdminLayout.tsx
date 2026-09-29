@@ -58,6 +58,17 @@ function navClass({ isActive }: { isActive: boolean }) {
 
 export default function AdminLayout() {
   const { signOut } = useAuth()
+
+  // Signing the workshop account out means typing its email and password
+  // again on this device; switching person only needs a PIN.
+  function confirmSignOut() {
+    if (
+      window.confirm(
+        'Vas a cerrar la cuenta del taller en este dispositivo. Para volver a entrar vas a necesitar el email y la contraseña (no solo el PIN).\n\nSi solo querés cambiar de persona, usá "Cambiar persona".\n\n¿Cerrar igual?',
+      )
+    )
+      void signOut()
+  }
   const { current, isAdmin, lock } = useOperator()
   const [moreOpen, setMoreOpen] = useState(false)
   const location = useLocation()
@@ -105,7 +116,7 @@ export default function AdminLayout() {
               className="icon-btn shell-me__out"
               aria-label="Cerrar sesión del taller"
               title="Cerrar sesión del taller"
-              onClick={() => void signOut()}
+              onClick={confirmSignOut}
             >
               <Icon name="logout" />
             </button>
@@ -163,7 +174,7 @@ export default function AdminLayout() {
               <button
                 type="button"
                 className="shell-nav__link"
-                onClick={() => void signOut()}
+                onClick={confirmSignOut}
               >
                 <Icon name="logout" />
                 Cerrar sesión del taller

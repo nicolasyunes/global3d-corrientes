@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:integration": "vitest run --mode integration",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "gen:types": "node scripts/gen-types.mjs && prettier --write src/lib/database.types.ts",
     "db:reset": "supabase db reset",

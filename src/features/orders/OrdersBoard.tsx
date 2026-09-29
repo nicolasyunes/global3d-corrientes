@@ -4,7 +4,8 @@ import { useOperator } from '@/features/operators/operator-context'
 import { dueInfo } from '@/features/production/due'
 import { orderTitle } from '@/features/production/OrderRow'
 import type { OrderProgress } from '@/features/production/production.api'
-import { formatMoney } from './format'
+import { formatDueDate, formatMoney } from './format'
+import { isWaiting, needsReview } from './orderFlow'
 import { groupOrdersByStatus } from './list'
 import type { OrderWithCustomer } from './orders.api'
 import { nextOrderStatus } from './status'
@@ -75,14 +76,31 @@ export default function OrdersBoard({
   const normalized = orders.map((o) =>
     o.status === 'in_queue' ? { ...o, status: 'new' as const } : o,
   )
-  const columns = groupOrdersByStatus(normalized, [...LANES, ...CLOSED])
+  // Unconfirmed orders stay off the production lanes.
+  const waiting = normalized.filter(
+    (o) => isWaiting(o) && !CLOSED.includes(o.status),
+  )
+  const columns = groupOrdersByStatus(
+    normalized.filter((o) => !waiting.includes(o)),
+    [...LANES, ...CLOSED],
+  )
   const closedCount = CLOSED.reduce((n, s) => n + columns[s].length, 0)
 
   function card(order: OrderWithCustomer) {
-    const due = dueInfo(order.due_date, today)
+    const due = isWaiting(order)
+      ? {
+          label: `Revisar ${formatDueDate(order.follow_up_on ?? today)}`,
+          tone: needsReview(order, today) ? ('soon' as const) : ('ok' as const),
+        }
+      : order.flexible
+        ? {
+            label: `Sin apuro · ${formatDueDate(order.due_date)}`,
+            tone: 'ok' as const,
+          }
+        : dueInfo(order.due_date, today)
     const prog = progress[order.id]
     const who = byId(prog?.lastOperatorId)
-    const next = nextOrderStatus(order.status)
+    const next = isWaiting(order) ? null : nextOrderStatus(order.status)
     const done = order.status === 'finished' || order.status === 'delivered'
     return (
       <li key={order.id} className="bcard">
@@ -131,6 +149,12 @@ export default function OrdersBoard({
 
   return (
     <>
+      {waiting.length > 0 && (
+        <details className="board-closed board-waiting">
+          <summary>En espera, sin confirmar ({waiting.length})</summary>
+          <ul className="board-waiting__list">{waiting.map(card)}</ul>
+        </details>
+      )}
       <div className="board" role="group" aria-label="Tablero de pedidos">
         {LANES.map((status) => (
           <section

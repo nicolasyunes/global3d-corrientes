@@ -16,11 +16,14 @@ import {
   listOrderItems,
   updateOrder,
   type OrderItemRow,
+  type OrderUpdate,
   type OrderWithCustomer,
 } from './orders.api'
 import { nextOrderStatus, ORDER_STATUS_FLOW } from './status'
-import { colorSpecEntries, swatchFor } from './colorSpec'
-import { formatMoney } from './format'
+import { formatDueDate, formatMoney } from './format'
+import { DEFAULT_WAITING_REASON, followUpFrom, isWaiting } from './orderFlow'
+import OrderSummary, { type PieceStats } from './OrderSummary'
+import { listPieces } from '@/features/production/production.api'
 import { toISODate } from './validation'
 import OrderImages from './OrderImages'
 import { useOrderModal } from './order-modal-context'
@@ -40,6 +43,31 @@ export default function OrderProduction() {
   const [activityKey, setActivityKey] = useState(0)
   const [piecesKey, setPiecesKey] = useState(0)
   const { openEdit } = useOrderModal()
+  const [stats, setStats] = useState<PieceStats | null>(null)
+
+  // Summary numbers; refreshed whenever pieces or the order change.
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    listPieces(id)
+      .then((rows) => {
+        if (cancelled) return
+        setStats(
+          rows.length === 0
+            ? null
+            : {
+                pieces: rows.length,
+                piecesDone: rows.filter((p) => p.status === 'done').length,
+                units: rows.reduce((s, p) => s + p.quantity_total, 0),
+                unitsDone: rows.reduce((s, p) => s + p.quantity_done, 0),
+              },
+        )
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [id, activityKey, piecesKey])
 
   useEffect(() => {
     if (!id) return
@@ -87,12 +115,14 @@ export default function OrderProduction() {
     void getOrder(id).then((row) => row && setOrder(row))
   }
 
-  async function setStatus(status: OrderStatus) {
+  const setStatus = (status: OrderStatus) => patchOrder({ status })
+
+  async function patchOrder(fields: OrderUpdate) {
     if (!order) return
     setBusy(true)
     setActionError(null)
     try {
-      const updated = await updateOrder(order.id, { status })
+      const updated = await updateOrder(order.id, fields)
       setOrder((prev) => (prev ? { ...prev, ...updated } : prev))
     } catch (err) {
       setActionError(
@@ -123,8 +153,8 @@ export default function OrderProduction() {
   const next = nextOrderStatus(order.status)
   const isFinished = order.status === 'finished'
   const isCancelled = order.status === 'cancelled'
+  const waiting = isWaiting(order) && !isCancelled
   const due = dueInfo(order.due_date, today)
-  const colors = colorSpecEntries(order.color_spec)
   const stageIndex = ORDER_STATUS_FLOW.indexOf(order.status)
   const title = order.title?.trim()
     ? order.title
@@ -153,11 +183,19 @@ export default function OrderProduction() {
           <h1 className="page-title">{title}</h1>
         </div>
         <div className="page-head__actions">
-          <span
-            className={`badge ${due.tone === 'late' ? 'badge--late' : 'badge--printing'}`}
-          >
-            {due.tone === 'late' ? due.label : `Entrega: ${due.label}`}
-          </span>
+          {waiting ? (
+            <span className="badge badge--post">En espera</span>
+          ) : order.flexible ? (
+            <span className="badge">
+              Sin apuro · {formatDueDate(order.due_date)}
+            </span>
+          ) : (
+            <span
+              className={`badge ${due.tone === 'late' ? 'badge--late' : 'badge--printing'}`}
+            >
+              {due.tone === 'late' ? due.label : `Entrega: ${due.label}`}
+            </span>
+          )}
           <button
             type="button"
             className="btn btn--ghost"
@@ -189,11 +227,49 @@ export default function OrderProduction() {
         </div>
       )}
 
+      {waiting && (
+        <div className="waiting-banner" role="status">
+          <Icon name="alert" />
+          <div>
+            <strong>En espera: {order.waiting_reason}</strong>
+            <p>
+              No entra a producción hasta que lo confirmes.{' '}
+              {order.follow_up_on && order.follow_up_on > today
+                ? `Vuelve a aparecer para revisar el ${formatDueDate(order.follow_up_on)}.`
+                : 'Hoy toca revisarlo.'}
+            </p>
+          </div>
+          <div className="waiting-banner__actions">
+            <button
+              type="button"
+              className="btn btn--teal"
+              disabled={busy}
+              onClick={() =>
+                void patchOrder({ waiting_reason: null, follow_up_on: null })
+              }
+            >
+              <Icon name="check" size={18} />
+              Confirmar pedido
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              disabled={busy}
+              onClick={() =>
+                void patchOrder({ follow_up_on: followUpFrom(today) })
+              }
+            >
+              Revisar en una semana
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="stage-actions">
         {isCancelled && (
           <span className={STATUS_BADGE_CLASS.cancelled}>Pedido cancelado</span>
         )}
-        {next && (
+        {next && !waiting && (
           <button
             type="button"
             className="btn btn--primary"
@@ -216,6 +292,37 @@ export default function OrderProduction() {
             Cancelar pedido
           </button>
         )}
+        {!waiting && order.status === 'new' && (
+          <button
+            type="button"
+            className="btn btn--ghost"
+            disabled={busy}
+            title="Sacarlo de producción hasta que se confirme"
+            onClick={() =>
+              void patchOrder({
+                waiting_reason: DEFAULT_WAITING_REASON,
+                follow_up_on: followUpFrom(today),
+              })
+            }
+          >
+            Poner en espera
+          </button>
+        )}
+        {!waiting &&
+          !isFinished &&
+          !isCancelled &&
+          order.status !== 'delivered' && (
+            <button
+              type="button"
+              className="chip"
+              aria-pressed={order.flexible}
+              disabled={busy}
+              title="La fecha es orientativa: no cuenta como atrasado"
+              onClick={() => void patchOrder({ flexible: !order.flexible })}
+            >
+              Sin apuro
+            </button>
+          )}
         {isFinished && (
           <p className="stage-actions__hint num">
             Listo para entregar. Saldo pendiente:{' '}
@@ -238,61 +345,17 @@ export default function OrderProduction() {
         />
 
         <div className="detail-side">
-          {(colors.length > 0 ||
-            order.measurements ||
-            order.personalization ||
-            order.observations) && (
-            <section className="card">
-              <div className="card__head">
-                <h2 className="card__title">Qué hay que hacer</h2>
-              </div>
-              <dl className="spec">
-                {colors.length > 0 && (
-                  <div>
-                    <dt>Colores</dt>
-                    <dd>
-                      <ul className="spec__colors">
-                        {colors.map(({ part, color }) => {
-                          const hex = swatchFor(color)
-                          return (
-                            <li key={part}>
-                              <span
-                                className="swatch"
-                                style={hex ? { background: hex } : undefined}
-                              />
-                              {part}: {color}
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    </dd>
-                  </div>
-                )}
-                {order.measurements && (
-                  <div>
-                    <dt>Medidas</dt>
-                    <dd>{order.measurements}</dd>
-                  </div>
-                )}
-                {order.personalization && (
-                  <div>
-                    <dt>Texto / personalización</dt>
-                    <dd className="spec__engraving">{order.personalization}</dd>
-                  </div>
-                )}
-                {order.observations && (
-                  <div>
-                    <dt>Observaciones</dt>
-                    <dd>{order.observations}</dd>
-                  </div>
-                )}
-              </dl>
-            </section>
-          )}
+          <OrderSummary
+            order={order}
+            items={items}
+            stats={stats}
+            today={today}
+            channel={channel}
+          />
 
           <section className="card">
             <div className="card__head">
-              <h2 className="card__title">Referencias</h2>
+              <h2 className="card__title">Archivos y referencias</h2>
               <span className="spacer" />
               {order.reference_link && (
                 <a

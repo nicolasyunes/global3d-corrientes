@@ -81,6 +81,34 @@ export interface QueueGroup<T extends QueueEntry> {
   entries: T[]
 }
 
+export type QueueSort = 'due' | 'newest' | 'oldest'
+
+// Re-orders already-built groups by when their orders were loaded; 'due'
+// keeps the default most-urgent-first order.
+export function sortQueueGroups<
+  T extends QueueEntry & { order_created_at: string },
+>(groups: QueueGroup<T>[], sort: QueueSort): QueueGroup<T>[] {
+  if (sort === 'due') return groups
+  const dir = sort === 'newest' ? -1 : 1
+  const cmp = (a: T, b: T) =>
+    dir * a.order_created_at.localeCompare(b.order_created_at)
+  const newestOf = (g: QueueGroup<T>) =>
+    g.entries.reduce(
+      (acc, e) =>
+        (
+          sort === 'newest'
+            ? e.order_created_at > acc
+            : e.order_created_at < acc
+        )
+          ? e.order_created_at
+          : acc,
+      g.entries[0]?.order_created_at ?? '',
+    )
+  return groups
+    .map((g) => ({ ...g, entries: [...g.entries].sort(cmp) }))
+    .sort((a, b) => dir * newestOf(a).localeCompare(newestOf(b)))
+}
+
 // "¿Qué imprimo?" by customer: one group per customer, most urgent first.
 export function groupQueueByCustomer<
   T extends QueueEntry & { customer_id: string; customer_name: string },

@@ -130,12 +130,16 @@ export interface QueuePiece extends PieceRow {
   customer_name: string
   item_label: string | null
   item_position: number | null
+  flexible: boolean
+  order_created_at: string
 }
 
 type QueueRaw = PieceRow & {
   orders: {
     due_date: string
     status: string
+    flexible: boolean
+    created_at: string
     customer_id: string
     customers: { name: string } | null
   } | null
@@ -150,10 +154,12 @@ export async function listOpenPieces(): Promise<QueuePiece[]> {
   const { data, error } = await supabase
     .from('order_production_tasks')
     .select(
-      '*, orders!inner(due_date, status, customer_id, customers(name)), order_items(description, position)',
+      '*, orders!inner(due_date, status, flexible, created_at, customer_id, customers(name)), order_items(description, position)',
     )
     .neq('status', 'done')
     .not('orders.status', 'in', CLOSED_ORDER_STATUSES)
+    // "En espera" orders aren't confirmed: nothing of theirs gets printed.
+    .is('orders.waiting_reason', null)
   if (error) throw error
   return ((data ?? []) as unknown as QueueRaw[])
     .filter((row) => row.orders)
@@ -162,6 +168,8 @@ export async function listOpenPieces(): Promise<QueuePiece[]> {
       due_date: orders!.due_date,
       order_status: orders!.status,
       customer_id: orders!.customer_id,
+      flexible: orders!.flexible ?? false,
+      order_created_at: orders!.created_at,
       customer_name: orders!.customers?.name ?? 'Sin nombre',
       item_label: order_items?.description ?? null,
       item_position: order_items?.position ?? null,
