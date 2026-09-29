@@ -105,15 +105,19 @@ async function insertPresetPieces(
   created: { id: string; item: ItemDraft }[],
   operatorId: string | null,
 ): Promise<void> {
-  const withParts = created.filter(({ item }) => item.parts?.length)
-  if (withParts.length === 0) return
+  if (created.length === 0) return
   const { count } = await supabase
     .from('order_production_tasks')
     .select('id', { count: 'exact', head: true })
     .eq('order_id', orderId)
   let position = count ?? 0
-  const rows = withParts.flatMap(({ id, item }) =>
-    piecesForItem(item.parts!, qtyOf(item)).map((piece) => ({
+  // An item without parts still has to show up in "¿Qué imprimo?", so it
+  // becomes a single piece named after the product.
+  const rows = created.flatMap(({ id, item }) =>
+    (item.parts?.length
+      ? piecesForItem(item.parts, qtyOf(item))
+      : [{ label: item.product.trim(), color: null, quantity: qtyOf(item) }]
+    ).map((piece) => ({
       order_id: orderId,
       order_item_id: id,
       label: piece.label,
