@@ -71,6 +71,17 @@ function orderFields(draft: OrderDraft) {
   }
 }
 
+export function sameName(a: string, b: string): boolean {
+  const norm = (s: string) =>
+    s
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/\s+/g, ' ')
+  return norm(a) === norm(b)
+}
+
 async function resolveCustomer(draft: OrderDraft): Promise<string> {
   const name = draft.customerName.trim()
   const phone = draft.customerPhone.trim() || null
@@ -82,13 +93,15 @@ async function resolveCustomer(draft: OrderDraft): Promise<string> {
     if (error) throw error
     return draft.customerId
   }
+  // Reuse a customer by phone only when the name also matches: the name typed
+  // in the modal must always be the one saved on the order.
   if (phone) {
     const { data } = await supabase
       .from('customers')
-      .select('id')
+      .select('id, name')
       .eq('phone', phone)
-      .maybeSingle()
-    if (data) return data.id
+    const same = (data ?? []).find((c) => sameName(c.name, name))
+    if (same) return same.id
   }
   const { data, error } = await supabase
     .from('customers')

@@ -10,9 +10,6 @@ import PeoplePage from '@/features/operators/PeoplePage'
 import OrdersList from '@/features/orders/OrdersList'
 import OrderProduction from '@/features/orders/OrderProduction'
 import DeliveredOrdersList from '@/features/orders/DeliveredOrdersList'
-import SalesForm from '@/features/sales/SalesForm'
-import SalesList from '@/features/sales/SalesList'
-import InsumosList from '@/features/insumos/InsumosList'
 import ProductForm from '@/features/products/ProductForm'
 import ProductsList from '@/features/products/ProductsList'
 import TodayPage from '@/features/production/TodayPage'
@@ -49,10 +46,6 @@ export function Component() {
           <Route path="orders/:id" element={<OrderProduction />} />
           <Route path="ventas-pedidos" element={<DeliveredOrdersList />} />
           <Route path="calculadora" element={<CalculatorPage />} />
-          {/* Reventa (etapa posterior): rutas vivas pero fuera del menú. */}
-          <Route path="ventas" element={<SalesList />} />
-          <Route path="ventas/new" element={<SalesForm />} />
-          <Route path="insumos" element={<InsumosList />} />
           <Route
             path="productos"
             element={

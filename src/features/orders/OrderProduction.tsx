@@ -292,7 +292,7 @@ export default function OrderProduction() {
 
           <section className="card">
             <div className="card__head">
-              <h2 className="card__title">Referencias</h2>
+              <h2 className="card__title">Archivos y referencias</h2>
               <span className="spacer" />
               {order.reference_link && (
                 <a

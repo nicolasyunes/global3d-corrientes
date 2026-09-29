@@ -15,11 +15,6 @@ vi.mock('@/features/auth/ProtectedRoute', () => ({
     <>{children}</>
   ),
 }))
-vi.mock('@/features/auth/AdminOnlyRoute', () => ({
-  AdminOnlyRoute: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
-}))
 vi.mock('@/features/auth/LoginPage', () => ({
   default: () => <div>LOGIN</div>,
 }))
@@ -37,9 +32,9 @@ vi.mock('@/features/orders/OrdersList', () => ({
 vi.mock('@/features/orders/DeliveredOrdersList', () => ({
   default: () => <div />,
 }))
-vi.mock('@/features/sales/SalesForm', () => ({ default: () => <div /> }))
-vi.mock('@/features/sales/SalesList', () => ({ default: () => <div /> }))
-vi.mock('@/features/insumos/InsumosList', () => ({ default: () => <div /> }))
+vi.mock('@/features/calculator/CalculatorPage', () => ({
+  default: () => <div>CALC</div>,
+}))
 vi.mock('@/features/products/ProductForm', () => ({ default: () => <div /> }))
 vi.mock('@/features/products/ProductsList', () => ({ default: () => <div /> }))
 vi.mock('@/features/operators/OperatorProvider', () => ({
@@ -92,6 +87,16 @@ describe('admin routing table', () => {
   it('mounts the print queue', () => {
     renderAt('/admin/imprimir')
     expect(screen.getByText('QUEUE')).toBeInTheDocument()
+  })
+
+  it('mounts the calculator', () => {
+    renderAt('/admin/calculadora')
+    expect(screen.getByText('CALC')).toBeInTheDocument()
+  })
+
+  it('sends removed pages back to Hoy', () => {
+    renderAt('/admin/insumos')
+    expect(screen.getByText('TODAY')).toBeInTheDocument()
   })
 
   it('keeps admin-only pages away from regular operators', () => {

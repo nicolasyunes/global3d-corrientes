@@ -1,11 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useToast } from '@/components/useToast'
 import { toISODate } from '@/features/orders/validation'
-import {
-  TASK_LOCATION,
-  TASK_LOCATION_LABELS,
-  type TaskLocation,
-} from '@/lib/domain-constants'
 import QueueList from './QueueList'
 import { weekBucket, type WeekBucket } from './due'
 import {
@@ -45,7 +40,6 @@ export default function PrintQueuePage() {
   const [week, setWeek] = useState<WeekBucket | null>(null)
   const [customer, setCustomer] = useState('')
   const [color, setColor] = useState<string | null>(null)
-  const [location, setLocation] = useState<TaskLocation | null>(null)
   const [groupBy, setGroupBy] = useState<GroupBy>(readGroup)
   const today = toISODate(new Date())
 
@@ -64,11 +58,10 @@ export default function PrintQueuePage() {
     () =>
       pieces.filter(
         (p) =>
-          (!location || p.location === location) &&
           (!customer || p.customer_id === customer) &&
           (color === null || normalizeColor(p.color) === color),
       ),
-    [pieces, location, customer, color],
+    [pieces, customer, color],
   )
   const filtered = useMemo(
     () =>
@@ -107,14 +100,13 @@ export default function PrintQueuePage() {
 
   const colors = useMemo(() => groupQueueByColor(pieces), [pieces])
   const total = leftOf(filtered)
-  const anyFilter = Boolean(week || customer || color !== null || location)
+  const anyFilter = Boolean(week || customer || color !== null)
   const first = groups[0]
 
   function clearFilters() {
     setWeek(null)
     setCustomer('')
     setColor(null)
-    setLocation(null)
   }
 
   return (
@@ -197,25 +189,6 @@ export default function PrintQueuePage() {
             </option>
           ))}
         </select>
-        <div className="segmented" aria-label="Ubicación">
-          <button
-            type="button"
-            aria-pressed={location === null}
-            onClick={() => setLocation(null)}
-          >
-            Todo
-          </button>
-          {TASK_LOCATION.map((loc) => (
-            <button
-              key={loc}
-              type="button"
-              aria-pressed={location === loc}
-              onClick={() => setLocation(location === loc ? null : loc)}
-            >
-              {TASK_LOCATION_LABELS[loc]}
-            </button>
-          ))}
-        </div>
         {anyFilter && (
           <button
             type="button"

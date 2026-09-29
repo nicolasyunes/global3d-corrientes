@@ -9,39 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      categories: {
-        Row: {
-          id: string
-          slug: string
-          name: string
-          icon: string | null
-          position: number
-          featured: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          slug: string
-          name: string
-          icon?: string | null
-          position?: number
-          featured?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          slug?: string
-          name?: string
-          icon?: string | null
-          position?: number
-          featured?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       customers: {
         Row: {
           id: string
@@ -72,7 +39,6 @@ export type Database = {
       inventory: {
         Row: {
           id: string
-          sku: string | null
           material: string
           color: string | null
           brand: string | null
@@ -85,7 +51,6 @@ export type Database = {
         }
         Insert: {
           id?: string
-          sku?: string | null
           material: string
           color?: string | null
           brand?: string | null
@@ -98,7 +63,6 @@ export type Database = {
         }
         Update: {
           id?: string
-          sku?: string | null
           material?: string
           color?: string | null
           brand?: string | null
@@ -545,53 +509,6 @@ export type Database = {
           },
         ]
       }
-      product_variants: {
-        Row: {
-          id: string
-          product_id: string
-          name: string | null
-          color: string | null
-          size: string | null
-          personalization: boolean
-          price_delta: number
-          active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          product_id: string
-          name?: string | null
-          color?: string | null
-          size?: string | null
-          personalization?: boolean
-          price_delta?: number
-          active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          product_id?: string
-          name?: string | null
-          color?: string | null
-          size?: string | null
-          personalization?: boolean
-          price_delta?: number
-          active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'product_variants_product_id_fkey'
-            columns: ['product_id']
-            isOneToOne: false
-            referencedRelation: 'products'
-            referencedColumns: ['id']
-          },
-        ]
-      }
       products: {
         Row: {
           id: string
@@ -603,14 +520,6 @@ export type Database = {
           active: boolean
           created_at: string
           updated_at: string
-          slug: string | null
-          sku: string | null
-          compare_at_price: number | null
-          custom_on_request: boolean
-          personalizable: boolean
-          weight_grams: number | null
-          category_id: string | null
-          subcategory: string | null
         }
         Insert: {
           id?: string
@@ -622,14 +531,6 @@ export type Database = {
           active?: boolean
           created_at?: string
           updated_at?: string
-          slug?: string | null
-          sku?: string | null
-          compare_at_price?: number | null
-          custom_on_request?: boolean
-          personalizable?: boolean
-          weight_grams?: number | null
-          category_id?: string | null
-          subcategory?: string | null
         }
         Update: {
           id?: string
@@ -641,24 +542,8 @@ export type Database = {
           active?: boolean
           created_at?: string
           updated_at?: string
-          slug?: string | null
-          sku?: string | null
-          compare_at_price?: number | null
-          custom_on_request?: boolean
-          personalizable?: boolean
-          weight_grams?: number | null
-          category_id?: string | null
-          subcategory?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: 'products_category_id_fkey'
-            columns: ['category_id']
-            isOneToOne: false
-            referencedRelation: 'categories'
-            referencedColumns: ['id']
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {

@@ -29,12 +29,28 @@ import { useOperator } from '@/features/operators/operator-context'
 import { listProductTemplates } from '@/features/products/products.api'
 import { findTemplate, type ProductTemplate } from '@/features/products/parts'
 import { colorSwatch } from '@/features/production/pieces'
+import { AddAttachment, AttachmentGrid } from './attachments'
+import {
+  deleteOrderImage,
+  isPdf,
+  listOrderImages,
+  publicImageUrl,
+  uploadOrderImage,
+  type OrderImageRow,
+} from './orderImages.api'
 import './order-modal.css'
 
 interface OrderModalProps {
   orderId: string | null
   onClose: () => void
-  onSaved: (order: OrderRow) => void
+  onSaved: (order: OrderRow, warning?: string) => void
+}
+
+interface PendingFile {
+  id: string
+  file: File
+  note: string
+  url: string
 }
 
 const QUICK_DATES: [string, number][] = [
@@ -124,6 +140,9 @@ export default function OrderModal({
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [templates, setTemplates] = useState<ProductTemplate[]>([])
   const { current } = useOperator()
+  const [files, setFiles] = useState<PendingFile[]>([])
+  const [savedFiles, setSavedFiles] = useState<OrderImageRow[]>([])
+  const [fileError, setFileError] = useState<string | null>(null)
   const [hits, setHits] = useState<CustomerHit[]>([])
   const [showHits, setShowHits] = useState(false)
   const firstField = useRef<HTMLInputElement>(null)
@@ -138,6 +157,9 @@ export default function OrderModal({
       .then(setTemplates)
       .catch(() => undefined)
     if (!orderId) return
+    void listOrderImages(orderId)
+      .then(setSavedFiles)
+      .catch(() => undefined)
     loadDraft(orderId)
       .then(setDraft)
       .catch((err) =>
@@ -151,6 +173,47 @@ export default function OrderModal({
   useEffect(() => {
     if (!loading) firstField.current?.focus()
   }, [loading])
+
+  // Free the local previews of files that were never uploaded.
+  const filesRef = useRef(files)
+  filesRef.current = files
+  useEffect(
+    () => () => filesRef.current.forEach((f) => URL.revokeObjectURL(f.url)),
+    [],
+  )
+
+  function addFiles(list: File[], note: string) {
+    dirty.current = true
+    setFiles((prev) => [
+      ...prev,
+      ...list.map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        note,
+        url: URL.createObjectURL(file),
+      })),
+    ])
+  }
+
+  function dropFile(id: string) {
+    setFiles((prev) => {
+      const gone = prev.find((f) => f.id === id)
+      if (gone) URL.revokeObjectURL(gone.url)
+      return prev.filter((f) => f.id !== id)
+    })
+  }
+
+  async function deleteSaved(image: OrderImageRow) {
+    if (!window.confirm(`¿Borrar ${image.note ?? 'este archivo'}?`)) return
+    try {
+      await deleteOrderImage(image)
+      setSavedFiles((prev) => prev.filter((row) => row.id !== image.id))
+    } catch (err) {
+      setFileError(
+        err instanceof Error ? err.message : 'No se pudo borrar el archivo.',
+      )
+    }
+  }
 
   // Lock page scroll behind the modal.
   useEffect(() => {
@@ -271,7 +334,22 @@ export default function OrderModal({
       const order = editing
         ? await updateOrderFromDraft(orderId!, draft, current?.id ?? null)
         : await createOrderFromDraft(draft, current?.id ?? null)
-      onSaved(order)
+      // The order is saved at this point; a failed upload must not block it
+      // (saving again would duplicate the order), so it's reported instead.
+      const failed: string[] = []
+      for (const pending of files) {
+        try {
+          await uploadOrderImage(order.id, pending.file, pending.note)
+        } catch {
+          failed.push(pending.file.name)
+        }
+      }
+      onSaved(
+        order,
+        failed.length
+          ? `Pedido guardado, pero no se pudo subir: ${failed.join(', ')}. Subilo desde el pedido.`
+          : undefined,
+      )
     } catch (err) {
       setSaveError(
         err instanceof Error ? err.message : 'No se pudo guardar el pedido.',
@@ -627,6 +705,38 @@ export default function OrderModal({
               />
             </section>
 
+            <section className="omodal__section">
+              <h3 className="omodal__step">
+                <span>5</span>Archivos
+                <em className="omodal__optional">opcional</em>
+              </h3>
+              <p className="muted omodal__hint">
+                Foto de referencia, comprobante de la seña, diseño… Se guardan
+                junto con el pedido.
+              </p>
+              <AddAttachment onFiles={addFiles} onError={setFileError} />
+              {fileError && <p className="omodal__err">{fileError}</p>}
+              <AttachmentGrid
+                items={[
+                  ...savedFiles.map((image) => ({
+                    key: image.id,
+                    url: publicImageUrl(image.storage_path),
+                    pdf: isPdf(image.storage_path),
+                    label: image.note,
+                    onRemove: () => void deleteSaved(image),
+                  })),
+                  ...files.map((f) => ({
+                    key: f.id,
+                    url: f.url,
+                    pdf: f.file.type === 'application/pdf',
+                    label: f.note,
+                    pending: true,
+                    onRemove: () => dropFile(f.id),
+                  })),
+                ]}
+              />
+            </section>
+
             {(title || description) && (
               <section
                 className="omodal__preview"
@@ -666,10 +776,14 @@ export default function OrderModal({
               disabled={saving || loading}
             >
               {saving
-                ? 'Guardando…'
-                : editing
-                  ? 'Guardar cambios'
-                  : 'Guardar pedido'}
+                ? files.length
+                  ? 'Guardando y subiendo archivos…'
+                  : 'Guardando…'
+                : `${editing ? 'Guardar cambios' : 'Guardar pedido'}${
+                    files.length
+                      ? ` y ${files.length} archivo${files.length === 1 ? '' : 's'}`
+                      : ''
+                  }`}
             </button>
           </div>
         </footer>
