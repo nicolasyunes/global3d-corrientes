@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isUrgentFlow, isWaiting, needsReview } from './orderFlow'
+import { isUrgentFlow, isWaiting, needsReview, urgentFirst } from './orderFlow'
 import { sortQueueGroups, type QueueGroup } from '@/features/production/pieces'
 
 const base = {
@@ -75,5 +75,29 @@ describe('sortQueueGroups', () => {
     const out = sortQueueGroups(groups, 'oldest')
     expect(out.map((g) => g.key)).toEqual(['a', 'b'])
     expect(out[0].entries.map((e) => e.id)).toEqual(['a1', 'a2'])
+  })
+})
+
+describe('urgentFirst', () => {
+  const byDue = (
+    a: { due: string; urgent: boolean },
+    b: { due: string; urgent: boolean },
+  ) => a.due.localeCompare(b.due)
+  const rows = [
+    { id: 'late', due: '2026-09-01', urgent: false },
+    { id: 'event', due: '2026-12-20', urgent: true },
+    { id: 'soon', due: '2026-10-02', urgent: false },
+  ]
+
+  it('pins urgent orders above late ones, whatever their date', () => {
+    const out = [...rows].sort(urgentFirst(byDue))
+    expect(out.map((r) => r.id)).toEqual(['event', 'late', 'soon'])
+  })
+
+  it('keeps the normal order when nothing is urgent', () => {
+    const out = rows
+      .map((r) => ({ ...r, urgent: false }))
+      .sort(urgentFirst(byDue))
+    expect(out.map((r) => r.id)).toEqual(['late', 'soon', 'event'])
   })
 })

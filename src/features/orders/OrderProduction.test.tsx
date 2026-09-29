@@ -58,6 +58,7 @@ function order(overrides: Partial<OrderWithCustomer> = {}): OrderWithCustomer {
     waiting_reason: null,
     follow_up_on: null,
     flexible: false,
+    urgent: false,
     customers: { name: 'Ada', phone: null },
     ...overrides,
   }

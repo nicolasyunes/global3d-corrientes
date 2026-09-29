@@ -50,6 +50,14 @@ export function isUrgentFlow(order: FlowFields): boolean {
   return !CLOSED.includes(order.status) && !isWaiting(order) && !order.flexible
 }
 
+// "Urgente" pins an order above everything else, late or not: wrap any
+// comparator so marked orders always come first and the rest keep their order.
+export function urgentFirst<T extends { urgent: boolean }>(
+  compare: (a: T, b: T) => number,
+): (a: T, b: T) => number {
+  return (a, b) => Number(b.urgent) - Number(a.urgent) || compare(a, b)
+}
+
 export function followUpFrom(today: string, days = DEFAULT_FOLLOW_UP_DAYS) {
   return addDaysISO(today, days)
 }

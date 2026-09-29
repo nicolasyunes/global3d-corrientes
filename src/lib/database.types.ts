@@ -330,6 +330,7 @@ export type Database = {
           waiting_reason: string | null
           follow_up_on: string | null
           flexible: boolean
+          urgent: boolean
         }
         Insert: {
           id?: string
@@ -337,6 +338,7 @@ export type Database = {
           waiting_reason?: string | null
           follow_up_on?: string | null
           flexible?: boolean
+          urgent?: boolean
           product_type?: string
           title?: string | null
           description?: string | null
@@ -362,6 +364,7 @@ export type Database = {
           waiting_reason?: string | null
           follow_up_on?: string | null
           flexible?: boolean
+          urgent?: boolean
           product_type?: string
           title?: string | null
           description?: string | null

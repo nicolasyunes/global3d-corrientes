@@ -16,7 +16,7 @@ import {
   type OrderWithCustomer,
 } from './orders.api'
 import OrdersBoard from './OrdersBoard'
-import { isWaiting, needsReview } from './orderFlow'
+import { isWaiting, needsReview, urgentFirst } from './orderFlow'
 import WaitingOrders from './WaitingOrders'
 import { nextOrderStatus } from './status'
 import { toISODate } from './validation'
@@ -126,11 +126,12 @@ export default function OrdersList() {
   // "En curso" = confirmed and open (flexible ones included, marked);
   // "Esta semana" = real deadlines only; "En espera" = not confirmed yet.
   const rows = useMemo(() => {
-    const byDue = (a: OrderWithCustomer, b: OrderWithCustomer) =>
+    const byDue = urgentFirst((a: OrderWithCustomer, b: OrderWithCustomer) =>
       sort === 'due'
         ? a.due_date.localeCompare(b.due_date)
         : (sort === 'newest' ? -1 : 1) *
-          a.created_at.localeCompare(b.created_at)
+          a.created_at.localeCompare(b.created_at),
+    )
     const open = searched.filter((o) => !CLOSED.includes(o.status))
     const active = open.filter((o) => !isWaiting(o))
     if (filter === 'ready')
@@ -147,7 +148,7 @@ export default function OrdersList() {
     if (filter === 'week') {
       const horizon = addDaysISO(today, 7)
       return active
-        .filter((o) => !o.flexible && o.due_date <= horizon)
+        .filter((o) => o.urgent || (!o.flexible && o.due_date <= horizon))
         .sort(byDue)
     }
     return active.sort(byDue)
@@ -159,7 +160,9 @@ export default function OrdersList() {
     const active = open.filter((o) => !isWaiting(o))
     return {
       active: active.length,
-      week: active.filter((o) => !o.flexible && o.due_date <= horizon).length,
+      week: active.filter(
+        (o) => o.urgent || (!o.flexible && o.due_date <= horizon),
+      ).length,
       waiting: open.filter(isWaiting).length,
       review: open.filter((o) => needsReview(o, today)).length,
       ready: orders.filter((o) => o.status === 'finished').length,

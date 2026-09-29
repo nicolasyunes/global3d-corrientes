@@ -5,7 +5,7 @@ import { dueInfo } from '@/features/production/due'
 import { orderTitle } from '@/features/production/OrderRow'
 import type { OrderProgress } from '@/features/production/production.api'
 import { formatDueDate, formatMoney } from './format'
-import { isWaiting, needsReview } from './orderFlow'
+import { isWaiting, needsReview, urgentFirst } from './orderFlow'
 import { groupOrdersByStatus } from './list'
 import type { OrderWithCustomer } from './orders.api'
 import { nextOrderStatus } from './status'
@@ -73,9 +73,12 @@ export default function OrdersBoard({
   onAdvance,
 }: OrdersBoardProps) {
   const { byId } = useOperator()
-  const normalized = orders.map((o) =>
-    o.status === 'in_queue' ? { ...o, status: 'new' as const } : o,
-  )
+  // Urgent orders lead every lane (the sort is stable, the rest keep order).
+  const normalized = orders
+    .map((o) =>
+      o.status === 'in_queue' ? { ...o, status: 'new' as const } : o,
+    )
+    .sort(urgentFirst(() => 0))
   // Unconfirmed orders stay off the production lanes.
   const waiting = normalized.filter(
     (o) => isWaiting(o) && !CLOSED.includes(o.status),
@@ -103,9 +106,15 @@ export default function OrdersBoard({
     const next = isWaiting(order) ? null : nextOrderStatus(order.status)
     const done = order.status === 'finished' || order.status === 'delivered'
     return (
-      <li key={order.id} className="bcard">
+      <li
+        key={order.id}
+        className={`bcard${order.urgent && !done ? ' bcard--urgent' : ''}`}
+      >
         <Link to={`/admin/orders/${order.id}`} className="bcard__link">
           <p className="bcard__title">
+            {order.urgent && !done && (
+              <span className="urgent-tag">Urgente</span>
+            )}
             {orderTitle(order, itemCounts[order.id])}
           </p>
           <p className="bcard__sub">

@@ -79,6 +79,7 @@ function orderFields(draft: OrderDraft) {
       ? draft.followUpOn || followUpFrom(toISODate(new Date()))
       : null,
     flexible: draft.flexible,
+    urgent: draft.urgent && !draft.waiting,
   }
 }
 
@@ -315,5 +316,6 @@ export async function loadDraft(orderId: string): Promise<OrderDraft> {
     waitingReason: order.waiting_reason ?? '',
     followUpOn: order.follow_up_on ?? '',
     flexible: order.flexible ?? false,
+    urgent: order.urgent ?? false,
   }
 }

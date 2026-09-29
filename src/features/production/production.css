@@ -825,6 +825,34 @@
 .orow:hover {
   background: var(--color-bg);
 }
+/* Marked "Urgente": soft red wash, no hard borders. */
+.orow--urgent,
+.orow--urgent:hover {
+  background: var(--status-red-50);
+}
+.orow--urgent:hover {
+  background: color-mix(in srgb, var(--status-red-50) 80%, var(--status-red));
+}
+.orow--urgent .orow__thumb {
+  background: var(--color-white);
+  color: var(--status-red);
+}
+.urgent-tag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--status-red);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+.bcard--urgent {
+  background: var(--status-red-50);
+}
 .orow__thumb {
   width: 42px;
   height: 42px;
