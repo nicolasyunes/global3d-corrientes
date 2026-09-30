@@ -139,7 +139,7 @@ export default function QueueList({
           0,
         )
         const groupDue = groupHasUrgent(group)
-          ? { label: 'Urgente', tone: 'late' as const }
+          ? { label: 'Urgente', tone: 'urgent' as const }
           : dueOf(group.earliest)
         // Urgent pieces form their own block ahead of the dated ones.
         const blockOf = (p: QueuePiece) => (p.urgent ? 'urgent' : p.due_date)
@@ -148,7 +148,7 @@ export default function QueueList({
         return (
           <section
             key={group.key}
-            className="queue__group"
+            className={`queue__group${groupHasUrgent(group) ? ' queue__group--urgent' : ''}`}
             style={
               by === 'color' && group.swatch
                 ? ({ '--group-color': group.swatch } as CSSProperties)
@@ -182,7 +182,7 @@ export default function QueueList({
                   newDate && (
                     <li
                       key={`sep-${blockOf(piece)}`}
-                      className={`queue__sep queue__sep--${piece.urgent ? 'late' : due.tone}`}
+                      className={`queue__sep queue__sep--${piece.urgent ? 'urgent' : due.tone}`}
                     >
                       {piece.urgent ? 'Urgente' : due.label}
                     </li>

@@ -1477,3 +1477,129 @@
   font-weight: 700;
   color: var(--color-carbon-muted);
 }
+
+/* ---------- ¿Qué imprimo? palette ----------
+   Soft, warm palette for this screen only (Hoy keeps the standard status
+   colors). Overdue is salmon, not red; urgent is the strongest orange.
+   Pastels carry the fill; text on them uses the dark "ink" of the same hue. */
+.queue-page {
+  --q-orange: #f28930;
+  --q-salmon: #f6a685;
+  --q-mustard: #e3af38;
+  --q-mauve: #d0c2cf;
+  --q-peach: #f6d3bd;
+  --q-orange-ink: #7a3a05;
+  --q-salmon-ink: #7a3418;
+  --q-mustard-ink: #5e4409;
+  --q-mauve-ink: #4d414d;
+}
+
+/* Due pills */
+.queue-page .qdue--urgent {
+  background: var(--q-orange);
+  color: var(--color-carbon);
+}
+.queue-page .qdue--late {
+  background: color-mix(in srgb, var(--q-salmon) 62%, var(--color-white));
+  color: var(--q-salmon-ink);
+  box-shadow: none;
+}
+.queue-page .qdue--soon {
+  background: color-mix(in srgb, var(--q-mustard) 30%, var(--color-white));
+  color: var(--q-mustard-ink);
+  box-shadow: none;
+}
+.queue-page .qdue--ok {
+  background: color-mix(in srgb, var(--q-mauve) 55%, var(--color-white));
+  color: var(--q-mauve-ink);
+}
+
+/* Rows: overdue is a faint salmon wash; urgent is peach with an orange count */
+.queue-page .queue-item--late {
+  background: color-mix(in srgb, var(--q-salmon) 16%, var(--color-white));
+}
+.queue-page .queue-item--late .queue-item__left {
+  background: color-mix(in srgb, var(--q-salmon) 55%, var(--color-white));
+  color: var(--q-salmon-ink);
+}
+.queue-page .queue-item--soon .queue-item__left {
+  background: color-mix(in srgb, var(--q-mustard) 32%, var(--color-white));
+  color: var(--q-mustard-ink);
+}
+.queue-page .queue-item--ok .queue-item__left {
+  background: color-mix(in srgb, var(--q-mauve) 55%, var(--color-white));
+  color: var(--q-mauve-ink);
+}
+.queue-page .queue-item--urgent {
+  background: color-mix(in srgb, var(--q-peach) 75%, var(--color-white));
+}
+.queue-page .queue-item--urgent .queue-item__left {
+  background: var(--q-orange);
+  color: var(--color-carbon);
+}
+.queue-page .queue__group--urgent .queue__head {
+  background: color-mix(in srgb, var(--q-peach) 80%, var(--color-white));
+}
+
+/* Date separators */
+.queue-page .queue__sep--urgent {
+  color: var(--q-orange-ink);
+}
+.queue-page .queue__sep--late {
+  color: var(--q-salmon-ink);
+}
+.queue-page .queue__sep--soon {
+  color: var(--q-mustard-ink);
+}
+.queue-page .queue__sep--ok {
+  color: var(--q-mauve-ink);
+}
+
+/* Week chips */
+.queue-page .qweek {
+  --ink: var(--color-carbon);
+}
+.queue-page .qweek--late {
+  --tone: var(--q-salmon);
+  --ink: var(--q-salmon-ink);
+}
+.queue-page .qweek--this {
+  --tone: var(--q-mustard);
+  --ink: var(--q-mustard-ink);
+}
+.queue-page .qweek--next {
+  --tone: var(--q-mauve);
+  --ink: var(--q-mauve-ink);
+}
+.queue-page .qweek--later {
+  --tone: var(--q-peach);
+  --ink: var(--q-orange-ink);
+}
+.queue-page .qweek__n {
+  background: color-mix(in srgb, var(--tone) 45%, var(--color-white));
+  color: var(--ink);
+}
+.queue-page .qweek[aria-pressed='true'] {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 28%, var(--color-white));
+}
+
+/* "Cuando haya tiempo" */
+.queue-page .qrelaxed {
+  background: color-mix(in srgb, var(--q-mauve) 22%, var(--color-white));
+}
+.queue-page .qrelaxed__count {
+  color: var(--q-mauve-ink);
+}
+.queue-page .qbar__badge {
+  background: var(--q-orange);
+}
+
+/* Urgent pill/separator outside the queue screen (Hoy keeps status colors). */
+.qdue--urgent {
+  background: var(--status-red);
+  color: var(--color-white);
+}
+.queue__sep--urgent {
+  color: var(--status-red);
+}
