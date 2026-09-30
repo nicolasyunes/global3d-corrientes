@@ -75,6 +75,127 @@ export type Database = {
         }
         Relationships: []
       }
+      idea_collections: {
+        Row: {
+          id: string
+          name: string
+          target_date: string | null
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          target_date?: string | null
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          target_date?: string | null
+          position?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      ideas: {
+        Row: {
+          id: string
+          title: string
+          url: string | null
+          source: string
+          preview_image_url: string | null
+          preview_author: string | null
+          collection_id: string | null
+          status: string
+          priority: string
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          url?: string | null
+          source?: string
+          preview_image_url?: string | null
+          preview_author?: string | null
+          collection_id?: string | null
+          status?: string
+          priority?: string
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          url?: string | null
+          source?: string
+          preview_image_url?: string | null
+          preview_author?: string | null
+          collection_id?: string | null
+          status?: string
+          priority?: string
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'ideas_collection_id_fkey'
+            columns: ['collection_id']
+            isOneToOne: false
+            referencedRelation: 'idea_collections'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      idea_files: {
+        Row: {
+          id: string
+          idea_id: string
+          storage_path: string
+          kind: string
+          file_name: string
+          size_bytes: number | null
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          idea_id: string
+          storage_path: string
+          kind: string
+          file_name: string
+          size_bytes?: number | null
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          idea_id?: string
+          storage_path?: string
+          kind?: string
+          file_name?: string
+          size_bytes?: number | null
+          position?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'idea_files_idea_id_fkey'
+            columns: ['idea_id']
+            isOneToOne: false
+            referencedRelation: 'ideas'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       order_images: {
         Row: {
           id: string

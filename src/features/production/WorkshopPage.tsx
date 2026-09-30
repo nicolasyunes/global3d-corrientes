@@ -27,6 +27,7 @@ type View = 'table' | 'board'
 type Tab = 'print' | 'post'
 
 const VIEW_KEY = 'g3d.workshopView'
+const COLORS_SHOWN = 3
 
 const WEEKS: { key: WeekBucket; label: string }[] = [
   { key: 'late', label: 'Atrasado' },
@@ -54,6 +55,7 @@ export interface WorkOrder {
   flexible: boolean
   pp_sand: boolean
   pp_paint: boolean
+  pp_notes: string | null
   sand_done: boolean
   paint_done: boolean
   pieces: WorkPiece[]
@@ -78,6 +80,7 @@ export function groupByOrder(pieces: readonly WorkPiece[]): WorkOrder[] {
         flexible: p.flexible,
         pp_sand: p.pp_sand,
         pp_paint: p.pp_paint,
+        pp_notes: p.pp_notes,
         sand_done: p.sand_done,
         paint_done: p.paint_done,
         pieces: [],
@@ -152,6 +155,7 @@ export default function WorkshopPage() {
   const [customer, setCustomer] = useState('')
   const [sort, setSort] = useStoredSort('g3d.workshopSort')
   const [showFilters, setShowFilters] = useState(false)
+  const [allColors, setAllColors] = useState(false)
   const today = useMemo(() => toISODate(new Date()), [])
 
   const reload = useCallback(async () => {
@@ -384,96 +388,196 @@ export default function WorkshopPage() {
     )
   }
 
-  function postCard(order: WorkOrder) {
-    const busy = busyId === order.id
+  // "pieza 2 de 3": where a piece sits inside its order.
+  const pieceIndex = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const o of orders)
+      if (o.pieces.length > 1)
+        o.pieces.forEach((p, i) =>
+          map.set(p.id, `pieza ${i + 1} de ${o.pieces.length}`),
+        )
+    return map
+  }, [orders])
+
+  // Quantity, filament and, on the right, what makes it pressing.
+  function cardMeta(
+    item: { due_date: string; flexible: boolean; urgent: boolean },
+    qty: number | null,
+    pieceColor: string | null | undefined,
+  ) {
+    const due = dueText(item, today, { short: true })
     return (
-      <li key={order.id} className="wk-card">
-        <div className="wk-card__top">
-          {order.urgent && <UrgentBadge />}
-          <DueChip order={order} today={today} />
-        </div>
-        <Link to={`/admin/orders/${order.id}`} className="wk-card__title">
-          {order.customer}
-        </Link>
-        <p className="wk-card__sub">
-          {order.title} · {order.pieces.length}{' '}
-          {order.pieces.length === 1 ? 'parte' : 'partes'}
-        </p>
-        <div className="wk-card__actions">
-          {order.pp_sand && (
+      <p className="wk-card__meta">
+        {qty !== null && <span className="wk-card__qty num">{qty}×</span>}
+        {pieceColor !== undefined && (
+          <>
+            <ColorDot color={pieceColor} />
+            <span className="wk-card__color">{colorLabel(pieceColor)}</span>
+          </>
+        )}
+        {item.urgent ? (
+          <span className="wk-pill-urgent">Urgente</span>
+        ) : (
+          <span className={`wk-due${due.late ? ' is-late' : ''}`}>
+            {due.late ? due.label.replace(' d', ' días') : due.label}
+          </span>
+        )}
+      </p>
+    )
+  }
+
+  function pieceSub(piece: WorkPiece) {
+    const where = pieceIndex.get(piece.id)
+    return where ? `${piece.customer_name} · ${where}` : piece.customer_name
+  }
+
+  // Por imprimir: the next piece to load gets the big button; the rest a
+  // small one, so any of them can be started.
+  function pendingCard(piece: WorkPiece, first: boolean) {
+    const busy = busyId === piece.id
+    return (
+      <li key={piece.id} className={`wk-card${first ? ' wk-card--next' : ''}`}>
+        <div className="wk-card__head">
+          <Link
+            to={`/admin/orders/${piece.order_id}`}
+            className="wk-card__title"
+          >
+            {piece.label}
+          </Link>
+          {!first && (
             <button
               type="button"
-              className="wk-toggle"
-              aria-pressed={order.sand_done}
+              className="wk-mini"
               disabled={busy}
-              onClick={() => togglePost(order, 'sand')}
+              aria-label={`Empezar a imprimir ${piece.label}`}
+              title="Empezar a imprimir"
+              onClick={() => setStatus(piece, 'printing')}
             >
-              <Icon name={order.sand_done ? 'check' : 'sand'} size={16} />
-              Lijado
-            </button>
-          )}
-          {order.pp_paint && (
-            <button
-              type="button"
-              className="wk-toggle"
-              aria-pressed={order.paint_done}
-              disabled={busy}
-              onClick={() => togglePost(order, 'paint')}
-            >
-              <Icon name={order.paint_done ? 'check' : 'brush'} size={16} />
-              Pintado
+              <Icon name="play" size={14} />
             </button>
           )}
         </div>
+        <p className="wk-card__sub">{pieceSub(piece)}</p>
+        {cardMeta(
+          piece,
+          piece.quantity_total - piece.quantity_done,
+          piece.color,
+        )}
+        {first && (
+          <button
+            type="button"
+            className="wk-act wk-act--start"
+            disabled={busy}
+            onClick={() => setStatus(piece, 'printing')}
+          >
+            <Icon name="play" size={16} />
+            Empezar a imprimir
+          </button>
+        )}
       </li>
     )
   }
 
-  function pieceCard(piece: WorkPiece, action: 'start' | 'finish') {
+  function printingCard(piece: WorkPiece) {
     const busy = busyId === piece.id
     const multi = piece.quantity_total > 1
+    const units = Math.min(piece.quantity_total, 12)
     return (
       <li key={piece.id} className="wk-card">
-        <div className="wk-card__top">
-          {piece.urgent && <UrgentBadge />}
-          <DueChip order={piece} today={today} />
-        </div>
         <Link to={`/admin/orders/${piece.order_id}`} className="wk-card__title">
           {piece.label}
         </Link>
-        <p className="wk-card__sub">{piece.customer_name}</p>
-        <p className="wk-card__meta">
-          <span className="num">
-            {multi && piece.quantity_done > 0
-              ? `${piece.quantity_done}/${piece.quantity_total}`
-              : `${piece.quantity_total}×`}
-          </span>
-          <ColorDot color={piece.color} />
-          {colorLabel(piece.color)}
+        <p className="wk-card__sub">{pieceSub(piece)}</p>
+        {cardMeta(piece, piece.quantity_total, piece.color)}
+        {multi && (
+          <div className="wk-units">
+            {piece.quantity_total <= 12 ? (
+              <span className="wk-units__row" aria-hidden="true">
+                {Array.from({ length: units }, (_, i) => (
+                  <i
+                    key={i}
+                    className={
+                      i < piece.quantity_done
+                        ? 'is-done'
+                        : i === piece.quantity_done
+                          ? 'is-now'
+                          : undefined
+                    }
+                  />
+                ))}
+              </span>
+            ) : (
+              <span className="parts-bar__track" aria-hidden="true">
+                <i
+                  style={{
+                    width: `${Math.round((piece.quantity_done / piece.quantity_total) * 100)}%`,
+                  }}
+                />
+              </span>
+            )}
+            <span className="wk-units__text">
+              {piece.quantity_done} de {piece.quantity_total} impresas
+            </span>
+          </div>
+        )}
+        <button
+          type="button"
+          className="wk-act wk-act--done"
+          disabled={busy}
+          onClick={() => (multi ? addOne(piece) : setStatus(piece, 'done'))}
+        >
+          <Icon name="check" size={16} />
+          {multi ? '+1 impresa' : 'Impresa'}
+        </button>
+      </li>
+    )
+  }
+
+  function postCard(order: WorkOrder, step: 'sand' | 'paint' | null) {
+    const busy = busyId === order.id
+    const colors = [...new Set(order.pieces.map((p) => colorLabel(p.color)))]
+    return (
+      <li key={order.id} className="wk-card">
+        <Link to={`/admin/orders/${order.id}`} className="wk-card__title">
+          {order.title || order.customer}
+        </Link>
+        <p className="wk-card__sub">
+          {order.customer} · {order.pieces.length}{' '}
+          {order.pieces.length === 1 ? 'parte' : 'partes'}
         </p>
-        <div className="wk-card__actions">
-          {action === 'finish' && multi && (
-            <button
-              type="button"
-              className="wk-toggle"
-              disabled={busy}
-              onClick={() => addOne(piece)}
-            >
-              +1
-            </button>
-          )}
+        {cardMeta(
+          order,
+          null,
+          colors.length === 1 ? order.pieces[0].color : undefined,
+        )}
+        {step === 'paint' && order.pp_notes && (
+          <p className="wk-card__quote">“{order.pp_notes}”</p>
+        )}
+        {step === 'sand' && order.pp_paint && !order.paint_done && (
+          <p className="wk-card__after">
+            Después:
+            <span className="wk-chip-paint">
+              <Icon name="brush" size={13} />
+              Pintar
+            </span>
+          </p>
+        )}
+        {step ? (
           <button
             type="button"
-            className={`wk-act wk-act--${action}`}
+            className="wk-act wk-act--ghost"
             disabled={busy}
-            onClick={() =>
-              setStatus(piece, action === 'start' ? 'printing' : 'done')
-            }
+            onClick={() => togglePost(order, step)}
           >
-            <Icon name={action === 'start' ? 'play' : 'check'} size={16} />
-            {action === 'start' ? 'Empezar' : multi ? 'Impresas' : 'Impresa'}
+            <Icon name="check" size={16} />
+            {step === 'sand' ? 'Lijada' : 'Pintada'}
           </button>
-        </div>
+        ) : (
+          <p className="wk-card__sub">
+            No tiene lijado ni pintura marcados: pasalo de etapa desde el
+            pedido.
+          </p>
+        )}
       </li>
     )
   }
@@ -491,17 +595,34 @@ export default function WorkshopPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [printGroups])
   const printing = shownPieces.filter((p) => p.status === 'printing')
+  const printingColors = new Set(printing.map((p) => normalizeColor(p.color)))
+  const pendingCount = pendingByColor.reduce((n, g) => n + g.pieces.length, 0)
+  const colorsShown = allColors
+    ? pendingByColor
+    : pendingByColor.slice(0, COLORS_SHOWN)
+
+  const toSand = postOrders.filter((o) => o.pp_sand && !o.sand_done)
+  const toPaint = postOrders.filter(
+    (o) => o.pp_paint && !o.paint_done && (!o.pp_sand || o.sand_done),
+  )
+  const undetailed = postOrders.filter(
+    (o) => !(o.pp_sand && !o.sand_done) && !(o.pp_paint && !o.paint_done),
+  )
 
   return (
     <main className="wk">
       <header className="page-head">
         <div className="page-head__main">
           <p className="eyebrow">Taller</p>
-          <h1 className="page-title">Taller</h1>
+          <h1 className="page-title">
+            {leftTotal} {leftTotal === 1 ? 'pieza' : 'piezas'} por imprimir
+          </h1>
           <p className="page-sub">
-            {leftTotal} {leftTotal === 1 ? 'pieza' : 'piezas'} por imprimir ·{' '}
-            {postOrders.length} {postOrders.length === 1 ? 'pedido' : 'pedidos'}{' '}
-            en posprocesado
+            Acá se mueven piezas, no pedidos. El pedido avanza solo cuando todas
+            sus piezas terminan
+            {postOrders.length > 0 &&
+              ` · ${postOrders.length} ${postOrders.length === 1 ? 'pedido' : 'pedidos'} en posprocesado`}
+            .
           </p>
         </div>
         <div className="page-head__actions">
@@ -650,83 +771,116 @@ export default function WorkshopPage() {
       {loading ? (
         <p className="muted">Cargando…</p>
       ) : view === 'board' ? (
-        <div className="wk-board">
-          <section className="wk-col" aria-label="Por imprimir">
+        <div className="wk-board wk-board--5">
+          <section className="wk-col wk-col--pending" aria-label="Por imprimir">
             <h2 className="wk-col__head">
+              <i className="wk-col__dot" aria-hidden="true" />
               Por imprimir
-              <span className="num">
-                {pendingByColor.reduce((n, g) => n + g.pieces.length, 0)} partes
-              </span>
+              <span className="num">{pendingCount}</span>
             </h2>
             {pendingByColor.length === 0 && (
               <p className="wk-col__empty">Nada pendiente.</p>
             )}
-            {pendingByColor.map((group) => (
-              <div key={group.label}>
-                <h3 className="wk-col__sub">
-                  <ColorDot color={group.pieces[0].color} />
-                  {group.label} · {group.pieces.length}
-                </h3>
-                <ul className="wk-cards">
-                  {group.pieces.map((p) => pieceCard(p, 'start'))}
-                </ul>
-              </div>
-            ))}
+            {colorsShown.map((group, gi) => {
+              const key = normalizeColor(group.pieces[0].color)
+              return (
+                <div key={key} className="wk-colorgroup">
+                  <h3 className="wk-col__sub">
+                    <ColorDot color={group.pieces[0].color} />
+                    {group.label} · {group.pieces.length}
+                    {printingColors.has(key) && (
+                      <span className="wk-loaded">En máquina</span>
+                    )}
+                  </h3>
+                  <ul className="wk-cards">
+                    {group.pieces.map((p, i) =>
+                      pendingCard(p, gi === 0 && i === 0),
+                    )}
+                  </ul>
+                </div>
+              )
+            })}
+            {pendingByColor.length > COLORS_SHOWN && (
+              <button
+                type="button"
+                className="wk-more-link"
+                onClick={() => setAllColors((v) => !v)}
+              >
+                {allColors
+                  ? 'Mostrar menos colores'
+                  : `+ ${pendingByColor.length - COLORS_SHOWN} ${pendingByColor.length - COLORS_SHOWN === 1 ? 'color' : 'colores'} más`}
+              </button>
+            )}
           </section>
-          <section className="wk-col" aria-label="Imprimiendo">
+
+          <section className="wk-col wk-col--printing" aria-label="Imprimiendo">
             <h2 className="wk-col__head">
+              <i className="wk-col__dot" aria-hidden="true" />
               Imprimiendo
-              <span className="num">
-                {printing.length} {printing.length === 1 ? 'parte' : 'partes'}
-              </span>
+              <span className="num">{printing.length}</span>
             </h2>
             {printing.length === 0 ? (
               <p className="wk-col__empty">Ninguna impresora en marcha.</p>
             ) : (
+              <ul className="wk-cards">{printing.map(printingCard)}</ul>
+            )}
+          </section>
+
+          <section className="wk-col wk-col--sand" aria-label="Lijar">
+            <h2 className="wk-col__head">
+              <i className="wk-col__dot" aria-hidden="true" />
+              Lijar
+              <span className="num">{toSand.length}</span>
+            </h2>
+            {toSand.length + undetailed.length === 0 ? (
+              <p className="wk-col__empty">Nada para lijar.</p>
+            ) : (
               <ul className="wk-cards">
-                {printing.map((p) => pieceCard(p, 'finish'))}
+                {toSand.map((o) => postCard(o, 'sand'))}
+                {undetailed.map((o) => postCard(o, null))}
               </ul>
             )}
           </section>
-          <section className="wk-col" aria-label="Posprocesado">
+
+          <section className="wk-col wk-col--paint" aria-label="Pintar">
             <h2 className="wk-col__head">
-              Posprocesado
-              <span className="num">
-                {postOrders.length}{' '}
-                {postOrders.length === 1 ? 'pedido' : 'pedidos'}
-              </span>
+              <i className="wk-col__dot" aria-hidden="true" />
+              Pintar
+              <span className="num">{toPaint.length}</span>
             </h2>
-            {postOrders.length === 0 ? (
-              <p className="wk-col__empty">Nada para lijar ni pintar.</p>
+            {toPaint.length === 0 ? (
+              <p className="wk-col__empty">Nada para pintar.</p>
             ) : (
-              <>
-                <h3 className="wk-col__sub">Pedido completo</h3>
-                <ul className="wk-cards">{postOrders.map(postCard)}</ul>
-              </>
+              <ul className="wk-cards">
+                {toPaint.map((o) => postCard(o, 'paint'))}
+              </ul>
             )}
           </section>
-          <section className="wk-col" aria-label="Terminado hoy">
+
+          <section className="wk-col wk-col--done" aria-label="Terminadas hoy">
             <h2 className="wk-col__head">
-              Terminado hoy
+              <i className="wk-col__dot" aria-hidden="true" />
+              Terminadas hoy
               <span className="num">{finishedToday.length}</span>
             </h2>
-            <ul className="wk-cards">
-              {finishedToday.map((o) => (
-                <li key={o.id} className="wk-card wk-card--done">
-                  <Link to={`/admin/orders/${o.id}`} className="wk-card__title">
-                    {o.customer}
-                  </Link>
-                  <p className="wk-card__sub">{o.title}</p>
-                  <p className="wk-card__ok">
-                    <Icon name="check" size={14} />
-                    Pasó a Listo para avisar
-                  </p>
-                </li>
-              ))}
-            </ul>
-            <p className="wk-col__empty">
-              Cuando un pedido termina, aparece acá y en Pedidos como “Listo
-              para avisar”.
+            {finishedToday.length > 0 && (
+              <ul className="wk-cards">
+                {finishedToday.map((o) => (
+                  <li key={o.id} className="wk-card">
+                    <Link
+                      to={`/admin/orders/${o.id}`}
+                      className="wk-card__title"
+                    >
+                      {o.title || o.customer}
+                    </Link>
+                    <p className="wk-card__sub">{o.customer}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="wk-col__note">
+              <Icon name="check" size={14} />
+              Pedido completo: pasa solo a “Listo para avisar”.
             </p>
           </section>
         </div>
@@ -739,7 +893,16 @@ export default function WorkshopPage() {
           </div>
         ) : (
           <ul className="wk-cards wk-cards--grid">
-            {postOrders.map(postCard)}
+            {postOrders.map((o) =>
+              postCard(
+                o,
+                o.pp_sand && !o.sand_done
+                  ? 'sand'
+                  : o.pp_paint && !o.paint_done
+                    ? 'paint'
+                    : null,
+              ),
+            )}
           </ul>
         )
       ) : printGroups.length === 0 ? (
@@ -812,18 +975,5 @@ export default function WorkshopPage() {
       )}
       {toast}
     </main>
-  )
-}
-
-function DueChip({
-  order,
-  today,
-}: {
-  order: { due_date: string; flexible: boolean }
-  today: string
-}) {
-  const due = dueText(order, today, { short: true })
-  return (
-    <span className={`wk-due${due.late ? ' is-late' : ''}`}>{due.label}</span>
   )
 }

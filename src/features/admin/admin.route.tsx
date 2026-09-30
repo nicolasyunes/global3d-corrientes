@@ -18,6 +18,7 @@ import TodayPage from '@/features/production/TodayPage'
 import WeekPage from '@/features/production/WeekPage'
 import WorkshopPage from '@/features/production/WorkshopPage'
 import CalculatorPage from '@/features/calculator/CalculatorPage'
+import IdeasPage from '@/features/ideas/IdeasPage'
 import AdminLayout from './AdminLayout'
 
 function OperatorAdminOnly({ children }: { children: ReactNode }) {
@@ -52,6 +53,7 @@ export function Component() {
             path="imprimir"
             element={<Navigate to="/admin/taller" replace />}
           />
+          <Route path="ideas" element={<IdeasPage />} />
           <Route path="orders" element={<OrdersList />} />
           <Route path="orders/:id" element={<OrderProduction />} />
           <Route path="ventas-pedidos" element={<DeliveredOrdersList />} />

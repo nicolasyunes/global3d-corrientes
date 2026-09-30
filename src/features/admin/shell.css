@@ -201,3 +201,14 @@
     padding: 28px 32px 60px;
   }
 }
+.shell-nav__badge {
+  margin-left: auto;
+  min-width: 26px;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: var(--color-orange);
+  color: var(--color-carbon);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-align: center;
+}

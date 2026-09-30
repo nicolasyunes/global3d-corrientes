@@ -1584,3 +1584,404 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 }
+
+/* ---------- Taller · tablero (piezas que se mueven) ----------
+   Each column keeps its stage tint; cards are white so the tint reads as the
+   lane, not as decoration. */
+.wk-board--5 {
+  grid-template-columns: repeat(5, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+.wk-board--5 .wk-col {
+  gap: 10px;
+  padding: 14px 12px;
+  min-height: 60vh;
+}
+.wk-col--pending {
+  background: #efebe5;
+}
+.wk-col--printing {
+  background: #e8edf8;
+}
+.wk-col--sand {
+  background: #f4ecdf;
+}
+.wk-col--paint {
+  background: #efe7f7;
+}
+.wk-col--done {
+  background: #e7f2ea;
+}
+.wk-board--5 .wk-col__head {
+  gap: 8px;
+  font-size: 1rem;
+}
+.wk-board--5 .wk-col__head > .num {
+  margin-left: 0;
+  font-size: 0.8125rem;
+}
+.wk-col__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--st-delivered);
+}
+.wk-col--printing .wk-col__dot {
+  background: var(--st-printing);
+}
+.wk-col--sand .wk-col__dot {
+  background: #b08a3e;
+}
+.wk-col--paint .wk-col__dot {
+  background: var(--st-post);
+}
+.wk-col--done .wk-col__dot {
+  background: var(--st-ready);
+}
+.wk-colorgroup {
+  display: grid;
+  gap: 8px;
+}
+.wk-board--5 .wk-col__sub {
+  margin: 4px 2px 0;
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-carbon);
+}
+.wk-loaded {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--color-carbon);
+  color: var(--color-white);
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.wk-board--5 .wk-card {
+  gap: 4px;
+  padding: 12px 12px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(29, 27, 25, 0.06);
+}
+.wk-card--next {
+  border-color: var(--color-orange) !important;
+  box-shadow: 0 0 0 3px rgba(243, 112, 33, 0.12) !important;
+}
+.wk-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.wk-card__head > .wk-card__title {
+  flex: 1;
+  min-width: 0;
+}
+.wk-mini {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin: -4px -4px 0 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--color-white);
+  display: grid;
+  place-items: center;
+  color: var(--accent-strong);
+  cursor: pointer;
+}
+.wk-mini:hover:not(:disabled) {
+  border-color: var(--accent-strong);
+}
+.wk-mini:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+.wk-board--5 .wk-card__meta {
+  margin-top: 6px;
+  gap: 6px;
+  font-weight: 600;
+}
+.wk-card__qty {
+  color: var(--accent-strong);
+}
+.wk-card__color {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wk-card__meta > .wk-due,
+.wk-card__meta > .wk-pill-urgent {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.wk-card__meta > .wk-due.is-late {
+  font-size: 0.8125rem;
+}
+.wk-pill-urgent {
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--accent-strong);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.wk-card__quote {
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.wk-card__after {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.wk-chip-paint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--st-post-bg);
+  color: var(--st-post-fg);
+  font-weight: 700;
+}
+.wk-units {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+.wk-units__row {
+  display: flex;
+  gap: 4px;
+}
+.wk-units__row > i {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+}
+.wk-units__row > i.is-done {
+  background: var(--st-ready);
+}
+.wk-units__row > i.is-now {
+  background: var(--st-printing);
+}
+.wk-units__text {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.wk-board--5 .wk-act {
+  flex: none;
+  width: 100%;
+  margin-top: 8px;
+}
+.wk-board--5 .wk-act--start {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+.wk-act--done {
+  background: var(--st-ready-bg);
+  border-color: #b9dcc5;
+  color: var(--st-ready-fg);
+}
+.wk-act--ghost {
+  background: var(--color-white);
+}
+.wk-act--ghost:hover:not(:disabled),
+.wk-act--done:hover:not(:disabled) {
+  border-color: currentColor;
+}
+.wk-more-link {
+  align-self: center;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.wk-more-link:hover {
+  color: var(--color-carbon);
+  text-decoration: underline;
+}
+.wk-col__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1.5px dashed #9ccbad;
+  border-radius: 12px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--st-ready-fg);
+}
+.wk-col__note .icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* ---------- Taller · tabla: each order is its own card ---------- */
+.wk-table {
+  display: grid;
+  gap: 10px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+.wk-table__head {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.wk-table .wk-group,
+.wk-table__head + .wk-group {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--color-white);
+  overflow: hidden;
+}
+.wk-group__head {
+  padding: 14px 18px;
+}
+.wk-row {
+  padding: 12px 18px;
+}
+
+/* ---------- Detalle de pedido: una sola tipografia y el naranja de marca ----
+   Numbers use the page font with tabular figures instead of the mono. */
+.od .num {
+  font-family: inherit;
+  font-weight: inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.od .osum2 {
+  border-radius: 20px;
+}
+.od .osum2__client,
+.od .osum2__block {
+  padding: 20px 22px;
+}
+.od .osum2__block {
+  border-top-color: #efe9e1;
+}
+.od .client-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: #efe9e2;
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+.od .osum2__who strong {
+  font-size: 1.125rem;
+}
+.od .osum2__who span {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-3);
+}
+.osum2__wa {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid #cfe6d6;
+  border-radius: 12px;
+  background: var(--st-ready-bg);
+  color: var(--st-ready-fg);
+  font-weight: 800;
+  text-decoration: none;
+}
+.osum2__wa:hover {
+  border-color: var(--st-ready);
+}
+.osum2__wa:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+.od .osum2__label {
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+.od .osum2__label > :first-child {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  color: var(--text-2);
+}
+.od .osum2__label .is-soon {
+  color: #a0520c;
+}
+.od .osum2__big {
+  margin: 8px 0 4px;
+  font-size: 1.625rem;
+  font-weight: 800;
+}
+.od .osum2__big.is-owed {
+  color: var(--accent-strong);
+}
+.od .osum2__big.is-paid {
+  color: var(--st-ready-fg);
+}
+.od .osum2__sub {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.od .osum2__timeline {
+  margin-top: 14px;
+}
+.od .osum2__track {
+  height: 8px;
+  border-radius: 4px;
+  background: #ebe6df;
+}
+.od .osum2__track > i {
+  border-radius: 4px;
+  background: #e07a24;
+}
+.od .osum2__track > b {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #e07a24;
+  background: var(--color-white);
+}
+.od .osum2__track--paid {
+  margin-top: 16px;
+  background: #fde3d6;
+}
+.od .osum2__track--paid > i {
+  background: var(--st-ready);
+}
+.od .osum2__ticks {
+  margin-top: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.od .osum2__today {
+  font-weight: 800;
+  color: #a0520c;
+}
+.od .osum2__link {
+  font-size: 0.875rem;
+}

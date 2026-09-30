@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import Icon from '@/components/Icon'
 import { orderTitle } from '@/features/production/OrderRow'
 import type { OrderProgress } from '@/features/production/production.api'
-import { mondayOf } from '@/features/production/WeekPage'
 import { formatMoney } from './format'
 import type { OrderUpdate, OrderWithCustomer } from './orders.api'
 import { whatsappLink } from './OrderSummary'
@@ -10,21 +9,24 @@ import { urgentFirst } from './orderFlow'
 import { stageOf, type Stage } from './stage'
 import { dueText, PartsBar, PostMarks, UrgentBadge } from './stage-ui'
 
-type Lane =
-  'on_hold' | 'printing' | 'post_processing' | 'finished' | 'delivered'
+type Lane = 'on_hold' | 'printing' | 'post_processing' | 'finished'
 
 const LANES: { key: Lane; title: string }[] = [
   { key: 'on_hold', title: 'En espera' },
   { key: 'printing', title: 'Imprimiendo' },
   { key: 'post_processing', title: 'Posprocesado' },
   { key: 'finished', title: 'Listo para avisar' },
-  { key: 'delivered', title: 'Entregado' },
 ]
 
 // Orders that haven't started printing wait in the same lane as the ones
-// that have: both are "in the printers' hands".
+// that have: both are "in the printers' hands". Delivered orders live in
+// "Entregados".
 const laneOf = (stage: Stage): Lane | null =>
-  stage === 'new' ? 'printing' : stage === 'cancelled' ? null : stage
+  stage === 'new'
+    ? 'printing'
+    : stage === 'cancelled' || stage === 'delivered'
+      ? null
+      : stage
 
 const READY_TEXT = encodeURIComponent(
   '¡Hola! Tu pedido de Global3D ya está listo para retirar.',
@@ -53,13 +55,11 @@ export default function OrdersBoard({
   busyId,
   onPatch,
 }: OrdersBoardProps) {
-  const weekStart = mondayOf(today)
   const lanes: Record<Lane, OrderWithCustomer[]> = {
     on_hold: [],
     printing: [],
     post_processing: [],
     finished: [],
-    delivered: [],
   }
   const sorted = [...orders].sort(
     urgentFirst((a, b) => a.due_date.localeCompare(b.due_date)),
@@ -67,9 +67,6 @@ export default function OrdersBoard({
   for (const order of sorted) {
     const lane = laneOf(stageOf(order))
     if (!lane) continue
-    // Delivered: only this week's, the rest live in "Entregados".
-    if (lane === 'delivered' && order.updated_at.slice(0, 10) < weekStart)
-      continue
     lanes[lane].push(order)
   }
 
@@ -78,14 +75,14 @@ export default function OrdersBoard({
     const busy = busyId === order.id
     const due = dueText(order, today, {
       short: true,
-      closed: lane === 'delivered' || lane === 'on_hold',
+      closed: lane === 'on_hold',
     })
     const wa = whatsappLink(order.customers?.phone)
     const balance = order.pending_balance ?? 0
     return (
       <li key={order.id} className="wk-card">
         <div className="wk-card__top">
-          {order.urgent && lane !== 'delivered' && <UrgentBadge />}
+          {order.urgent && <UrgentBadge />}
           <span className={`wk-due${due.late ? ' is-late' : ''}`}>
             {due.label}
           </span>
@@ -181,29 +178,18 @@ export default function OrdersBoard({
   }
 
   return (
-    <div className="wk-board wk-board--5" role="group" aria-label="Tablero">
+    <div className="wk-board" role="group" aria-label="Tablero">
       {LANES.map(({ key, title }) => (
         <section key={key} className="wk-col" aria-label={title}>
           <h2 className="wk-col__head">
             <i className={`stage-dot stage-dot--${key}`} aria-hidden="true" />
             {title}
-            <span className="num">
-              {key === 'delivered' ? 'esta semana' : lanes[key].length}
-            </span>
+            <span className="num">{lanes[key].length}</span>
           </h2>
           {lanes[key].length === 0 ? (
-            <p className="wk-col__empty">
-              {key === 'delivered'
-                ? 'Todavía no se entregó nada esta semana.'
-                : 'Sin pedidos'}
-            </p>
+            <p className="wk-col__empty">Sin pedidos</p>
           ) : (
             <ul className="wk-cards">{lanes[key].map((o) => card(o, key))}</ul>
-          )}
-          {key === 'delivered' && (
-            <Link to="/admin/ventas-pedidos" className="sem-more">
-              Ver todos los entregados →
-            </Link>
           )}
         </section>
       ))}
