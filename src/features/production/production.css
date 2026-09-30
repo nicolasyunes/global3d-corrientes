@@ -117,97 +117,102 @@
   color: var(--color-teal);
 }
 
-/* ---------- Items & pieces ---------- */
-.pieces-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  font-size: 0.75rem;
+/* ---------- Items & pieces ----------
+   Flat: items are sections divided by a hairline, pieces are rows divided by
+   a hairline. No boxes inside boxes, no legend: the state control explains
+   itself (ring = falta, orange dot = imprimiendo, teal check = lista). */
+.card__meta {
+  font-size: 0.8125rem;
+  font-weight: 700;
   color: var(--color-carbon-muted);
-  margin-bottom: 4px;
-}
-.pieces-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.pieces-legend__hint {
-  margin-left: auto;
-}
-.legend {
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-  border: 2px solid var(--color-carbon-line);
-}
-.legend--printing {
-  border-color: var(--color-orange);
-  background: var(--color-accent-50);
-}
-.legend--done {
-  border-color: var(--color-teal);
-  background: var(--color-teal);
 }
 
 .item-block {
-  margin-top: 12px;
-  padding: 14px;
-  border-radius: var(--radius-lg);
-  background: var(--color-bg);
-  animation: rise 0.3s var(--ease-out) both;
+  padding: 16px 0 6px;
+  border-top: 1px solid var(--color-carbon-line);
 }
-.item-block.is-done {
-  background: var(--color-teal-50);
+.item-block:first-of-type {
+  border-top: 0;
+  padding-top: 8px;
 }
 .item-block__head {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 10px;
 }
 .item-block__n {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  background: var(--color-carbon);
-  color: var(--color-white);
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 1px solid var(--color-carbon-line);
+  color: var(--color-carbon-muted);
   display: grid;
   place-items: center;
   font-weight: 800;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
 }
 .item-block__title {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  font-size: 0.9375rem;
+  gap: 2px;
+  font-size: 1rem;
+  line-height: 1.3;
 }
-.item-block__title .muted {
+.item-block__title strong {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.item-block__note {
   font-size: 0.8125rem;
+  color: var(--color-carbon-muted);
+  overflow-wrap: anywhere;
+}
+.item-block__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--color-accent-700);
+  font-weight: 700;
+  text-decoration: none;
+}
+.item-block__link:hover {
+  text-decoration: underline;
+}
+.item-block__meta {
+  flex: none;
+  padding-top: 2px;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-carbon-muted);
+}
+.item-block__meta.is-done {
+  color: var(--color-teal);
 }
 
 .piece-list {
   list-style: none;
-  display: grid;
-  gap: 6px;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 .piece {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 10px;
-  background: var(--color-white);
-  border-radius: var(--radius-md);
-  padding: 9px 8px 9px 10px;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-carbon-line);
   font-size: 0.9375rem;
-  animation: rise 0.25s var(--ease-out) both;
+}
+.piece-list > .piece:first-child {
+  border-top: 0;
 }
 .piece__state {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
   border: 2px solid var(--color-carbon-line);
   background: var(--color-white);
   display: grid;
@@ -218,6 +223,9 @@
     background 0.15s,
     border-color 0.15s,
     transform 0.1s;
+}
+.piece__state:hover:not(:disabled) {
+  border-color: var(--color-carbon-muted);
 }
 .piece__state:active {
   transform: scale(0.9);
@@ -243,12 +251,25 @@
   background: var(--color-teal);
 }
 .piece[data-status='done'] .piece__name {
-  text-decoration: line-through;
   color: var(--color-carbon-muted);
 }
+.piece__body {
+  min-width: 0;
+}
+.piece__name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  overflow-wrap: anywhere;
+}
+.piece__name strong {
+  font-weight: 700;
+}
 .piece__swatch {
-  width: 18px;
-  height: 18px;
+  flex: none;
+  width: 12px;
+  height: 12px;
 }
 .swatch--unknown {
   background: conic-gradient(
@@ -260,15 +281,6 @@
     #d93a2b
   ) !important;
 }
-.piece__body {
-  min-width: 0;
-}
-.piece__name {
-  overflow-wrap: anywhere;
-}
-.piece__name strong {
-  font-weight: 700;
-}
 .piece__color {
   color: var(--color-carbon-muted);
 }
@@ -276,21 +288,22 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 5px;
+  margin-top: 6px;
   font-size: 0.75rem;
   font-weight: 700;
+  color: var(--color-carbon-muted);
 }
 .piece__count .progress {
   flex: 1;
-  height: 6px;
-  max-width: 160px;
+  height: 5px;
+  max-width: 140px;
 }
 .piece__plus {
   border: 0;
   border-radius: 8px;
   padding: 3px 10px;
-  background: var(--color-carbon);
-  color: var(--color-white);
+  background: var(--color-accent-50);
+  color: var(--color-accent-700);
   font-weight: 800;
   font-size: 0.8125rem;
   cursor: pointer;
@@ -304,32 +317,47 @@
   white-space: nowrap;
   text-align: right;
 }
-.piece__menu {
-  position: relative;
+.piece__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
-/* The row's entrance animation makes it its own stacking context, so the
-   open menu has to lift the whole row above the rows and buttons below. */
-.piece:has(.piece__menu[open]) {
-  position: relative;
-  z-index: 30;
-}
+.piece__act,
 .piece__menu summary {
-  list-style: none;
   width: 32px;
   height: 32px;
+  border: 0;
   border-radius: 9px;
+  background: none;
   display: grid;
   place-items: center;
   cursor: pointer;
   color: var(--color-carbon-muted);
 }
-.piece__menu summary::-webkit-details-marker {
-  display: none;
-}
+.piece__act:hover:not(:disabled),
 .piece__menu summary:hover,
 .piece__menu[open] summary {
   background: var(--color-carbon-soft);
   color: var(--color-carbon);
+}
+.piece__act:focus-visible,
+.piece__menu summary:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 1px;
+}
+.piece__menu {
+  position: relative;
+}
+.piece__menu summary {
+  list-style: none;
+}
+.piece__menu summary::-webkit-details-marker {
+  display: none;
+}
+/* The open menu lifts its row above the rows and controls below it. */
+.piece:has(.piece__menu[open]) {
+  position: relative;
+  z-index: 30;
 }
 .piece__menu-panel {
   position: absolute;
@@ -365,35 +393,53 @@
 }
 @media (max-width: 640px) {
   .piece {
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
   .piece__who {
-    grid-column: 3;
+    grid-column: 2;
     grid-row: 2;
     text-align: left;
   }
-  .piece__menu {
-    grid-column: 4;
+  .piece__actions {
+    grid-column: 3;
     grid-row: 1;
   }
 }
 
+/* Editing a piece in place. */
+.piece--editing {
+  display: block;
+}
+.piece-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.piece-edit__label {
+  flex: 1 1 220px;
+  min-height: 40px;
+}
+.piece-edit__actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Adding a piece. */
 .add-piece {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 12px 0 10px;
+  border-top: 1px solid var(--color-carbon-line);
 }
 .add-piece__label {
-  flex: 1 1 200px;
+  flex: 1 1 220px;
   min-height: 40px;
   padding: 8px 12px;
-  border-style: dashed;
-  border-color: rgba(29, 29, 27, 0.25);
-}
-.add-piece__label:focus {
-  border-style: solid;
 }
 .add-piece__palette {
   display: flex;
@@ -402,15 +448,13 @@
   gap: 6px;
 }
 .add-piece__dot {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 0;
   cursor: pointer;
   background: var(--color-bg-deep);
-  box-shadow:
-    0 0 0 1px var(--color-carbon-line),
-    inset 0 0 0 2px var(--color-white);
+  box-shadow: 0 0 0 1px var(--color-carbon-line);
   transition: transform 0.1s;
   display: grid;
   place-items: center;
@@ -418,13 +462,12 @@
 }
 .add-piece__dot[aria-pressed='true'] {
   box-shadow:
-    0 0 0 2px var(--color-orange),
-    inset 0 0 0 2px var(--color-white);
-  transform: scale(1.12);
+    0 0 0 2px var(--color-white),
+    0 0 0 4px var(--color-orange);
 }
 .add-piece__dot:focus-visible {
   outline: 2px solid var(--color-orange);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 .add-piece__dot--other {
   background: var(--color-white);

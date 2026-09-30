@@ -214,3 +214,31 @@ export async function listOrderProgress(): Promise<
   }
   return out
 }
+
+export interface PieceEdit {
+  label: string
+  color: string | null
+  quantityTotal: number
+}
+
+// Rename / recolor / re-count a piece. The database keeps the done count and
+// the status coherent when the total changes.
+export async function updatePiece(
+  id: string,
+  edit: PieceEdit,
+  operatorId: string | null,
+): Promise<PieceRow> {
+  const { data, error } = await supabase
+    .from('order_production_tasks')
+    .update({
+      label: edit.label,
+      color: edit.color,
+      quantity_total: edit.quantityTotal,
+      updated_by: operatorId,
+    })
+    .eq('id', id)
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}

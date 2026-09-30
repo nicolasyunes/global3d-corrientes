@@ -3,15 +3,9 @@ import Icon from '@/components/Icon'
 import { useToast } from '@/components/useToast'
 import { useOperator } from '@/features/operators/operator-context'
 import type { OrderItemRow } from '@/features/orders/orders.api'
+import PieceColorPicker from './PieceColorPicker'
 import PieceRow from './PieceRow'
-import {
-  colorSwatch,
-  itemState,
-  NEXT_PIECE_STATUS,
-  normalizeColor,
-  type ItemState,
-  type PieceStatus,
-} from './pieces'
+import { itemState, NEXT_PIECE_STATUS, type PieceStatus } from './pieces'
 import {
   createPiece,
   deletePiece,
@@ -19,16 +13,11 @@ import {
   listPieces,
   registerPieceFailure,
   setPieceStatus,
+  updatePiece,
+  type PieceEdit,
   type PieceRow as Piece,
 } from './production.api'
 import './production.css'
-
-const ITEM_BADGE: Record<ItemState, { cls: string; text: string } | null> = {
-  none: null,
-  todo: { cls: 'badge', text: 'Sin empezar' },
-  printing: { cls: 'badge badge--printing', text: 'Imprimiendo' },
-  done: { cls: 'badge badge--ready', text: 'Listo' },
-}
 
 interface Group {
   key: string
@@ -38,7 +27,41 @@ interface Group {
   subtitle: string | null
 }
 
-const BASE_COLORS = ['negro', 'blanco', 'rojo', 'azul', 'amarillo', 'dorado']
+const URL_RE = /(https?:\/\/[^\s"”)]+)/g
+
+function hostOf(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url
+  }
+}
+
+// A reference link inside an item's note reads as its site name, not a URL.
+function NoteText({ text }: { text: string }) {
+  const parts = text.split(URL_RE)
+  if (parts.length === 1) return <>“{text}”</>
+  return (
+    <>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="item-block__link"
+          >
+            {hostOf(part)}
+            <Icon name="external" size={12} />
+          </a>
+        ) : (
+          part.replace(/["”“]/g, '')
+        ),
+      )}
+    </>
+  )
+}
 
 function AddPiece({
   onAdd,
@@ -51,19 +74,7 @@ function AddPiece({
 }) {
   const [label, setLabel] = useState('')
   const [color, setColor] = useState('negro')
-  const [custom, setCustom] = useState(false)
   const [qty, setQty] = useState('1')
-
-  const palette = useMemo(() => {
-    const seen = new Set(BASE_COLORS.map(normalizeColor))
-    const extra = usedColors.filter((c) => {
-      const key = normalizeColor(c)
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-    return [...BASE_COLORS, ...extra.slice(0, 4)]
-  }, [usedColors])
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -88,52 +99,11 @@ function AddPiece({
         value={label}
         onChange={(e) => setLabel(e.target.value)}
       />
-      <div className="add-piece__palette" role="group" aria-label="Color">
-        {palette.map((c) => {
-          const hex = colorSwatch(c)
-          return (
-            <button
-              key={c}
-              type="button"
-              className={`add-piece__dot${hex ? '' : ' swatch--unknown'}`}
-              style={hex ? { background: hex } : undefined}
-              aria-pressed={
-                !custom && normalizeColor(color) === normalizeColor(c)
-              }
-              aria-label={c}
-              title={c}
-              onClick={() => {
-                setCustom(false)
-                setColor(c)
-              }}
-            />
-          )
-        })}
-        <button
-          type="button"
-          className="add-piece__dot add-piece__dot--other"
-          aria-pressed={custom}
-          aria-label="Otro color"
-          title="Otro color"
-          onClick={() => {
-            setCustom(true)
-            setColor('')
-          }}
-        >
-          <Icon name="plus" size={14} />
-        </button>
-        {custom && (
-          <input
-            className="input add-piece__custom"
-            placeholder="¿Qué color?"
-            aria-label="Otro color"
-            list="piece-colors"
-            autoFocus
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-          />
-        )}
-      </div>
+      <PieceColorPicker
+        value={color}
+        onChange={setColor}
+        usedColors={usedColors}
+      />
       <label className="add-piece__qty">
         <span aria-hidden="true">×</span>
         <input
@@ -148,7 +118,7 @@ function AddPiece({
       </label>
       <button
         type="submit"
-        className="btn btn--dark"
+        className="btn btn--primary"
         disabled={busy || !label.trim()}
       >
         Agregar
@@ -290,6 +260,23 @@ export default function OrderPieces({
     })
   }
 
+  async function edit(piece: Piece, changes: PieceEdit) {
+    setBusyId(piece.id)
+    setError(null)
+    try {
+      replace(await updatePiece(piece.id, changes, operatorId))
+      showToast('Pieza actualizada')
+      return true
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'No se pudo guardar la pieza.',
+      )
+      return false
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   async function add(group: Group, label: string, color: string, qty: number) {
     setBusyId(`add-${group.key}`)
     setError(null)
@@ -334,30 +321,11 @@ export default function OrderPieces({
         </h2>
         <span className="spacer" />
         {items.length > 1 && (
-          <span
-            className={`badge ${doneItems === items.length ? 'badge--ready' : 'badge--printing'} num`}
-          >
+          <span className="card__meta num">
             {doneItems} de {items.length} listos
           </span>
         )}
       </div>
-      <p className="pieces-legend">
-        <span>
-          <i className="legend legend--todo" />
-          Falta
-        </span>
-        <span>
-          <i className="legend legend--printing" />
-          Imprimiendo
-        </span>
-        <span>
-          <i className="legend legend--done" />
-          Lista
-        </span>
-        <span className="pieces-legend__hint">
-          Tocá el cuadrado para avanzar
-        </span>
-      </p>
 
       {error && (
         <p className="banner banner--error" role="alert">
@@ -368,23 +336,32 @@ export default function OrderPieces({
       {groups.map((group) => {
         const list = piecesOf(group)
         const state = itemState(list)
-        const badge = ITEM_BADGE[state]
+        const doneCount = list.filter((p) => p.status === 'done').length
         return (
           <div
             key={group.key}
             className={`item-block${state === 'done' ? ' is-done' : ''}`}
           >
             <div className="item-block__head">
-              {group.index !== null && (
+              {items.length > 1 && group.index !== null && (
                 <span className="item-block__n">{group.index}</span>
               )}
               <div className="item-block__title">
                 <strong>{group.title}</strong>
                 {group.subtitle && (
-                  <span className="muted">“{group.subtitle}”</span>
+                  <span className="item-block__note">
+                    <NoteText text={group.subtitle} />
+                  </span>
                 )}
               </div>
-              {badge && <span className={badge.cls}>{badge.text}</span>}
+              {list.length > 0 && (
+                <span
+                  className={`item-block__meta num is-${state}`}
+                  title={`${doneCount} de ${list.length} piezas listas`}
+                >
+                  {doneCount}/{list.length}
+                </span>
+              )}
             </div>
             {list.length > 0 && (
               <ul className="piece-list">
@@ -397,6 +374,8 @@ export default function OrderPieces({
                     onIncrement={increment}
                     onFail={fail}
                     onRemove={remove}
+                    onEdit={edit}
+                    usedColors={usedColors}
                   />
                 ))}
               </ul>
