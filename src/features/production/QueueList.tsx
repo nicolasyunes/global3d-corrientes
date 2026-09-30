@@ -19,9 +19,6 @@ interface QueueListProps {
   relaxed?: boolean
   // Entries are in due-date order: mark where each date starts.
   dateSeparators?: boolean
-  // Print screen: the first group is "Ahora" (open, dark header, progress);
-  // the rest fold into "Después" rows that open on tap.
-  focus?: boolean
 }
 
 const HOLD_DELAY = 350
@@ -125,7 +122,6 @@ export default function QueueList({
   by = 'color',
   relaxed = false,
   dateSeparators = true,
-  focus = false,
 }: QueueListProps) {
   const dueOf = (date: string) =>
     relaxed
@@ -214,7 +210,7 @@ export default function QueueList({
   let remaining = limit ?? Infinity
   return (
     <div className="queue">
-      {groups.map((group, index) => {
+      {groups.map((group) => {
         if (remaining <= 0) return null
         const entries = group.entries.slice(0, remaining)
         remaining -= entries.length
@@ -230,82 +226,15 @@ export default function QueueList({
           by === 'color' && group.swatch
             ? ({ '--group-color': group.swatch } as CSSProperties)
             : undefined
-        const isNow = focus && index === 0
         const marker =
           by === 'color' ? (
-            <Swatch color={group.label} size={isNow ? 40 : 26} />
+            <Swatch color={group.label} size={26} />
           ) : (
             <span className="avatar avatar--sm queue__avatar">
               {initialsFrom(group.label)}
             </span>
           )
-        const orders = new Set(group.entries.map((p) => p.order_id)).size
         const summary = `${pending} ${pending === 1 ? 'pieza' : 'piezas'}`
-
-        if (isNow) {
-          const total = group.entries.reduce((s, p) => s + p.quantity_total, 0)
-          const done = total - pending
-          return (
-            <section
-              key={group.key}
-              className={`queue__group queue__group--now${urgentClass}`}
-              style={style}
-            >
-              <header className="queue__now">
-                {marker}
-                <div className="queue__now-text">
-                  <p className="queue__now-kicker">Ahora</p>
-                  <h2 className="queue__label">
-                    {by === 'color'
-                      ? group.key
-                        ? `Cargá ${group.label.toLowerCase()}`
-                        : 'Sin color definido'
-                      : group.label}
-                  </h2>
-                  <p className="queue__now-sub num">
-                    {summary} · {orders} {orders === 1 ? 'pedido' : 'pedidos'}
-                  </p>
-                </div>
-                <span className={`qdue qdue--${groupDue.tone}`}>
-                  {groupDue.label}
-                </span>
-                <div
-                  className="queue__bar"
-                  role="progressbar"
-                  aria-label="Avance de esta tanda"
-                  aria-valuenow={done}
-                  aria-valuemax={total}
-                >
-                  <i
-                    style={{ width: `${total ? (done / total) * 100 : 0}%` }}
-                  />
-                </div>
-              </header>
-              <ul className="queue__items">{rows(entries)}</ul>
-            </section>
-          )
-        }
-
-        if (focus) {
-          return (
-            <details
-              key={group.key}
-              className={`queue__group queue__group--later${urgentClass}`}
-              style={style}
-            >
-              <summary className="queue__later">
-                {marker}
-                <span className="queue__later-text">
-                  <strong className="queue__label">{group.label}</strong>
-                  <small className="num">
-                    {summary} · {groupDue.label}
-                  </small>
-                </span>
-              </summary>
-              <ul className="queue__items">{rows(entries)}</ul>
-            </details>
-          )
-        }
 
         return (
           <section
