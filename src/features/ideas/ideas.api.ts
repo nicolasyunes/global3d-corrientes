@@ -163,3 +163,12 @@ export async function readLink(url: string): Promise<LinkPreview> {
     return EMPTY
   }
 }
+
+// Ideas not tested yet, for the menu badge. Zero when anything fails.
+export async function countOpenIdeas(): Promise<number> {
+  const { count, error } = await supabase
+    .from('ideas')
+    .select('id', { count: 'exact', head: true })
+    .neq('status', 'tested')
+  return error ? 0 : (count ?? 0)
+}
