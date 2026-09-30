@@ -23,6 +23,7 @@ const piece = (over: Partial<WorkPiece>): WorkPiece =>
     urgent: false,
     pp_sand: false,
     pp_paint: false,
+    pp_notes: null,
     sand_done: false,
     paint_done: false,
     item_label: 'Vaso',

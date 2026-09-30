@@ -16,6 +16,7 @@ export interface WorkPiece extends PieceRow {
   urgent: boolean
   pp_sand: boolean
   pp_paint: boolean
+  pp_notes: string | null
   sand_done: boolean
   paint_done: boolean
   item_label: string | null
@@ -33,6 +34,7 @@ type Raw = PieceRow & {
     urgent: boolean
     pp_sand: boolean
     pp_paint: boolean
+    pp_notes: string | null
     sand_done: boolean
     paint_done: boolean
     customers: { name: string } | null
@@ -46,7 +48,7 @@ export async function listWorkshopPieces(): Promise<WorkPiece[]> {
   const { data, error } = await supabase
     .from('order_production_tasks')
     .select(
-      '*, orders!inner(due_date, status, title, created_at, updated_at, customer_id, flexible, urgent, pp_sand, pp_paint, sand_done, paint_done, customers(name)), order_items(description)',
+      '*, orders!inner(due_date, status, title, created_at, updated_at, customer_id, flexible, urgent, pp_sand, pp_paint, pp_notes, sand_done, paint_done, customers(name)), order_items(description)',
     )
     .not('orders.status', 'in', '(delivered,cancelled)')
     .is('orders.waiting_reason', null)
@@ -67,6 +69,7 @@ export async function listWorkshopPieces(): Promise<WorkPiece[]> {
       urgent: orders!.urgent ?? false,
       pp_sand: orders!.pp_sand ?? false,
       pp_paint: orders!.pp_paint ?? false,
+      pp_notes: orders!.pp_notes ?? null,
       sand_done: orders!.sand_done ?? false,
       paint_done: orders!.paint_done ?? false,
       item_label: order_items?.description ?? null,
