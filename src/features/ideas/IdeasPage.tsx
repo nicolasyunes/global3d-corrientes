@@ -5,6 +5,7 @@ import {
   useState,
   type FormEvent,
 } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Icon from '@/components/Icon'
 import { useToast } from '@/components/useToast'
 import { toISODate } from '@/features/orders/validation'
@@ -68,9 +69,14 @@ export default function IdeasPage() {
   const [chip, setChip] = useState('all')
   const [onlyHigh, setOnlyHigh] = useState(false)
   const [query, setQuery] = useState('')
+  const [params, setParams] = useSearchParams()
+  // "Agregar idea" from Hoy lands here with ?nueva=1.
   const [adding, setAdding] = useState<{ collection: string | null } | null>(
-    null,
+    () => (params.get('nueva') ? { collection: null } : null),
   )
+  useEffect(() => {
+    if (params.get('nueva')) setParams({}, { replace: true })
+  }, [params, setParams])
   const [openId, setOpenId] = useState<string | null>(null)
   const [form, setForm] = useState<CollectionForm | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
