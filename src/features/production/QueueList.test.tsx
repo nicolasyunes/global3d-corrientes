@@ -74,7 +74,7 @@ describe('QueueList', () => {
     expect(screen.getByText('Mañana')).toBeInTheDocument()
   })
 
-  it('a tap adds one; "Completar" adds everything left', () => {
+  it('a tap adds one; "Marcar las N" adds everything left', () => {
     const onAdd = renderList([piece({ quantity_done: 4 })])
     const plus = screen.getByRole('button', { name: /Sumar 1 a Llaveros/ })
     fireEvent.pointerDown(plus)
@@ -83,7 +83,7 @@ describe('QueueList', () => {
       expect.objectContaining({ id: 'p1' }),
       1,
     )
-    fireEvent.click(screen.getByRole('button', { name: /Completar/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Marcar las 6/ }))
     expect(onAdd).toHaveBeenLastCalledWith(
       expect.objectContaining({ id: 'p1' }),
       6,
@@ -105,5 +105,57 @@ describe('QueueList', () => {
       expect.objectContaining({ id: 'p1' }),
       3,
     )
+  })
+})
+
+describe('QueueList focus mode', () => {
+  const group = (
+    key: string,
+    label: string,
+    entries: QueuePiece[],
+  ): QueueGroup<QueuePiece> => ({
+    key,
+    label,
+    swatch: null,
+    earliest: entries[0].due_date,
+    entries,
+  })
+
+  function renderFocus() {
+    render(
+      <MemoryRouter>
+        <QueueList
+          focus
+          today="2026-09-30"
+          busyId={null}
+          onAdd={vi.fn()}
+          groups={[
+            group('amarillo', 'Amarillo', [
+              piece({ id: 'a', color: 'amarillo', order_id: 'o1' }),
+              piece({ id: 'b', color: 'amarillo', order_id: 'o2' }),
+            ]),
+            group('verde', 'Verde', [
+              piece({
+                id: 'c',
+                label: 'Macetas',
+                color: 'verde',
+                due_date: '2026-10-01',
+              }),
+            ]),
+          ]}
+        />
+      </MemoryRouter>,
+    )
+  }
+
+  it('opens the first batch as "Ahora" and folds the rest as "Después"', () => {
+    renderFocus()
+    expect(screen.getByText('Ahora')).toBeInTheDocument()
+    expect(screen.getByText('Cargá amarillo')).toBeInTheDocument()
+    expect(screen.getByText(/20 piezas · 2 pedidos/)).toBeInTheDocument()
+    const later = screen.getByText('Verde').closest('details')
+    expect(later).not.toBeNull()
+    expect(later).not.toHaveAttribute('open')
+    expect(screen.getByText(/10 piezas · Mañana/)).toBeInTheDocument()
   })
 })

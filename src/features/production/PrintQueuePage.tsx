@@ -283,11 +283,11 @@ export default function PrintQueuePage() {
       ) : groups.length === 0 ? (
         <div className="empty card">
           <strong>
-            {anyFilter ? 'Nada con estos filtros' : 'Nada para imprimir'}
+            {anyFilter ? 'Nada con estos filtros' : 'Todo impreso'}
           </strong>
           {anyFilter
             ? 'Probá con otra semana o cliente.'
-            : 'Cargá piezas desde el detalle de cada pedido y van a aparecer en esta cola.'}
+            : 'Cuando cargues un pedido con piezas, aparece acá.'}
         </div>
       ) : (
         <QueueList
@@ -297,6 +297,7 @@ export default function PrintQueuePage() {
           onAdd={(piece, delta) => void add(piece, delta)}
           by={groupBy}
           dateSeparators={sort === 'due'}
+          focus
         />
       )}
 

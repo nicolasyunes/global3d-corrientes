@@ -1478,118 +1478,208 @@
   color: var(--color-carbon-muted);
 }
 
-/* ---------- ¿Qué imprimo? palette ----------
-   Soft, warm palette for this screen only (Hoy keeps the standard status
-   colors). Overdue is salmon, not red; urgent is the strongest orange.
-   Pastels carry the fill; text on them uses the dark "ink" of the same hue. */
+/* ---------- ¿Qué imprimo? ----------
+   Quiet by design: the only colors on this screen are the filament swatches
+   (content), the orange action (+) and one warm tone for "Urgente". Overdue
+   and dates are told in words and weight, not in color. */
 .queue-page {
   --q-orange: #f28930;
-  --q-salmon: #f6a685;
-  --q-mustard: #e3af38;
-  --q-mauve: #d0c2cf;
   --q-peach: #f6d3bd;
-  --q-orange-ink: #7a3a05;
-  --q-salmon-ink: #7a3418;
-  --q-mustard-ink: #5e4409;
-  --q-mauve-ink: #4d414d;
+  --q-urgent-ink: #7a3a05;
+  --q-dark: #1d1d1b;
+  --q-dark-line: #3a3a37;
+  --q-dark-muted: #d8d4ce;
 }
 
-/* Due pills */
-.queue-page .qdue--urgent {
-  background: var(--q-orange);
-  color: var(--color-carbon);
+/* Due labels: plain text, strongest for overdue. Only urgent is a pill. */
+.queue-page .qdue {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  font-weight: 600;
+  color: var(--color-carbon-muted);
 }
 .queue-page .qdue--late {
-  background: color-mix(in srgb, var(--q-salmon) 62%, var(--color-white));
-  color: var(--q-salmon-ink);
-  box-shadow: none;
-}
-.queue-page .qdue--soon {
-  background: color-mix(in srgb, var(--q-mustard) 30%, var(--color-white));
-  color: var(--q-mustard-ink);
-  box-shadow: none;
-}
-.queue-page .qdue--ok {
-  background: color-mix(in srgb, var(--q-mauve) 55%, var(--color-white));
-  color: var(--q-mauve-ink);
-}
-
-/* Rows: overdue is a faint salmon wash; urgent is peach with an orange count */
-.queue-page .queue-item--late {
-  background: color-mix(in srgb, var(--q-salmon) 16%, var(--color-white));
-}
-.queue-page .queue-item--late .queue-item__left {
-  background: color-mix(in srgb, var(--q-salmon) 55%, var(--color-white));
-  color: var(--q-salmon-ink);
-}
-.queue-page .queue-item--soon .queue-item__left {
-  background: color-mix(in srgb, var(--q-mustard) 32%, var(--color-white));
-  color: var(--q-mustard-ink);
-}
-.queue-page .queue-item--ok .queue-item__left {
-  background: color-mix(in srgb, var(--q-mauve) 55%, var(--color-white));
-  color: var(--q-mauve-ink);
-}
-.queue-page .queue-item--urgent {
-  background: color-mix(in srgb, var(--q-peach) 75%, var(--color-white));
-}
-.queue-page .queue-item--urgent .queue-item__left {
-  background: var(--q-orange);
+  font-weight: 800;
   color: var(--color-carbon);
 }
-.queue-page .queue__group--urgent .queue__head {
-  background: color-mix(in srgb, var(--q-peach) 80%, var(--color-white));
+.queue-page .qdue--urgent {
+  padding: 3px 10px;
+  background: var(--q-peach);
+  color: var(--q-urgent-ink);
+  font-weight: 800;
 }
 
-/* Date separators */
-.queue-page .queue__sep--urgent {
-  color: var(--q-orange-ink);
+/* Rows: neutral. The count is plain type; only urgent rows get the peach wash. */
+.queue-page .queue-item--late,
+.queue-page .queue-item--soon,
+.queue-page .queue-item--ok {
+  background: none;
+}
+.queue-page .queue-item__left {
+  background: none;
+  color: var(--color-carbon);
+  min-width: 34px;
+}
+.queue-page .queue-item--urgent {
+  background: color-mix(in srgb, var(--q-peach) 55%, var(--color-white));
+}
+.queue-page .queue-item--urgent .queue-item__left {
+  background: var(--q-peach);
+  color: var(--q-urgent-ink);
+}
+
+/* Date separators: quiet labels; urgent gets the orange dot. */
+.queue-page .queue__sep,
+.queue-page .queue__sep--late,
+.queue-page .queue__sep--soon,
+.queue-page .queue__sep--ok {
+  color: var(--color-carbon-muted);
 }
 .queue-page .queue__sep--late {
-  color: var(--q-salmon-ink);
+  color: var(--color-carbon);
 }
-.queue-page .queue__sep--soon {
-  color: var(--q-mustard-ink);
+.queue-page .queue__sep--urgent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--q-urgent-ink);
 }
-.queue-page .queue__sep--ok {
-  color: var(--q-mauve-ink);
+.queue-page .queue__sep--urgent::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--q-orange);
 }
 
-/* Week chips */
-.queue-page .qweek {
-  --ink: var(--color-carbon);
-}
-.queue-page .qweek--late {
-  --tone: var(--q-salmon);
-  --ink: var(--q-salmon-ink);
-}
-.queue-page .qweek--this {
-  --tone: var(--q-mustard);
-  --ink: var(--q-mustard-ink);
-}
-.queue-page .qweek--next {
-  --tone: var(--q-mauve);
-  --ink: var(--q-mauve-ink);
-}
+/* Week chips: neutral; the selected one is filled dark. */
+.queue-page .qweek,
+.queue-page .qweek--late,
+.queue-page .qweek--this,
+.queue-page .qweek--next,
 .queue-page .qweek--later {
-  --tone: var(--q-peach);
-  --ink: var(--q-orange-ink);
+  --tone: var(--color-carbon);
 }
 .queue-page .qweek__n {
-  background: color-mix(in srgb, var(--tone) 45%, var(--color-white));
-  color: var(--ink);
+  background: none;
+  color: var(--color-carbon-muted);
+  padding: 0;
+  min-width: 0;
 }
 .queue-page .qweek[aria-pressed='true'] {
-  border-color: var(--tone);
-  background: color-mix(in srgb, var(--tone) 28%, var(--color-white));
+  background: var(--q-dark);
+  border-color: var(--q-dark);
+  color: var(--color-white);
+}
+.queue-page .qweek[aria-pressed='true'] .qweek__n {
+  color: var(--q-dark-muted);
 }
 
-/* "Cuando haya tiempo" */
-.queue-page .qrelaxed {
-  background: color-mix(in srgb, var(--q-mauve) 22%, var(--color-white));
+/* "Ahora": the batch to load in the printer, dark and open. */
+.queue-page .queue__group--now {
+  background: var(--color-white);
 }
+.queue__now {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 14px 14px 12px;
+  background: var(--q-dark);
+  color: var(--color-white);
+}
+.queue__now .swatch {
+  box-shadow:
+    0 0 0 3px var(--q-dark),
+    0 0 0 4px var(--color-carbon-muted);
+}
+.queue__now .queue__label {
+  font-size: 1.125rem;
+  color: var(--color-white);
+}
+.queue__now-kicker {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--q-dark-muted);
+}
+.queue__now-sub {
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  color: var(--q-dark-muted);
+}
+.queue__now .qdue {
+  color: var(--q-dark-muted);
+}
+.queue__now .qdue--late {
+  color: var(--color-white);
+}
+.queue__bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--q-dark-line);
+  overflow: hidden;
+}
+.queue__bar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--q-orange);
+}
+
+/* "Después": the other batches, folded into one line each. */
+.queue__group--later {
+  overflow: visible;
+}
+.queue__later {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.queue__later::-webkit-details-marker {
+  display: none;
+}
+.queue__later::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 2px solid var(--color-carbon-muted);
+  border-bottom: 2px solid var(--color-carbon-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+.queue__group--later[open] > .queue__later::after {
+  transform: rotate(45deg);
+}
+.queue__later:focus-visible {
+  outline: 2px solid var(--q-orange);
+  outline-offset: -2px;
+}
+.queue__later-text {
+  display: grid;
+  min-width: 0;
+}
+.queue__later-text small {
+  font-size: 0.8125rem;
+  color: var(--color-carbon-muted);
+}
+.queue__group--later[open] > .queue__later {
+  border-bottom: 1px solid var(--color-carbon-line);
+}
+.queue-page .queue__group--later.queue__group--urgent > .queue__later {
+  background: color-mix(in srgb, var(--q-peach) 55%, var(--color-white));
+}
+
+/* "Cuando haya tiempo": plain, no tint. */
 .queue-page .qrelaxed__count {
-  color: var(--q-mauve-ink);
+  color: var(--color-carbon-muted);
 }
 .queue-page .qbar__badge {
   background: var(--q-orange);
