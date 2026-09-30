@@ -54,7 +54,7 @@ describe('AdminLayout', () => {
   it('renders the navigation, the active person and the outlet', () => {
     renderAdminLayout()
     expect(screen.getAllByText('Hoy').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('¿Qué imprimo?').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Taller').length).toBeGreaterThan(0)
     expect(screen.getByText('Agustina')).toBeInTheDocument()
     expect(screen.getByText('Orders page')).toBeInTheDocument()
   })

@@ -306,7 +306,7 @@ export default function TodayPage() {
             <Icon name="printer" className="accent-icon" />
             <h2 className="card__title">¿Qué imprimo ahora?</h2>
             <span className="spacer" />
-            <Link to="/admin/imprimir" className="btn btn--ghost btn--sm">
+            <Link to="/admin/taller" className="btn btn--ghost btn--sm">
               Ver todo
             </Link>
           </div>

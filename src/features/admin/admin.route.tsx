@@ -15,7 +15,8 @@ import DeliveredOrdersList from '@/features/orders/DeliveredOrdersList'
 import ProductForm from '@/features/products/ProductForm'
 import ProductsList from '@/features/products/ProductsList'
 import TodayPage from '@/features/production/TodayPage'
-import PrintQueuePage from '@/features/production/PrintQueuePage'
+import WeekPage from '@/features/production/WeekPage'
+import WorkshopPage from '@/features/production/WorkshopPage'
 import CalculatorPage from '@/features/calculator/CalculatorPage'
 import AdminLayout from './AdminLayout'
 
@@ -45,7 +46,12 @@ export function Component() {
           }
         >
           <Route path="hoy" element={<TodayPage />} />
-          <Route path="imprimir" element={<PrintQueuePage />} />
+          <Route path="semana" element={<WeekPage />} />
+          <Route path="taller" element={<WorkshopPage />} />
+          <Route
+            path="imprimir"
+            element={<Navigate to="/admin/taller" replace />}
+          />
           <Route path="orders" element={<OrdersList />} />
           <Route path="orders/:id" element={<OrderProduction />} />
           <Route path="ventas-pedidos" element={<DeliveredOrdersList />} />

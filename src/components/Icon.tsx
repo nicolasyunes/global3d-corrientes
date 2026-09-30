@@ -23,6 +23,14 @@ const PATHS = {
   external: 'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6',
   edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
+  next: 'M9 5l7 7-7 7',
+  calendar: 'M4 6h16v15H4zM4 10h16M8 3v4M16 3v4',
+  sand: 'M4 15h16v4H4zM6 15l2-8h8l2 8M10 11h4',
+  chat: 'M4 5h16v11H9l-5 4z',
+  copy: 'M9 9h11v11H9zM5 15V4h11',
+  wrench: 'M14 6a4 4 0 0 0 5 5l-9 9-4-4 9-9zM6 16l2 2',
+  play: 'M8 5l11 7-11 7z',
+  auto: 'M4 12a8 8 0 0 1 14-5l2-2v6h-6l2-2a5 5 0 1 0 1 6',
   calc: 'M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM8 7h8v3H8zM8.5 14h.01M12 14h.01M15.5 14h.01M8.5 17.5h.01M12 17.5h.01M15.5 17.5h.01',
 } as const
 

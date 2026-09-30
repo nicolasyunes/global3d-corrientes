@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import Icon from '@/components/Icon'
 import {
   ORDER_STATUS_LABELS,
@@ -7,10 +7,21 @@ import {
   type OrderStatus,
   type OriginChannel,
 } from '@/lib/domain-constants'
+import { useOperator } from '@/features/operators/operator-context'
 import ActivityFeed from '@/features/production/ActivityFeed'
 import OrderPieces from '@/features/production/OrderPieces'
-import { dueInfo } from '@/features/production/due'
+import { colorSwatch } from '@/features/production/pieces'
 import '@/features/production/production.css'
+import {
+  listEvents,
+  listPieces,
+  type PieceRow,
+} from '@/features/production/production.api'
+import { logOrderEvent } from '@/features/production/workshop.api'
+import { formatDueDate, formatMoney } from './format'
+import OrderImages from './OrderImages'
+import { useOrderModal } from './order-modal-context'
+import { DEFAULT_WAITING_REASON, followUpFrom, isWaiting } from './orderFlow'
 import {
   getOrder,
   listOrderItems,
@@ -19,49 +30,98 @@ import {
   type OrderUpdate,
   type OrderWithCustomer,
 } from './orders.api'
+import { createOrderFromDraft, loadDraft } from './orderSave.api'
+import OrderSummary from './OrderSummary'
+import { nextStepHint, type PostFields } from './stage'
 import { nextOrderStatus, ORDER_STATUS_FLOW } from './status'
-import { formatDueDate, formatMoney } from './format'
-import { DEFAULT_WAITING_REASON, followUpFrom, isWaiting } from './orderFlow'
-import OrderSummary, { type PieceStats } from './OrderSummary'
-import { listPieces } from '@/features/production/production.api'
 import { toISODate } from './validation'
-import OrderImages from './OrderImages'
-import { useOrderModal } from './order-modal-context'
-import { STATUS_BADGE_CLASS } from './StatusBadge'
+import './taller.css'
 
-// `/admin/orders/:id` — the shop-floor view: stage line + advance, items with
-// their pieces (color, counter, status, who), references and activity.
-// Commercial data lives on `/editar`.
+function stamp(iso: string, today: string): string {
+  const date = new Date(iso)
+  const day = toISODate(date)
+  const time = date.toLocaleTimeString('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  if (day === today) return `hoy ${time}`
+  return date
+    .toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
+    .replace('.', '')
+}
+
+// Compact "how far is it": one square per piece in its own color. Filled =
+// printed, striped = printing, outline = still to do.
+function PartsChip({ parts }: { parts: PieceRow[] }) {
+  if (parts.length === 0) return null
+  const done = parts.filter((p) => p.status === 'done').length
+  return (
+    <span className="parts-chip" title="Partes impresas">
+      <span className="parts-chip__squares" aria-hidden="true">
+        {parts.slice(0, 14).map((p) => {
+          const bg = colorSwatch(p.color) ?? '#8a8178'
+          const solid = bg.startsWith('#') ? bg : '#8a8178'
+          return (
+            <i
+              key={p.id}
+              data-status={p.status}
+              style={
+                p.status === 'done'
+                  ? { background: bg }
+                  : p.status === 'printing'
+                    ? {
+                        background: `repeating-linear-gradient(135deg, ${solid} 0 3px, #fff 3px 5px)`,
+                      }
+                    : { boxShadow: `inset 0 0 0 1.5px ${solid}` }
+              }
+            />
+          )
+        })}
+      </span>
+      <span className="num">
+        {done}/{parts.length} {parts.length === 1 ? 'parte' : 'partes'}
+      </span>
+    </span>
+  )
+}
+
+// `/admin/orders/:id` — the order from the workshop's side: the stage (which
+// follows the pieces by itself), the pieces edited in place, and a summary of
+// who, when and how much.
 export default function OrderProduction() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { current } = useOperator()
+  const operatorId = current?.id ?? null
   const [order, setOrder] = useState<OrderWithCustomer | null>(null)
   const [items, setItems] = useState<OrderItemRow[]>([])
+  const [parts, setParts] = useState<PieceRow[]>([])
+  const [stageDates, setStageDates] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [activityKey, setActivityKey] = useState(0)
   const [piecesKey, setPiecesKey] = useState(0)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
   const { openEdit } = useOrderModal()
-  const [stats, setStats] = useState<PieceStats | null>(null)
 
-  // Summary numbers; refreshed whenever pieces or the order change.
+  // Pieces (for the header chip and the stage hint) and when each stage was
+  // reached; refreshed whenever something changes below.
   useEffect(() => {
     if (!id) return
     let cancelled = false
-    listPieces(id)
-      .then((rows) => {
+    Promise.all([listPieces(id), listEvents(id, 80)])
+      .then(([rows, events]) => {
         if (cancelled) return
-        setStats(
-          rows.length === 0
-            ? null
-            : {
-                pieces: rows.length,
-                piecesDone: rows.filter((p) => p.status === 'done').length,
-                units: rows.reduce((s, p) => s + p.quantity_total, 0),
-                unitsDone: rows.reduce((s, p) => s + p.quantity_done, 0),
-              },
-        )
+        setParts(rows)
+        const dates: Record<string, string> = {}
+        // Newest first: keep the latest time each stage was entered.
+        for (const e of events)
+          if (e.kind === 'stage' && e.to_status && !dates[e.to_status])
+            dates[e.to_status] = e.created_at
+        setStageDates(dates)
       })
       .catch(() => undefined)
     return () => {
@@ -94,6 +154,22 @@ export default function OrderProduction() {
     }
   }, [id])
 
+  useEffect(() => {
+    if (!menuOpen) return
+    const onPointer = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
+
   // After editing in the modal: items may have been added/removed (and their
   // pieces with them), so reload everything below the header too.
   async function reload() {
@@ -108,43 +184,101 @@ export default function OrderProduction() {
     setActivityKey((k) => k + 1)
   }
 
-  // Pieces can move the order to "Imprimiendo" server-side; refresh the header.
+  // Pieces move the order's stage in the database; refresh the header.
   function handlePiecesChanged() {
     setActivityKey((k) => k + 1)
     if (!id) return
     void getOrder(id).then((row) => row && setOrder(row))
   }
 
-  const setStatus = (status: OrderStatus) => patchOrder({ status })
+  // Saves, then re-reads the order: the database may have recomputed its
+  // stage. `event` goes to the order's activity.
+  async function patchOrder(
+    fields: OrderUpdate,
+    event?: {
+      kind: 'priority' | 'postprocess' | 'payment'
+      label: string
+      delta?: number
+    },
+  ): Promise<boolean> {
+    if (!order) return false
+    setBusy(true)
+    setActionError(null)
+    try {
+      await updateOrder(order.id, fields)
+      if (event)
+        await logOrderEvent(
+          order.id,
+          operatorId,
+          event.kind,
+          event.label,
+          event.delta,
+        )
+      const fresh = await getOrder(order.id)
+      if (fresh) setOrder(fresh)
+      setActivityKey((k) => k + 1)
+      return true
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'No se pudo guardar el cambio.',
+      )
+      return false
+    } finally {
+      setBusy(false)
+    }
+  }
 
-  // The stepper lets the stage be set freely (a job can go back from post-
-  // processing to printing, or a click can be a mistake). Moving one step
-  // forward is what "Avanzar" does; going back or skipping ahead asks first.
+  // The stepper sets the stage by hand: it stays there (stage_manual) until
+  // "volver a automático".
   function goToStatus(status: OrderStatus) {
     if (!order || status === order.status) return
     const from = ORDER_STATUS_FLOW.indexOf(order.status)
     const to = ORDER_STATUS_FLOW.indexOf(status)
-    if (to !== from + 1) {
-      const verb = to < from ? 'Volver a' : 'Pasar directo a'
-      if (!window.confirm(`${verb} "${ORDER_STATUS_LABELS[status]}"?`)) return
-    }
-    void setStatus(status)
+    const verb = to < from ? 'Volver a' : 'Pasar a'
+    if (
+      !window.confirm(
+        `${verb} "${ORDER_STATUS_LABELS[status]}"? La etapa queda fijada a mano hasta que vuelvas a automático.`,
+      )
+    )
+      return
+    void patchOrder({ status, stage_manual: status !== 'delivered' })
   }
 
-  async function patchOrder(fields: OrderUpdate) {
+  async function duplicate() {
     if (!order) return
+    setMenuOpen(false)
     setBusy(true)
     setActionError(null)
     try {
-      const updated = await updateOrder(order.id, fields)
-      setOrder((prev) => (prev ? { ...prev, ...updated } : prev))
+      const draft = await loadDraft(order.id)
+      const copy = await createOrderFromDraft(
+        { ...draft, deposit: '', urgent: false },
+        operatorId,
+      )
+      navigate(`/admin/orders/${copy.id}`)
     } catch (err) {
       setActionError(
-        err instanceof Error ? err.message : 'No se pudo actualizar el estado.',
+        err instanceof Error ? err.message : 'No se pudo duplicar el pedido.',
       )
     } finally {
       setBusy(false)
     }
+  }
+
+  async function registerPayment(amount: number): Promise<boolean> {
+    if (!order) return false
+    const balance = order.pending_balance ?? 0
+    return patchOrder(
+      {
+        deposit: (order.deposit ?? 0) + amount,
+        pending_balance: Math.max(0, balance - amount),
+      },
+      {
+        kind: 'payment',
+        label: formatMoney(amount),
+        delta: Math.round(amount),
+      },
+    )
   }
 
   if (loading) return <p className="muted">Cargando…</p>
@@ -164,12 +298,19 @@ export default function OrderProduction() {
   }
 
   const today = toISODate(new Date())
-  const next = nextOrderStatus(order.status)
-  const isFinished = order.status === 'finished'
+  // An order without sanding or painting skips the postprocess step.
+  const following = nextOrderStatus(order.status)
+  const next =
+    following === 'post_processing' && !order.pp_sand && !order.pp_paint
+      ? 'finished'
+      : following
   const isCancelled = order.status === 'cancelled'
-  const waiting = isWaiting(order) && !isCancelled
-  const due = dueInfo(order.due_date, today)
-  const stageIndex = ORDER_STATUS_FLOW.indexOf(order.status)
+  const isDelivered = order.status === 'delivered'
+  const open = !isCancelled && !isDelivered
+  const waiting = isWaiting(order) && open
+  const stageIndex = ORDER_STATUS_FLOW.indexOf(
+    order.status === 'in_queue' ? 'new' : order.status,
+  )
   const title = order.title?.trim()
     ? order.title
     : items.length === 1
@@ -181,38 +322,43 @@ export default function OrderProduction() {
     ? (ORIGIN_CHANNEL_LABELS[order.origin_channel as OriginChannel] ??
       order.origin_channel)
     : null
+  const post: PostFields = {
+    pp_sand: order.pp_sand,
+    pp_paint: order.pp_paint,
+    sand_done: order.sand_done,
+    paint_done: order.paint_done,
+  }
+  const progressPct =
+    stageIndex <= 0 ? 0 : (stageIndex / (ORDER_STATUS_FLOW.length - 1)) * 100
 
   return (
-    <main>
+    <main className="od">
+      <Link to="/admin/orders" className="back">
+        <Icon name="back" size={18} />
+        Pedidos
+      </Link>
       <header className="page-head">
         <div className="page-head__main">
-          <Link to="/admin/orders" className="back">
-            <Icon name="back" size={18} />
-            Pedidos
-          </Link>
           <p className="eyebrow">
             {order.customers?.name ?? 'Sin cliente'}
             {channel ? ` · ${channel}` : ''}
           </p>
-          <h1 className="page-title">{title}</h1>
+          <div className="od-title">
+            <h1 className="page-title">{title}</h1>
+            <PartsChip parts={parts} />
+          </div>
         </div>
         <div className="page-head__actions">
-          {order.urgent && !waiting && !isFinished && (
+          {order.urgent && open && !waiting && (
             <span className="badge badge--late">Urgente</span>
           )}
-          {waiting ? (
-            <span className="badge badge--post">En espera</span>
-          ) : order.flexible ? (
+          {waiting && <span className="badge badge--post">En espera</span>}
+          {order.flexible && open && !waiting && (
             <span className="badge">
               Sin apuro · {formatDueDate(order.due_date)}
             </span>
-          ) : (
-            <span
-              className={`badge ${due.tone === 'late' ? 'badge--late' : 'badge--printing'}`}
-            >
-              {due.tone === 'late' ? due.label : `Entrega: ${due.label}`}
-            </span>
           )}
+          {isCancelled && <span className="badge">Pedido cancelado</span>}
           <button
             type="button"
             className="btn btn--ghost"
@@ -221,47 +367,58 @@ export default function OrderProduction() {
             <Icon name="edit" size={18} />
             Editar datos
           </button>
+          <div className="od-menu" ref={menuRef}>
+            <button
+              type="button"
+              className="sem-nav"
+              aria-label="Más acciones: cancelar pedido, duplicar"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <Icon name="more" size={22} />
+            </button>
+            {menuOpen && (
+              <div className="od-menu__panel">
+                <button type="button" disabled={busy} onClick={duplicate}>
+                  <Icon name="copy" size={16} />
+                  Duplicar pedido
+                </button>
+                {open && !waiting && order.status === 'new' && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setMenuOpen(false)
+                      void patchOrder({
+                        waiting_reason: DEFAULT_WAITING_REASON,
+                        follow_up_on: followUpFrom(today),
+                      })
+                    }}
+                  >
+                    <Icon name="alert" size={16} />
+                    Poner en espera
+                  </button>
+                )}
+                {open && (
+                  <button
+                    type="button"
+                    className="is-danger"
+                    disabled={busy}
+                    onClick={() => {
+                      setMenuOpen(false)
+                      if (window.confirm('¿Cancelar este pedido?'))
+                        void patchOrder({ status: 'cancelled' })
+                    }}
+                  >
+                    <Icon name="trash" size={16} />
+                    Cancelar pedido
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
-
-      {!isCancelled && (
-        <ol className="stepper" aria-label="Etapas del pedido">
-          {ORDER_STATUS_FLOW.map((status, i) => (
-            <li
-              key={status}
-              className={
-                i < stageIndex
-                  ? 'is-done'
-                  : i === stageIndex
-                    ? 'is-current'
-                    : undefined
-              }
-            >
-              <button
-                type="button"
-                className="stepper__step"
-                disabled={busy || waiting}
-                aria-current={i === stageIndex ? 'step' : undefined}
-                title={
-                  i === stageIndex
-                    ? 'Etapa actual'
-                    : i < stageIndex
-                      ? `Volver a ${ORDER_STATUS_LABELS[status]}`
-                      : `Pasar a ${ORDER_STATUS_LABELS[status]}`
-                }
-                onClick={() => goToStatus(status)}
-              >
-                <span className="stepper__dot">
-                  {i < stageIndex ? <Icon name="check" size={14} /> : i + 1}
-                </span>
-                <span className="stepper__label">
-                  {ORDER_STATUS_LABELS[status]}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ol>
-      )}
 
       {waiting && (
         <div className="waiting-banner" role="status">
@@ -269,7 +426,7 @@ export default function OrderProduction() {
           <div>
             <strong>En espera: {order.waiting_reason}</strong>
             <p>
-              No entra a producción hasta que lo confirmes.{' '}
+              No entra al taller hasta que lo confirmes.{' '}
               {order.follow_up_on && order.follow_up_on > today
                 ? `Vuelve a aparecer para revisar el ${formatDueDate(order.follow_up_on)}.`
                 : 'Hoy toca revisarlo.'}
@@ -301,107 +458,168 @@ export default function OrderProduction() {
         </div>
       )}
 
-      <div className="stage-actions">
-        {isCancelled && (
-          <span className={STATUS_BADGE_CLASS.cancelled}>Pedido cancelado</span>
-        )}
-        {next && !waiting && (
-          <button
-            type="button"
-            className="btn btn--primary"
-            disabled={busy}
-            onClick={() => void setStatus(next)}
-          >
-            {busy ? 'Actualizando…' : `Avanzar a ${ORDER_STATUS_LABELS[next]}`}
-          </button>
-        )}
-        {!isFinished && !isCancelled && order.status !== 'delivered' && (
-          <button
-            type="button"
-            className="btn btn--danger"
-            disabled={busy}
-            onClick={() => {
-              if (window.confirm('¿Cancelar este pedido?'))
-                void setStatus('cancelled')
-            }}
-          >
-            Cancelar pedido
-          </button>
-        )}
-        {!waiting && order.status === 'new' && (
-          <button
-            type="button"
-            className="btn btn--ghost"
-            disabled={busy}
-            title="Sacarlo de producción hasta que se confirme"
-            onClick={() =>
-              void patchOrder({
-                waiting_reason: DEFAULT_WAITING_REASON,
-                follow_up_on: followUpFrom(today),
-              })
-            }
-          >
-            Poner en espera
-          </button>
-        )}
-        {!waiting &&
-          !isFinished &&
-          !isCancelled &&
-          order.status !== 'delivered' && (
-            <button
-              type="button"
-              className="chip"
-              aria-pressed={order.flexible}
-              disabled={busy}
-              title="La fecha es orientativa: no cuenta como atrasado"
-              onClick={() =>
-                void patchOrder({
-                  flexible: !order.flexible,
-                  ...(!order.flexible && { urgent: false }),
-                })
-              }
-            >
-              Sin apuro
-            </button>
-          )}
-        {!waiting &&
-          !isFinished &&
-          !isCancelled &&
-          order.status !== 'delivered' && (
-            <button
-              type="button"
-              className="chip chip--urgent"
-              aria-pressed={order.urgent}
-              disabled={busy}
-              title="Aparece primero en Pedidos, arriba de todo"
-              onClick={() =>
-                void patchOrder({
-                  urgent: !order.urgent,
-                  ...(!order.urgent && { flexible: false }),
-                })
-              }
-            >
-              Urgente
-            </button>
-          )}
-        {isFinished && (
-          <p className="stage-actions__hint num">
-            Listo para entregar. Saldo pendiente:{' '}
-            {formatMoney(order.pending_balance)}
-          </p>
-        )}
-        {actionError && (
-          <p className="banner banner--error" role="alert">
-            {actionError}
-          </p>
-        )}
-      </div>
+      {!isCancelled && (
+        <section className="od-stepper">
+          <div className="od-stepper__rail">
+            <div className="od-stepper__line" aria-hidden="true">
+              <i style={{ width: `${progressPct}%` }} />
+            </div>
+            <ol aria-label="Etapas del pedido">
+              {ORDER_STATUS_FLOW.map((status, i) => {
+                const reached = i <= stageIndex
+                const date =
+                  i === 0
+                    ? order.created_at
+                    : reached
+                      ? stageDates[status]
+                      : undefined
+                return (
+                  <li
+                    key={status}
+                    className={
+                      i < stageIndex
+                        ? 'is-done'
+                        : i === stageIndex
+                          ? 'is-current'
+                          : undefined
+                    }
+                  >
+                    <button
+                      type="button"
+                      disabled={busy || waiting}
+                      aria-current={i === stageIndex ? 'step' : undefined}
+                      aria-label={
+                        i === stageIndex
+                          ? `${ORDER_STATUS_LABELS[status]}, etapa actual`
+                          : `Cambiar estado a ${ORDER_STATUS_LABELS[status]}`
+                      }
+                      onClick={() => goToStatus(status)}
+                    >
+                      <span className="od-stepper__dot num">
+                        {i < stageIndex ? (
+                          <Icon name="check" size={14} />
+                        ) : (
+                          i + 1
+                        )}
+                      </span>
+                      <span className="od-stepper__label">
+                        {ORDER_STATUS_LABELS[status]}
+                      </span>
+                      <span className="od-stepper__date">
+                        {date ? stamp(date, today) : ''}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ol>
+          </div>
+          <div className="od-stepper__bar">
+            <Icon name={order.stage_manual ? 'wrench' : 'auto'} size={18} />
+            <p className="od-stepper__hint">
+              {nextStepHint(order, parts)}
+              {!order.stage_manual && open && !waiting && (
+                <> Podés cambiar el estado tocando un paso.</>
+              )}
+              {order.stage_manual && open && (
+                <>
+                  {' '}
+                  <button
+                    type="button"
+                    className="osum2__link"
+                    disabled={busy}
+                    onClick={() => void patchOrder({ stage_manual: false })}
+                  >
+                    Volver a automático
+                  </button>
+                </>
+              )}
+            </p>
+            {open && !waiting && (
+              <>
+                <button
+                  type="button"
+                  className="chip"
+                  aria-pressed={order.flexible}
+                  disabled={busy}
+                  title="La fecha es orientativa: no cuenta como atrasado"
+                  onClick={() =>
+                    void patchOrder(
+                      {
+                        flexible: !order.flexible,
+                        ...(!order.flexible && { urgent: false }),
+                      },
+                      {
+                        kind: 'priority',
+                        label: order.flexible ? 'Normal' : 'Sin apuro',
+                      },
+                    )
+                  }
+                >
+                  Sin apuro
+                </button>
+                <button
+                  type="button"
+                  className="chip chip--urgent"
+                  aria-pressed={order.urgent}
+                  disabled={busy}
+                  title="Aparece primero en Pedidos y en Taller"
+                  onClick={() =>
+                    void patchOrder(
+                      {
+                        urgent: !order.urgent,
+                        ...(!order.urgent && { flexible: false }),
+                      },
+                      {
+                        kind: 'priority',
+                        label: order.urgent ? 'Normal' : 'Urgente',
+                      },
+                    )
+                  }
+                >
+                  Urgente
+                </button>
+              </>
+            )}
+            {next && !waiting && (
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={busy}
+                onClick={() =>
+                  void patchOrder({
+                    status: next,
+                    stage_manual: next !== 'delivered',
+                  })
+                }
+              >
+                <Icon name="next" size={18} />
+                {busy
+                  ? 'Actualizando…'
+                  : `Avanzar a ${ORDER_STATUS_LABELS[next]}`}
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
+      {actionError && (
+        <p className="banner banner--error" role="alert">
+          {actionError}
+        </p>
+      )}
 
       <div className="detail-grid">
         <OrderPieces
           key={piecesKey}
           orderId={order.id}
           items={items}
+          post={post}
+          busy={busy}
+          onPost={(fields, label) =>
+            void patchOrder(fields, { kind: 'postprocess', label })
+          }
+          onEditItems={() => openEdit(order.id, () => void reload())}
           onChanged={handlePiecesChanged}
         />
 
@@ -409,9 +627,9 @@ export default function OrderProduction() {
           <OrderSummary
             order={order}
             items={items}
-            stats={stats}
             today={today}
             channel={channel}
+            onPay={registerPayment}
           />
 
           <section className="card">

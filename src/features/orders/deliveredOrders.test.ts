@@ -29,6 +29,12 @@ function order(overrides: Partial<OrderWithCustomer>): OrderWithCustomer {
     follow_up_on: null,
     flexible: false,
     urgent: false,
+    pp_sand: false,
+    pp_paint: false,
+    pp_notes: null,
+    sand_done: false,
+    paint_done: false,
+    stage_manual: false,
     customers: { name: 'Ada', phone: null },
     ...overrides,
   }

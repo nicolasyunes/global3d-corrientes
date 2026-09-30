@@ -1,17 +1,22 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import Icon from '@/components/Icon'
 import { useToast } from '@/components/useToast'
 import { useOperator } from '@/features/operators/operator-context'
 import type { OrderItemRow } from '@/features/orders/orders.api'
+import type { PostFields } from '@/features/orders/stage'
 import PieceColorPicker from './PieceColorPicker'
 import PieceRow from './PieceRow'
-import { itemState, NEXT_PIECE_STATUS, type PieceStatus } from './pieces'
+import {
+  itemState,
+  NEXT_PIECE_STATUS,
+  TO_PAINT,
+  type PieceStatus,
+} from './pieces'
 import {
   createPiece,
   deletePiece,
   incrementPiece,
   listPieces,
-  registerPieceFailure,
   setPieceStatus,
   updatePiece,
   type PieceEdit,
@@ -22,7 +27,7 @@ import './production.css'
 interface Group {
   key: string
   itemId: string | null
-  index: number | null
+  quantity: number | null
   title: string
   subtitle: string | null
 }
@@ -63,22 +68,26 @@ function NoteText({ text }: { text: string }) {
   )
 }
 
-function AddPiece({
+// Last row of every item: type, Enter, type the next one.
+function QuickAdd({
   onAdd,
   busy,
   usedColors,
+  defaultColor,
 }: {
   onAdd: (label: string, color: string, qty: number) => Promise<boolean>
   busy: boolean
   usedColors: string[]
+  defaultColor: string
 }) {
   const [label, setLabel] = useState('')
-  const [color, setColor] = useState('negro')
+  const [color, setColor] = useState(defaultColor)
   const [qty, setQty] = useState('1')
+  const inputRef = useRef<HTMLInputElement>(null)
 
   async function submit(e: FormEvent) {
     e.preventDefault()
-    if (!label.trim()) return
+    if (!label.trim() || busy) return
     const ok = await onAdd(
       label.trim(),
       color.trim(),
@@ -87,15 +96,17 @@ function AddPiece({
     if (ok) {
       setLabel('')
       setQty('1')
+      inputRef.current?.focus()
     }
   }
 
   return (
     <form className="add-piece" onSubmit={submit}>
       <input
+        ref={inputRef}
         className="input add-piece__label"
-        placeholder="¿Qué falta? ej: cabeza, ojos, manos…"
-        aria-label="Pieza que falta"
+        placeholder="Agregar pieza… ej: cabeza, ojos, manos"
+        aria-label="Agregar pieza"
         value={label}
         onChange={(e) => setLabel(e.target.value)}
       />
@@ -118,10 +129,10 @@ function AddPiece({
       </label>
       <button
         type="submit"
-        className="btn btn--primary"
+        className="btn btn--ghost btn--sm"
         disabled={busy || !label.trim()}
       >
-        Agregar
+        Enter para agregar
       </button>
     </form>
   )
@@ -130,12 +141,22 @@ function AddPiece({
 interface OrderPiecesProps {
   orderId: string
   items: OrderItemRow[]
+  // Postprocess of the whole order (what it needs, what is done).
+  post: PostFields
+  busy?: boolean
+  onPost: (fields: Partial<PostFields>, event: string) => void
+  // Products are edited in the order form.
+  onEditItems: () => void
   onChanged?: () => void
 }
 
 export default function OrderPieces({
   orderId,
   items,
+  post,
+  busy = false,
+  onPost,
+  onEditItems,
   onChanged,
 }: OrderPiecesProps) {
   const { current } = useOperator()
@@ -166,11 +187,11 @@ export default function OrderPieces({
   }, [orderId])
 
   const groups: Group[] = useMemo(() => {
-    const list: Group[] = items.map((item, i) => ({
+    const list: Group[] = items.map((item) => ({
       key: item.id,
       itemId: item.id,
-      index: i + 1,
-      title: `${item.quantity > 1 ? `${item.quantity}× ` : ''}${item.description}`,
+      quantity: item.quantity,
+      title: item.description,
       subtitle: item.personalization,
     }))
     const hasLoose = pieces.some(
@@ -180,7 +201,7 @@ export default function OrderPieces({
       list.push({
         key: 'general',
         itemId: null,
-        index: null,
+        quantity: null,
         title: items.length === 0 ? 'Piezas del pedido' : 'Piezas generales',
         subtitle: null,
       })
@@ -198,6 +219,11 @@ export default function OrderPieces({
     ],
     [pieces],
   )
+  // New pieces start with the last color used here; an order that gets
+  // painted starts them as "Para pintar".
+  const defaultColor =
+    pieces[pieces.length - 1]?.color?.trim() ||
+    (post.pp_paint ? TO_PAINT : 'negro')
 
   function piecesOf(group: Group) {
     return pieces.filter((p) =>
@@ -231,7 +257,7 @@ export default function OrderPieces({
       const next = NEXT_PIECE_STATUS[piece.status as PieceStatus] ?? 'printing'
       replace(await setPieceStatus(piece.id, next, operatorId))
       showToast(
-        `${piece.label}: ${next === 'done' ? 'lista' : next === 'printing' ? 'imprimiendo' : 'pendiente'}`,
+        `${piece.label}: ${next === 'done' ? 'impresa' : next === 'printing' ? 'imprimiendo' : 'pendiente'}`,
       )
     })
 
@@ -242,13 +268,6 @@ export default function OrderPieces({
       showToast(
         `+1 ${piece.label} · ${updated.quantity_done}/${updated.quantity_total}`,
       )
-    })
-
-  const fail = (piece: Piece) =>
-    run(piece.id, async () => {
-      await registerPieceFailure(piece.id, operatorId)
-      showToast(`Falla registrada en ${piece.label}`)
-      onChanged?.()
     })
 
   const remove = (piece: Piece) => {
@@ -265,7 +284,6 @@ export default function OrderPieces({
     setError(null)
     try {
       replace(await updatePiece(piece.id, changes, operatorId))
-      showToast('Pieza actualizada')
       return true
     } catch (err) {
       setError(
@@ -306,12 +324,9 @@ export default function OrderPieces({
     }
   }
 
-  const doneItems = items.filter(
-    (item) =>
-      itemState(pieces.filter((p) => p.order_item_id === item.id)) === 'done',
-  ).length
-
   if (loading) return <p className="muted">Cargando piezas…</p>
+
+  const needsPost = post.pp_sand || post.pp_paint
 
   return (
     <section className="card">
@@ -319,12 +334,16 @@ export default function OrderPieces({
         <h2 className="card__title">
           {items.length > 0 ? 'Ítems del pedido' : 'Piezas'}
         </h2>
+        <span className="card__meta">Tocá cualquier dato para editarlo</span>
         <span className="spacer" />
-        {items.length > 1 && (
-          <span className="card__meta num">
-            {doneItems} de {items.length} listos
-          </span>
-        )}
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm"
+          onClick={onEditItems}
+        >
+          <Icon name="plus" size={16} />
+          Agregar producto
+        </button>
       </div>
 
       {error && (
@@ -336,15 +355,14 @@ export default function OrderPieces({
       {groups.map((group) => {
         const list = piecesOf(group)
         const state = itemState(list)
-        const doneCount = list.filter((p) => p.status === 'done').length
         return (
           <div
             key={group.key}
             className={`item-block${state === 'done' ? ' is-done' : ''}`}
           >
             <div className="item-block__head">
-              {items.length > 1 && group.index !== null && (
-                <span className="item-block__n">{group.index}</span>
+              {group.quantity !== null && (
+                <span className="item-block__qty num">{group.quantity}×</span>
               )}
               <div className="item-block__title">
                 <strong>{group.title}</strong>
@@ -353,41 +371,143 @@ export default function OrderPieces({
                     <NoteText text={group.subtitle} />
                   </span>
                 )}
+                {group.itemId && (
+                  <span className="item-block__post">
+                    Posprocesado: igual que el pedido
+                  </span>
+                )}
               </div>
-              {list.length > 0 && (
-                <span
-                  className={`item-block__meta num is-${state}`}
-                  title={`${doneCount} de ${list.length} piezas listas`}
+              {group.itemId && (
+                <button
+                  type="button"
+                  className="prt__del"
+                  aria-label={`Editar ${group.title}`}
+                  title="Editar producto"
+                  onClick={onEditItems}
                 >
-                  {doneCount}/{list.length}
-                </span>
+                  <Icon name="edit" size={16} />
+                </button>
               )}
             </div>
             {list.length > 0 && (
-              <ul className="piece-list">
-                {list.map((piece) => (
-                  <PieceRow
-                    key={piece.id}
-                    piece={piece}
-                    busy={busyId === piece.id}
-                    onCycle={cycle}
-                    onIncrement={increment}
-                    onFail={fail}
-                    onRemove={remove}
-                    onEdit={edit}
-                    usedColors={usedColors}
-                  />
-                ))}
-              </ul>
+              <>
+                <div className="prt-head" aria-hidden="true">
+                  <span />
+                  <span>Pieza</span>
+                  <span>Color</span>
+                  <span>Cant.</span>
+                  <span>Último cambio</span>
+                  <span />
+                </div>
+                <ul className="piece-list">
+                  {list.map((piece) => (
+                    <PieceRow
+                      key={piece.id}
+                      piece={piece}
+                      busy={busyId === piece.id}
+                      usedColors={usedColors}
+                      onCycle={cycle}
+                      onIncrement={increment}
+                      onRemove={remove}
+                      onEdit={edit}
+                    />
+                  ))}
+                </ul>
+              </>
             )}
-            <AddPiece
+            <QuickAdd
               usedColors={usedColors}
+              defaultColor={defaultColor}
               busy={busyId === `add-${group.key}`}
               onAdd={(label, color, qty) => add(group, label, color, qty)}
             />
           </div>
         )
       })}
+
+      <div className="post-foot">
+        <div className="post-foot__text">
+          <strong>Posprocesado del pedido</strong>
+          <span>cuando todo esté impreso</span>
+        </div>
+        <div className="post-foot__toggles" role="group" aria-label="Lleva">
+          <button
+            type="button"
+            className="wk-toggle"
+            aria-pressed={post.pp_sand}
+            disabled={busy}
+            onClick={() =>
+              onPost(
+                {
+                  pp_sand: !post.pp_sand,
+                  ...(post.pp_sand && { sand_done: false }),
+                },
+                post.pp_sand ? 'Ya no lleva lijado' : 'Lleva lijado',
+              )
+            }
+          >
+            <Icon name="sand" size={16} />
+            Lijar
+          </button>
+          <button
+            type="button"
+            className="wk-toggle"
+            aria-pressed={post.pp_paint}
+            disabled={busy}
+            onClick={() =>
+              onPost(
+                {
+                  pp_paint: !post.pp_paint,
+                  ...(post.pp_paint && { paint_done: false }),
+                },
+                post.pp_paint ? 'Ya no lleva pintura' : 'Lleva pintura',
+              )
+            }
+          >
+            <Icon name="brush" size={16} />
+            Pintar
+          </button>
+        </div>
+        {needsPost && (
+          <div className="post-foot__toggles" role="group" aria-label="Hecho">
+            <span className="post-foot__label">Hecho:</span>
+            {post.pp_sand && (
+              <button
+                type="button"
+                className="wk-toggle wk-toggle--done"
+                aria-pressed={post.sand_done}
+                disabled={busy}
+                onClick={() =>
+                  onPost(
+                    { sand_done: !post.sand_done },
+                    post.sand_done ? 'Lijado (desmarcado)' : 'Lijado',
+                  )
+                }
+              >
+                <Icon name="check" size={16} />
+                Lijado
+              </button>
+            )}
+            {post.pp_paint && (
+              <button
+                type="button"
+                className="wk-toggle wk-toggle--done"
+                aria-pressed={post.paint_done}
+                disabled={busy}
+                onClick={() =>
+                  onPost(
+                    { paint_done: !post.paint_done },
+                    post.paint_done ? 'Pintado (desmarcado)' : 'Pintado',
+                  )
+                }
+              >
+                <Icon name="check" size={16} />
+                Pintado
+              </button>
+            )}
+          </div>
+        )}
+      </div>
       <datalist id="piece-colors">
         {usedColors.map((c) => (
           <option key={c} value={c} />

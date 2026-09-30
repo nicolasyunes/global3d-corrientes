@@ -80,6 +80,8 @@ function orderFields(draft: OrderDraft) {
       : null,
     flexible: draft.flexible,
     urgent: draft.urgent && !draft.waiting,
+    pp_sand: draft.ppSand,
+    pp_paint: draft.ppPaint,
   }
 }
 
@@ -317,5 +319,7 @@ export async function loadDraft(orderId: string): Promise<OrderDraft> {
     followUpOn: order.follow_up_on ?? '',
     flexible: order.flexible ?? false,
     urgent: order.urgent ?? false,
+    ppSand: order.pp_sand ?? false,
+    ppPaint: order.pp_paint ?? false,
   }
 }
