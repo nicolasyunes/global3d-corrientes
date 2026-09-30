@@ -124,7 +124,7 @@ export default function OrderSummary({
             href={wa}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn btn--ghost btn--sm"
+            className="osum2__wa"
           >
             <Icon name="chat" size={16} />
             WhatsApp
@@ -135,7 +135,9 @@ export default function OrderSummary({
       <div className="osum2__block">
         <div className="osum2__label">
           <span>Entrega</span>
-          <span className={late ? 'is-late' : undefined}>{dueHint}</span>
+          <span className={late ? 'is-late' : closed ? undefined : 'is-soon'}>
+            {dueHint}
+          </span>
         </div>
         <p className="osum2__big">{formatDueDate(order.due_date)}</p>
         {!closed && (
@@ -146,7 +148,7 @@ export default function OrderSummary({
             </div>
             <div className="osum2__ticks">
               <span>Cargado {shortDay(created)}</span>
-              <span>Hoy</span>
+              <span className="osum2__today">Hoy</span>
               <span>{shortDay(order.due_date)}</span>
             </div>
           </div>
@@ -166,7 +168,9 @@ export default function OrderSummary({
             </button>
           )}
         </div>
-        <p className="osum2__big num">{formatMoney(order.pending_balance)}</p>
+        <p className={`osum2__big num${balance > 0 ? ' is-owed' : ' is-paid'}`}>
+          {formatMoney(order.pending_balance)}
+        </p>
         <p className="osum2__sub num">
           Total {formatMoney(order.total_amount)} · Seña{' '}
           {formatMoney(order.deposit)}

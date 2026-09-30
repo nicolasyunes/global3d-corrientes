@@ -1863,3 +1863,125 @@
 .wk-row {
   padding: 12px 18px;
 }
+
+/* ---------- Detalle de pedido: una sola tipografia y el naranja de marca ----
+   Numbers use the page font with tabular figures instead of the mono. */
+.od .num {
+  font-family: inherit;
+  font-weight: inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.od .osum2 {
+  border-radius: 20px;
+}
+.od .osum2__client,
+.od .osum2__block {
+  padding: 20px 22px;
+}
+.od .osum2__block {
+  border-top-color: #efe9e1;
+}
+.od .client-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: #efe9e2;
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+.od .osum2__who strong {
+  font-size: 1.125rem;
+}
+.od .osum2__who span {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-3);
+}
+.osum2__wa {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid #cfe6d6;
+  border-radius: 12px;
+  background: var(--st-ready-bg);
+  color: var(--st-ready-fg);
+  font-weight: 800;
+  text-decoration: none;
+}
+.osum2__wa:hover {
+  border-color: var(--st-ready);
+}
+.osum2__wa:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+.od .osum2__label {
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+.od .osum2__label > :first-child {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  color: var(--text-2);
+}
+.od .osum2__label .is-soon {
+  color: #a0520c;
+}
+.od .osum2__big {
+  margin: 8px 0 4px;
+  font-size: 1.625rem;
+  font-weight: 800;
+}
+.od .osum2__big.is-owed {
+  color: var(--accent-strong);
+}
+.od .osum2__big.is-paid {
+  color: var(--st-ready-fg);
+}
+.od .osum2__sub {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.od .osum2__timeline {
+  margin-top: 14px;
+}
+.od .osum2__track {
+  height: 8px;
+  border-radius: 4px;
+  background: #ebe6df;
+}
+.od .osum2__track > i {
+  border-radius: 4px;
+  background: #e07a24;
+}
+.od .osum2__track > b {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #e07a24;
+  background: var(--color-white);
+}
+.od .osum2__track--paid {
+  margin-top: 16px;
+  background: #fde3d6;
+}
+.od .osum2__track--paid > i {
+  background: var(--st-ready);
+}
+.od .osum2__ticks {
+  margin-top: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.od .osum2__today {
+  font-weight: 800;
+  color: #a0520c;
+}
+.od .osum2__link {
+  font-size: 0.875rem;
+}
