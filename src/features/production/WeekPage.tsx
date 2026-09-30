@@ -10,6 +10,7 @@ import {
 import { stageOf } from '@/features/orders/stage'
 import { PartsBar, StageTag } from '@/features/orders/stage-ui'
 import { toISODate } from '@/features/orders/validation'
+import { dueInfo } from './due'
 import { orderTitle } from './OrderRow'
 import { listOrderProgress, type OrderProgress } from './production.api'
 import '@/features/orders/taller.css'
@@ -188,63 +189,84 @@ export default function WeekPage() {
       {loading ? (
         <p className="muted">Cargando…</p>
       ) : (
-        <div className="sem-grid">
-          <section className="sem-col sem-col--late" aria-label="Atrasados">
-            <h2 className="sem-col__head">
-              Atrasados <span className="num">{late.length}</span>
-            </h2>
-            <p className="sem-col__sum">
-              {late.length === 0
-                ? 'Nada atrasado'
-                : `${plural(late.length, 'pedido', 'pedidos')} · ${plural(
+        <>
+          {late.length > 0 && (
+            // Overdue orders: one folded line above the week, not a column.
+            <details className="sem-late">
+              <summary>
+                <strong>
+                  Atrasados <span className="num">{late.length}</span>
+                </strong>
+                <span className="sem-late__sum">
+                  {plural(
                     late.reduce((n, o) => n + leftOf(o), 0),
                     'pieza',
                     'piezas',
-                  )} por imprimir`}
-            </p>
-            <div className="sem-col__cards">
-              {late.slice(0, LATE_SHOWN).map(card)}
-              {late.length > LATE_SHOWN && (
-                <Link to="/admin/orders" className="sem-more">
-                  + {late.length - LATE_SHOWN} más →
-                </Link>
-              )}
-            </div>
-          </section>
-          {days.map((day) => {
-            const list = byDay(day.iso)
-            const isToday = day.iso === today
-            const past = day.iso < today
-            const left = list
-              .filter((o) => o.status !== 'delivered')
-              .reduce((n, o) => n + leftOf(o), 0)
-            return (
-              <section
-                key={day.iso}
-                className={`sem-col${isToday ? ' sem-col--today' : ''}${past ? ' sem-col--past' : ''}`}
-                aria-label={`${day.name} ${Number(day.iso.slice(8))}`}
-              >
-                <h2 className="sem-col__head">
-                  {day.name}
-                  <span className="num">
-                    {Number(day.iso.slice(8))}
-                    {isToday ? ' · hoy' : ''}
-                  </span>
-                </h2>
-                <p className="sem-col__sum">
-                  {list.length === 0
-                    ? past
-                      ? 'Nada entregado'
-                      : 'Sin entregas'
-                    : past
-                      ? plural(list.length, 'entregado', 'entregados')
-                      : `${plural(list.length, 'pedido', 'pedidos')} · ${plural(left, 'pieza', 'piezas')} por imprimir`}
-                </p>
-                <div className="sem-col__cards">{list.map(card)}</div>
-              </section>
-            )
-          })}
-        </div>
+                  )}{' '}
+                  por imprimir
+                </span>
+                <span className="sem-late__names">
+                  {late
+                    .slice(0, LATE_SHOWN)
+                    .map((o) => o.customers?.name ?? 'Sin cliente')
+                    .join(' · ')}
+                  {late.length > LATE_SHOWN &&
+                    ` · +${late.length - LATE_SHOWN} más`}
+                </span>
+                <span className="sem-late__toggle">Ver</span>
+              </summary>
+              <ul className="sem-late__list">
+                {late.map((order) => (
+                  <li key={order.id}>
+                    <Link to={`/admin/orders/${order.id}`}>
+                      <strong>{order.customers?.name ?? 'Sin cliente'}</strong>
+                      <span>{orderTitle(order, itemCounts[order.id])}</span>
+                      <StageTag stage={stageOf(order)} />
+                      <span className="sem-late__due">
+                        {dueInfo(order.due_date, today).label}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          <div className="sem-grid">
+            {days.map((day) => {
+              const list = byDay(day.iso)
+              const isToday = day.iso === today
+              const past = day.iso < today
+              const left = list
+                .filter((o) => o.status !== 'delivered')
+                .reduce((n, o) => n + leftOf(o), 0)
+              return (
+                <section
+                  key={day.iso}
+                  className={`sem-col${isToday ? ' sem-col--today' : ''}${past ? ' sem-col--past' : ''}`}
+                  aria-label={`${day.name} ${Number(day.iso.slice(8))}`}
+                >
+                  <h2 className="sem-col__head">
+                    {day.name}
+                    <span className="num">
+                      {Number(day.iso.slice(8))}
+                      {isToday ? ' · hoy' : ''}
+                    </span>
+                  </h2>
+                  <p className="sem-col__sum">
+                    {list.length === 0
+                      ? past
+                        ? 'Nada entregado'
+                        : 'Sin entregas'
+                      : past
+                        ? plural(list.length, 'entregado', 'entregados')
+                        : `${plural(list.length, 'pedido', 'pedidos')} · ${plural(left, 'pieza', 'piezas')} por imprimir`}
+                  </p>
+                  <div className="sem-col__cards">{list.map(card)}</div>
+                </section>
+              )
+            })}
+          </div>
+        </>
       )}
     </main>
   )

@@ -1492,3 +1492,95 @@
 .od-menu .sem-nav .icon {
   stroke-width: 3.2;
 }
+
+/* Semana: overdue orders as one folded line above the week. */
+.sem-grid {
+  grid-template-columns: repeat(7, minmax(150px, 1fr));
+}
+.sem-late {
+  margin-bottom: 12px;
+  border-radius: 14px;
+  background: var(--late-bg);
+  color: var(--late);
+}
+.sem-late > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 6px 14px;
+  min-height: 44px;
+  padding: 10px 14px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.875rem;
+}
+.sem-late > summary::-webkit-details-marker {
+  display: none;
+}
+.sem-late > summary:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+.sem-late__sum {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.sem-late__names {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sem-late__toggle {
+  font-weight: 800;
+  text-decoration: underline;
+}
+.sem-late[open] .sem-late__toggle {
+  visibility: hidden;
+}
+.sem-late__list {
+  list-style: none;
+  padding: 0 8px 8px;
+  display: grid;
+  gap: 4px;
+}
+.sem-late__list a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto 120px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--color-white);
+  color: var(--color-carbon);
+  text-decoration: none;
+  font-size: 0.8125rem;
+}
+.sem-late__list a > strong,
+.sem-late__list a > span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sem-late__list a > span:nth-child(2) {
+  color: var(--text-3);
+  font-weight: 600;
+}
+.sem-late__due {
+  text-align: right;
+  font-weight: 800;
+  color: var(--late);
+}
+@media (max-width: 700px) {
+  .sem-late > summary {
+    flex-wrap: wrap;
+  }
+  .sem-late__names {
+    flex-basis: 100%;
+  }
+  .sem-late__list a {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
