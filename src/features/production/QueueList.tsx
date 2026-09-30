@@ -19,6 +19,9 @@ interface QueueListProps {
   relaxed?: boolean
   // Entries are in due-date order: mark where each date starts.
   dateSeparators?: boolean
+  // Print screen: the first group is "Ahora" (open, dark header, progress);
+  // the rest fold into "Después" rows that open on tap.
+  focus?: boolean
 }
 
 const HOLD_DELAY = 350
@@ -122,15 +125,96 @@ export default function QueueList({
   by = 'color',
   relaxed = false,
   dateSeparators = true,
+  focus = false,
 }: QueueListProps) {
   const dueOf = (date: string) =>
     relaxed
       ? { label: `Sin apuro · ${formatDueDate(date)}`, tone: 'ok' as const }
       : dueInfo(date, today)
+  // Urgent pieces form their own block ahead of the dated ones.
+  const blockOf = (p: QueuePiece) => (p.urgent ? 'urgent' : p.due_date)
+
+  function rows(entries: QueuePiece[]) {
+    const mixedDates =
+      dateSeparators && !relaxed && new Set(entries.map(blockOf)).size > 1
+    return entries.map((piece, i) => {
+      const due = dueOf(piece.due_date)
+      const left = piece.quantity_total - piece.quantity_done
+      const newDate =
+        mixedDates && (i === 0 || blockOf(entries[i - 1]) !== blockOf(piece))
+      return [
+        newDate && (
+          <li
+            key={`sep-${blockOf(piece)}`}
+            className={`queue__sep queue__sep--${piece.urgent ? 'urgent' : due.tone}`}
+          >
+            {piece.urgent ? 'Urgente' : due.label}
+          </li>
+        ),
+        <li
+          key={piece.id}
+          className={`queue-item queue-item--${due.tone}${piece.urgent ? ' queue-item--urgent' : ''}`}
+        >
+          <span className="queue-item__left num" title="Faltan">
+            {left}
+          </span>
+          <div className="queue-item__body">
+            <Link
+              to={`/admin/orders/${piece.order_id}`}
+              className="queue-item__title"
+            >
+              {piece.label}
+              {piece.item_label && (
+                <span className="queue-item__item"> · {piece.item_label}</span>
+              )}
+            </Link>
+            <p className="queue-item__sub">
+              {by === 'color' ? (
+                piece.customer_name
+              ) : (
+                <>
+                  <Swatch color={piece.color} />
+                  {piece.color?.trim() || 'Sin color'}
+                </>
+              )}
+              {piece.quantity_done > 0 && (
+                <span className="num">
+                  {' '}
+                  · {piece.quantity_done}/{piece.quantity_total} hechas
+                </span>
+              )}
+              {piece.status === 'printing' && (
+                <span className="badge badge--printing">Imprimiendo</span>
+              )}
+            </p>
+          </div>
+          {left > 1 && (
+            <button
+              type="button"
+              className="queue-item__all"
+              disabled={busyId === piece.id}
+              title={`Marcar las ${left} como hechas`}
+              onClick={() => onAdd(piece, left)}
+            >
+              <Icon name="check" size={16} />
+              <span>Marcar las {left}</span>
+            </button>
+          )}
+          <PlusButton
+            label={piece.label}
+            max={left}
+            disabled={busyId === piece.id}
+            onAdd={(delta) => onAdd(piece, delta)}
+          />
+        </li>,
+      ]
+    })
+  }
+
   let remaining = limit ?? Infinity
   return (
     <div className="queue">
-      {groups.map((group) => {
+      {groups.map((group, index) => {
         if (remaining <= 0) return null
         const entries = group.entries.slice(0, remaining)
         remaining -= entries.length
@@ -141,117 +225,103 @@ export default function QueueList({
         const groupDue = groupHasUrgent(group)
           ? { label: 'Urgente', tone: 'urgent' as const }
           : dueOf(group.earliest)
-        // Urgent pieces form their own block ahead of the dated ones.
-        const blockOf = (p: QueuePiece) => (p.urgent ? 'urgent' : p.due_date)
-        const mixedDates =
-          dateSeparators && !relaxed && new Set(entries.map(blockOf)).size > 1
+        const urgentClass = groupHasUrgent(group) ? ' queue__group--urgent' : ''
+        const style =
+          by === 'color' && group.swatch
+            ? ({ '--group-color': group.swatch } as CSSProperties)
+            : undefined
+        const isNow = focus && index === 0
+        const marker =
+          by === 'color' ? (
+            <Swatch color={group.label} size={isNow ? 40 : 26} />
+          ) : (
+            <span className="avatar avatar--sm queue__avatar">
+              {initialsFrom(group.label)}
+            </span>
+          )
+        const orders = new Set(group.entries.map((p) => p.order_id)).size
+        const summary = `${pending} ${pending === 1 ? 'pieza' : 'piezas'}`
+
+        if (isNow) {
+          const total = group.entries.reduce((s, p) => s + p.quantity_total, 0)
+          const done = total - pending
+          return (
+            <section
+              key={group.key}
+              className={`queue__group queue__group--now${urgentClass}`}
+              style={style}
+            >
+              <header className="queue__now">
+                {marker}
+                <div className="queue__now-text">
+                  <p className="queue__now-kicker">Ahora</p>
+                  <h2 className="queue__label">
+                    {by === 'color'
+                      ? group.key
+                        ? `Cargá ${group.label.toLowerCase()}`
+                        : 'Sin color definido'
+                      : group.label}
+                  </h2>
+                  <p className="queue__now-sub num">
+                    {summary} · {orders} {orders === 1 ? 'pedido' : 'pedidos'}
+                  </p>
+                </div>
+                <span className={`qdue qdue--${groupDue.tone}`}>
+                  {groupDue.label}
+                </span>
+                <div
+                  className="queue__bar"
+                  role="progressbar"
+                  aria-label="Avance de esta tanda"
+                  aria-valuenow={done}
+                  aria-valuemax={total}
+                >
+                  <i
+                    style={{ width: `${total ? (done / total) * 100 : 0}%` }}
+                  />
+                </div>
+              </header>
+              <ul className="queue__items">{rows(entries)}</ul>
+            </section>
+          )
+        }
+
+        if (focus) {
+          return (
+            <details
+              key={group.key}
+              className={`queue__group queue__group--later${urgentClass}`}
+              style={style}
+            >
+              <summary className="queue__later">
+                {marker}
+                <span className="queue__later-text">
+                  <strong className="queue__label">{group.label}</strong>
+                  <small className="num">
+                    {summary} · {groupDue.label}
+                  </small>
+                </span>
+              </summary>
+              <ul className="queue__items">{rows(entries)}</ul>
+            </details>
+          )
+        }
+
         return (
           <section
             key={group.key}
-            className={`queue__group${groupHasUrgent(group) ? ' queue__group--urgent' : ''}`}
-            style={
-              by === 'color' && group.swatch
-                ? ({ '--group-color': group.swatch } as CSSProperties)
-                : undefined
-            }
+            className={`queue__group${urgentClass}`}
+            style={style}
           >
             <header className="queue__head">
-              {by === 'color' ? (
-                <Swatch color={group.label} size={26} />
-              ) : (
-                <span className="avatar avatar--sm queue__avatar">
-                  {initialsFrom(group.label)}
-                </span>
-              )}
+              {marker}
               <h2 className="queue__label">{group.label}</h2>
-              <span className="queue__count num">
-                {pending} {pending === 1 ? 'pieza' : 'piezas'}
-              </span>
+              <span className="queue__count num">{summary}</span>
               <span className={`qdue qdue--${groupDue.tone}`}>
                 {groupDue.label}
               </span>
             </header>
-            <ul className="queue__items">
-              {entries.map((piece, i) => {
-                const due = dueOf(piece.due_date)
-                const left = piece.quantity_total - piece.quantity_done
-                const newDate =
-                  mixedDates &&
-                  (i === 0 || blockOf(entries[i - 1]) !== blockOf(piece))
-                return [
-                  newDate && (
-                    <li
-                      key={`sep-${blockOf(piece)}`}
-                      className={`queue__sep queue__sep--${piece.urgent ? 'urgent' : due.tone}`}
-                    >
-                      {piece.urgent ? 'Urgente' : due.label}
-                    </li>
-                  ),
-                  <li
-                    key={piece.id}
-                    className={`queue-item queue-item--${due.tone}${piece.urgent ? ' queue-item--urgent' : ''}`}
-                  >
-                    <span className="queue-item__left num" title="Faltan">
-                      {left}
-                    </span>
-                    <div className="queue-item__body">
-                      <Link
-                        to={`/admin/orders/${piece.order_id}`}
-                        className="queue-item__title"
-                      >
-                        {piece.label}
-                        {piece.item_label && (
-                          <span className="queue-item__item">
-                            {' '}
-                            · {piece.item_label}
-                          </span>
-                        )}
-                      </Link>
-                      <p className="queue-item__sub">
-                        {by === 'color' ? (
-                          piece.customer_name
-                        ) : (
-                          <>
-                            <Swatch color={piece.color} />
-                            {piece.color?.trim() || 'Sin color'}
-                          </>
-                        )}
-                        {piece.quantity_done > 0 && (
-                          <span className="num">
-                            {' '}
-                            · {piece.quantity_done}/{piece.quantity_total}{' '}
-                            hechas
-                          </span>
-                        )}
-                        {piece.status === 'printing' && (
-                          <span className="badge badge--printing">
-                            Imprimiendo
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    {left > 1 && (
-                      <button
-                        type="button"
-                        className="queue-item__all"
-                        disabled={busyId === piece.id}
-                        title={`Marcar las ${left} como hechas`}
-                        onClick={() => onAdd(piece, left)}
-                      >
-                        <Icon name="check" size={16} />
-                        <span>Completar</span>
-                      </button>
-                    )}
-                    <PlusButton
-                      label={piece.label}
-                      max={left}
-                      disabled={busyId === piece.id}
-                      onAdd={(delta) => onAdd(piece, delta)}
-                    />
-                  </li>,
-                ]
-              })}
-            </ul>
+            <ul className="queue__items">{rows(entries)}</ul>
           </section>
         )
       })}
