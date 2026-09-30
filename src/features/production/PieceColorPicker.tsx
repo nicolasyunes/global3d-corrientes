@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import Icon from '@/components/Icon'
-import { colorSwatch, normalizeColor } from './pieces'
+import { colorSwatch, normalizeColor, TO_PAINT } from './pieces'
 
 export const BASE_COLORS = [
   'negro',
@@ -9,6 +9,7 @@ export const BASE_COLORS = [
   'azul',
   'amarillo',
   'dorado',
+  TO_PAINT,
 ]
 
 interface PieceColorPickerProps {

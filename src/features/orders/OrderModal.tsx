@@ -708,6 +708,31 @@ export default function OrderModal({
                   </span>
                 </label>
               )}
+              <div className="omodal__post">
+                <span className="field-label">
+                  Posprocesado del pedido, cuando todo esté impreso
+                </span>
+                <div className="chips" role="group" aria-label="Posprocesado">
+                  <button
+                    type="button"
+                    className="chip"
+                    aria-pressed={draft.ppSand}
+                    onClick={() => set('ppSand', !draft.ppSand)}
+                  >
+                    <Icon name="sand" size={16} />
+                    Lijar
+                  </button>
+                  <button
+                    type="button"
+                    className="chip"
+                    aria-pressed={draft.ppPaint}
+                    onClick={() => set('ppPaint', !draft.ppPaint)}
+                  >
+                    <Icon name="brush" size={16} />
+                    Pintar
+                  </button>
+                </div>
+              </div>
               <div className="omodal__row omodal__row--wrap">
                 <div className="omodal__field">
                   <label className="field-label" htmlFor="om-due">

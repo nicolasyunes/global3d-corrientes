@@ -1,31 +1,52 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Icon from '@/components/Icon'
-import OrderRow from '@/features/production/OrderRow'
+import { useOperator } from '@/features/operators/operator-context'
+import { orderTitle } from '@/features/production/OrderRow'
 import SortSelect, { useStoredSort } from '@/features/production/SortSelect'
 import {
   listOrderProgress,
   type OrderProgress,
 } from '@/features/production/production.api'
+import { logOrderEvent } from '@/features/production/workshop.api'
 import '@/features/production/production.css'
-import { addDaysISO } from './list'
+import { formatMoney } from './format'
 import { useOrderModal } from './order-modal-context'
 import {
   listOrderItemCounts,
   listOrders,
   updateOrder,
+  type OrderUpdate,
   type OrderWithCustomer,
 } from './orders.api'
 import OrdersBoard from './OrdersBoard'
-import { isWaiting, needsReview, urgentFirst } from './orderFlow'
+import { needsReview, urgentFirst } from './orderFlow'
+import { stageOf, type Stage } from './stage'
+import {
+  ClientAvatar,
+  dueText,
+  PartsBar,
+  PostMarks,
+  StageTag,
+  UrgentBadge,
+} from './stage-ui'
 import WaitingOrders from './WaitingOrders'
-import { nextOrderStatus } from './status'
 import { toISODate } from './validation'
+import './taller.css'
 
 type View = 'list' | 'board'
-type Filter = 'active' | 'week' | 'waiting' | 'ready'
+type Filter = 'all' | Exclude<Stage, 'delivered' | 'cancelled'>
 
 const VIEW_KEY = 'g3d.ordersView'
-const CLOSED = ['finished', 'delivered', 'cancelled']
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: 'all', label: 'Todos' },
+  { key: 'on_hold', label: 'En espera' },
+  { key: 'new', label: 'Sin empezar' },
+  { key: 'printing', label: 'Imprimiendo' },
+  { key: 'post_processing', label: 'Posprocesado' },
+  { key: 'finished', label: 'Listo para avisar' },
+]
 
 function readView(): View {
   try {
@@ -52,18 +73,21 @@ export function matchesSearch(
     .some((field) => field!.toLowerCase().includes(q))
 }
 
+// "Pedidos": the panorama. Every open order once, with the stage its pieces
+// put it in. Table to scan, board to see where things pile up.
 export default function OrdersList() {
   const { openNew } = useOrderModal()
+  const { current } = useOperator()
   const [orders, setOrders] = useState<OrderWithCustomer[]>([])
   const [itemCounts, setItemCounts] = useState<Record<string, number>>({})
   const [progress, setProgress] = useState<Record<string, OrderProgress>>({})
   const [view, setViewState] = useState<View>(readView)
-  const [filter, setFilter] = useState<Filter>('active')
+  const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [sort, setSort] = useStoredSort('g3d.ordersSort')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [advancingId, setAdvancingId] = useState<string | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
   const today = useMemo(() => toISODate(new Date()), [])
 
   useEffect(() => {
@@ -99,22 +123,32 @@ export default function OrdersList() {
     }
   }
 
-  async function handleAdvance(order: OrderWithCustomer) {
-    const next = nextOrderStatus(order.status)
-    if (!next) return
-    setAdvancingId(order.id)
+  function replaceOrder(updated: OrderWithCustomer) {
+    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)))
+  }
+
+  // Board actions (lijado, pintado, entregado). The database may move the
+  // order to another stage, so the returned row replaces the local one.
+  async function patchOrder(
+    order: OrderWithCustomer,
+    fields: OrderUpdate,
+    event: string,
+  ) {
+    setBusyId(order.id)
     setError(null)
     try {
-      const updated = await updateOrder(order.id, { status: next })
-      setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? { ...o, ...updated } : o)),
-      )
+      await updateOrder(order.id, fields)
+      // Stage changes are logged by the database itself.
+      if (!fields.status)
+        await logOrderEvent(order.id, current?.id ?? null, 'postprocess', event)
+      const fresh = await listOrders()
+      setOrders(fresh)
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'No se pudo actualizar el estado.',
+        err instanceof Error ? err.message : 'No se pudo guardar el cambio.',
       )
     } finally {
-      setAdvancingId(null)
+      setBusyId(null)
     }
   }
 
@@ -122,62 +156,49 @@ export default function OrdersList() {
     () => orders.filter((o) => matchesSearch(o, query)),
     [orders, query],
   )
+  const open = useMemo(
+    () => searched.filter((o) => o.status !== 'delivered'),
+    [searched],
+  )
 
-  // "En curso" = confirmed and open (flexible ones included, marked);
-  // "Esta semana" = real deadlines only; "En espera" = not confirmed yet.
+  const counts = useMemo(() => {
+    const out: Record<Filter, number> = {
+      all: 0,
+      on_hold: 0,
+      new: 0,
+      printing: 0,
+      post_processing: 0,
+      finished: 0,
+    }
+    for (const o of orders) {
+      if (o.status === 'delivered') continue
+      out.all += 1
+      out[stageOf(o) as Filter] += 1
+    }
+    return out
+  }, [orders])
+  const toReview = useMemo(
+    () => orders.filter((o) => needsReview(o, today)).length,
+    [orders, today],
+  )
+
   const rows = useMemo(() => {
-    const byDue = urgentFirst((a: OrderWithCustomer, b: OrderWithCustomer) =>
+    const compare = urgentFirst((a: OrderWithCustomer, b: OrderWithCustomer) =>
       sort === 'due'
         ? a.due_date.localeCompare(b.due_date)
         : (sort === 'newest' ? -1 : 1) *
           a.created_at.localeCompare(b.created_at),
     )
-    const open = searched.filter((o) => !CLOSED.includes(o.status))
-    const active = open.filter((o) => !isWaiting(o))
-    if (filter === 'ready')
-      return searched.filter((o) => o.status === 'finished').sort(byDue)
-    if (filter === 'waiting')
-      return open
-        .filter(isWaiting)
-        .sort(
-          sort === 'due'
-            ? (a, b) =>
-                (a.follow_up_on ?? '').localeCompare(b.follow_up_on ?? '')
-            : byDue,
-        )
-    if (filter === 'week') {
-      const horizon = addDaysISO(today, 7)
-      return active
-        .filter((o) => o.urgent || (!o.flexible && o.due_date <= horizon))
-        .sort(byDue)
-    }
-    return active.sort(byDue)
-  }, [searched, filter, today, sort])
-
-  const counts = useMemo(() => {
-    const horizon = addDaysISO(today, 7)
-    const open = orders.filter((o) => !CLOSED.includes(o.status))
-    const active = open.filter((o) => !isWaiting(o))
-    return {
-      active: active.length,
-      week: active.filter(
-        (o) => o.urgent || (!o.flexible && o.due_date <= horizon),
-      ).length,
-      waiting: open.filter(isWaiting).length,
-      review: open.filter((o) => needsReview(o, today)).length,
-      ready: orders.filter((o) => o.status === 'finished').length,
-    }
-  }, [orders, today])
-
-  function replaceOrder(updated: OrderWithCustomer) {
-    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)))
-  }
+    return open
+      .filter((o) => filter === 'all' || stageOf(o) === filter)
+      .sort(compare)
+  }, [open, filter, sort])
 
   return (
-    <main>
+    <main className="pn">
       <header className="page-head">
         <div className="page-head__main">
-          <p className="eyebrow">Taller</p>
+          <p className="eyebrow">Panorama</p>
           <h1 className="page-title">Pedidos</h1>
         </div>
         <div className="page-head__actions">
@@ -188,7 +209,7 @@ export default function OrdersList() {
               onClick={() => setView('list')}
             >
               <Icon name="list" size={16} />
-              Lista
+              Tabla
             </button>
             <button
               type="button"
@@ -222,49 +243,39 @@ export default function OrdersList() {
           />
         </label>
         {view === 'list' && <SortSelect value={sort} onChange={setSort} />}
-        {view === 'list' && (
-          <div className="segmented" role="group" aria-label="Filtro">
+      </div>
+
+      {view === 'list' ? (
+        <div className="wk-chips pn-filters" role="group" aria-label="Etapa">
+          {FILTERS.filter(
+            (f) => f.key !== 'new' || counts.new > 0 || filter === 'new',
+          ).map((f) => (
             <button
+              key={f.key}
               type="button"
-              aria-pressed={filter === 'active'}
-              onClick={() => setFilter('active')}
-            >
-              En curso <span className="count num">{counts.active}</span>
-            </button>
-            <button
-              type="button"
-              aria-pressed={filter === 'week'}
-              onClick={() => setFilter('week')}
-            >
-              Esta semana <span className="count num">{counts.week}</span>
-            </button>
-            <button
-              type="button"
-              aria-pressed={filter === 'waiting'}
-              onClick={() => setFilter('waiting')}
+              className="wk-chip"
+              aria-pressed={filter === f.key}
               title={
-                counts.review
-                  ? `${counts.review} para revisar hoy`
-                  : 'Pedidos sin confirmar'
+                f.key === 'on_hold' && toReview
+                  ? `${toReview} para revisar hoy`
+                  : undefined
               }
+              onClick={() => setFilter(f.key)}
             >
-              En espera{' '}
+              {f.label}
               <span
-                className={`count num${counts.review ? ' count--alert' : ''}`}
+                className={`num${f.key === 'on_hold' && toReview ? ' is-alert' : ''}`}
               >
-                {counts.waiting}
+                {counts[f.key]}
               </span>
             </button>
-            <button
-              type="button"
-              aria-pressed={filter === 'ready'}
-              onClick={() => setFilter('ready')}
-            >
-              Listos <span className="count num">{counts.ready}</span>
-            </button>
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <p className="pn-note">
+          Las tarjetas se mueven solas según el avance de sus partes.
+        </p>
+      )}
 
       {error && (
         <p className="banner banner--error" role="alert">
@@ -280,42 +291,89 @@ export default function OrdersList() {
           today={today}
           progress={progress}
           itemCounts={itemCounts}
-          advancingId={advancingId}
-          onAdvance={handleAdvance}
+          busyId={busyId}
+          onPatch={patchOrder}
         />
       ) : rows.length === 0 ? (
         <div className="card empty">
           <strong>
             {query
               ? 'Ningún pedido coincide con la búsqueda'
-              : filter === 'waiting'
+              : filter === 'on_hold'
                 ? 'Nada en espera'
                 : 'No hay pedidos acá'}
           </strong>
           {query
             ? 'Probá con otra palabra.'
-            : filter === 'waiting'
+            : filter === 'on_hold'
               ? 'Los pedidos sin confirmar (falta seña, diseño o respuesta) quedan acá hasta que los confirmes.'
               : 'Tocá “Nuevo pedido” para cargar uno.'}
         </div>
-      ) : filter === 'waiting' ? (
+      ) : filter === 'on_hold' ? (
         <section className="card">
           <WaitingOrders orders={rows} today={today} onChanged={replaceOrder} />
         </section>
       ) : (
-        <section className="card">
-          <ul className="order-rows" aria-label={`${rows.length} pedidos`}>
-            {rows.map((order) => (
-              <OrderRow
+        <div className="pn-table" role="table" aria-label="Pedidos">
+          <div className="pn-table__head" role="row">
+            <span role="columnheader">Cliente y pedido</span>
+            <span role="columnheader">Etapa</span>
+            <span role="columnheader">Partes</span>
+            <span role="columnheader">Posprocesado</span>
+            <span role="columnheader">Entrega</span>
+            <span role="columnheader">Saldo</span>
+          </div>
+          {rows.map((order) => {
+            const stage = stageOf(order)
+            const prog = progress[order.id]
+            const due = dueText(order, today, {
+              closed: stage === 'on_hold',
+            })
+            const balance = order.pending_balance ?? 0
+            return (
+              <Link
                 key={order.id}
-                order={order}
-                today={today}
-                progress={progress[order.id]}
-                itemCount={itemCounts[order.id]}
-              />
-            ))}
-          </ul>
-        </section>
+                to={`/admin/orders/${order.id}`}
+                className={`pn-row${order.urgent ? ' pn-row--urgent' : ''}`}
+                role="row"
+              >
+                <span className="pn-row__who">
+                  <ClientAvatar name={order.customers?.name} />
+                  <span className="pn-row__text">
+                    <span className="pn-row__name">
+                      <strong>{order.customers?.name ?? 'Sin cliente'}</strong>
+                      {order.urgent && <UrgentBadge />}
+                    </span>
+                    <span className="pn-row__title">
+                      {orderTitle(order, itemCounts[order.id])}
+                    </span>
+                  </span>
+                </span>
+                <span data-label="Etapa">
+                  <StageTag stage={stage} />
+                </span>
+                <span data-label="Partes">
+                  <PartsBar
+                    printed={prog?.done ?? 0}
+                    total={prog?.total ?? 0}
+                  />
+                </span>
+                <span data-label="Posprocesado">
+                  <PostMarks order={order} />
+                </span>
+                <span
+                  data-label="Entrega"
+                  className={`pn-row__due${due.late ? ' is-late' : ''}`}
+                >
+                  {due.label}
+                </span>
+                <span data-label="Saldo" className="pn-row__money num">
+                  {balance > 0 ? formatMoney(balance) : '—'}
+                </span>
+              </Link>
+            )
+          })}
+        </div>
       )}
     </main>
   )

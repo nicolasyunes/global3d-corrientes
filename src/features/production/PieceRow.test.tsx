@@ -23,60 +23,72 @@ const piece: Piece = {
   updated_at: '2026-09-30T10:00:00Z',
 }
 
-function renderRow(onEdit = vi.fn().mockResolvedValue(true)) {
+function renderRow(over: Partial<Piece> = {}) {
+  const onEdit = vi.fn().mockResolvedValue(true)
+  const onCycle = vi.fn()
   render(
     <ul>
       <PieceRow
-        piece={piece}
+        piece={{ ...piece, ...over }}
         busy={false}
         usedColors={['negro']}
-        onCycle={vi.fn()}
+        onCycle={onCycle}
         onIncrement={vi.fn()}
-        onFail={vi.fn()}
         onRemove={vi.fn()}
         onEdit={onEdit}
       />
     </ul>,
   )
-  return onEdit
+  return { onEdit, onCycle }
 }
 
-describe('PieceRow editing', () => {
-  it('renames a piece from the pencil and saves name, color and quantity', () => {
-    const onEdit = renderRow()
-    fireEvent.click(screen.getByRole('button', { name: /Editar pintar/ }))
-    fireEvent.change(screen.getByLabelText('Nombre de la pieza'), {
-      target: { value: 'pintar detalles en fuego' },
-    })
-    fireEvent.change(screen.getByLabelText('Cantidad'), {
-      target: { value: '6' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-    expect(onEdit).toHaveBeenCalledWith(piece, {
+describe('PieceRow inline editing', () => {
+  it('renames a piece by typing over its name', () => {
+    const { onEdit } = renderRow()
+    const input = screen.getByLabelText('Nombre de la pieza')
+    fireEvent.change(input, { target: { value: 'pintar detalles en fuego' } })
+    fireEvent.blur(input)
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'p1' }), {
       label: 'pintar detalles en fuego',
       color: 'negro',
-      quantityTotal: 6,
+      quantityTotal: 4,
     })
   })
 
-  it('does not let the total drop below what is already printed', () => {
-    const onEdit = renderRow()
-    fireEvent.click(screen.getByRole('button', { name: /Editar pintar/ }))
-    fireEvent.change(screen.getByLabelText('Cantidad'), {
-      target: { value: '1' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+  it('does not save an unchanged or empty name', () => {
+    const { onEdit } = renderRow()
+    const input = screen.getByLabelText('Nombre de la pieza')
+    fireEvent.blur(input)
+    fireEvent.change(input, { target: { value: '   ' } })
+    fireEvent.blur(input)
+    expect(onEdit).not.toHaveBeenCalled()
+    expect(input).toHaveValue('pintar detalles')
+  })
+
+  it('steps the quantity, never below what is already printed', () => {
+    const { onEdit } = renderRow({ quantity_total: 2 })
+    expect(screen.getByRole('button', { name: /Una menos/ })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: /Una más/ }))
     expect(onEdit).toHaveBeenCalledWith(
-      piece,
-      expect.objectContaining({ quantityTotal: 2 }),
+      expect.anything(),
+      expect.objectContaining({ quantityTotal: 3 }),
     )
   })
 
-  it('cancels without saving', () => {
-    const onEdit = renderRow()
-    fireEvent.click(screen.getByRole('button', { name: /Editar pintar/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
-    expect(onEdit).not.toHaveBeenCalled()
-    expect(screen.getByText(/pintar detalles/)).toBeInTheDocument()
+  it('changes the color from the popover', () => {
+    const { onEdit } = renderRow()
+    fireEvent.click(screen.getByRole('button', { name: /Color de pintar/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'rojo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Listo' }))
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ color: 'rojo' }),
+    )
+  })
+
+  it('moves the state from the circle', () => {
+    const { onCycle } = renderRow()
+    fireEvent.click(screen.getByRole('button', { name: /Tocar para avanzar/ }))
+    expect(onCycle).toHaveBeenCalledTimes(1)
   })
 })

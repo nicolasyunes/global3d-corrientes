@@ -31,13 +31,9 @@ interface NavItem {
 
 const MAIN: NavItem[] = [
   { to: '/admin/hoy', label: 'Hoy', icon: 'home' },
-  {
-    to: '/admin/imprimir',
-    label: '¿Qué imprimo?',
-    short: 'Imprimir',
-    icon: 'printer',
-  },
+  { to: '/admin/semana', label: 'Semana', icon: 'calendar' },
   { to: '/admin/orders', label: 'Pedidos', icon: 'box' },
+  { to: '/admin/taller', label: 'Taller', icon: 'printer' },
 ]
 
 const SECONDARY: NavItem[] = [

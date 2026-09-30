@@ -331,6 +331,12 @@ export type Database = {
           follow_up_on: string | null
           flexible: boolean
           urgent: boolean
+          pp_sand: boolean
+          pp_paint: boolean
+          pp_notes: string | null
+          sand_done: boolean
+          paint_done: boolean
+          stage_manual: boolean
         }
         Insert: {
           id?: string
@@ -339,6 +345,12 @@ export type Database = {
           follow_up_on?: string | null
           flexible?: boolean
           urgent?: boolean
+          pp_sand?: boolean
+          pp_paint?: boolean
+          pp_notes?: string | null
+          sand_done?: boolean
+          paint_done?: boolean
+          stage_manual?: boolean
           product_type?: string
           title?: string | null
           description?: string | null
@@ -365,6 +377,12 @@ export type Database = {
           follow_up_on?: string | null
           flexible?: boolean
           urgent?: boolean
+          pp_sand?: boolean
+          pp_paint?: boolean
+          pp_notes?: string | null
+          sand_done?: boolean
+          paint_done?: boolean
+          stage_manual?: boolean
           product_type?: string
           title?: string | null
           description?: string | null
@@ -718,6 +736,16 @@ export type Database = {
       increment_task: {
         Args: { p_task: string; p_delta: number; p_operator: string | null }
         Returns: Database['public']['Tables']['order_production_tasks']['Row']
+      }
+      log_order_event: {
+        Args: {
+          p_order: string
+          p_operator: string | null
+          p_kind: string
+          p_label: string
+          p_delta?: number | null
+        }
+        Returns: undefined
       }
       register_task_failure: {
         Args: { p_task: string; p_operator: string | null }

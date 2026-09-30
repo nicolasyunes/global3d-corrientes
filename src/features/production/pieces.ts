@@ -23,7 +23,20 @@ export function normalizeColor(color: string | null | undefined): string {
     .replace(/\s+/g, ' ')
 }
 
+// "Para pintar": printed without a final color and painted afterwards. It has
+// its own striped swatch and its own group in the workshop.
+export const TO_PAINT = 'Para pintar'
+
+export function isToPaint(color: string | null | undefined): boolean {
+  return normalizeColor(color) === 'para pintar'
+}
+
 const SWATCHES: [RegExp, string][] = [
+  [
+    /para pintar/,
+    'repeating-linear-gradient(45deg, #b8b0a6 0 2px, #ffffff 2px 4px)',
+  ],
+  [/cobre|cobrizo|bronce/, '#B87333'],
   [/negr|black/, '#111111'],
   [/blanc|white/, '#FFFFFF'],
   [/rojo|red/, '#D93A2B'],

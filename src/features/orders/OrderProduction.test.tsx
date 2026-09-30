@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { OrderWithCustomer } from './orders.api'
@@ -20,6 +20,17 @@ vi.mock('./orders.api', () => ({
 const { listPiecesMock } = vi.hoisted(() => ({ listPiecesMock: vi.fn() }))
 vi.mock('@/features/production/production.api', () => ({
   listPieces: listPiecesMock,
+  listEvents: vi.fn().mockResolvedValue([]),
+}))
+vi.mock('@/features/production/workshop.api', () => ({
+  logOrderEvent: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('./orderSave.api', () => ({
+  loadDraft: vi.fn(),
+  createOrderFromDraft: vi.fn(),
+}))
+vi.mock('@/features/operators/operator-context', () => ({
+  useOperator: () => ({ current: { id: 'op-1' } }),
 }))
 vi.mock('./OrderImages', () => ({ default: () => <div>IMAGES</div> }))
 vi.mock('@/features/production/OrderPieces', () => ({
@@ -59,6 +70,12 @@ function order(overrides: Partial<OrderWithCustomer> = {}): OrderWithCustomer {
     follow_up_on: null,
     flexible: false,
     urgent: false,
+    pp_sand: false,
+    pp_paint: false,
+    pp_notes: null,
+    sand_done: false,
+    paint_done: false,
+    stage_manual: false,
     customers: { name: 'Ada', phone: null },
     ...overrides,
   }
@@ -85,9 +102,8 @@ beforeEach(() => {
 })
 
 describe('OrderProduction', () => {
-  it('shows the production spec: colours, measurements, engraving text', async () => {
+  it('keeps the production spec: colours, measurements, engraving text', async () => {
     await renderAt()
-    expect(screen.getByText('Qué hay que hacer')).toBeInTheDocument()
     expect(screen.getByText(/tapa: negro/)).toBeInTheDocument()
     expect(screen.getByText('10x10 cm')).toBeInTheDocument()
     expect(screen.getAllByText('Feliz cumple Ada').length).toBeGreaterThan(0)
@@ -95,7 +111,7 @@ describe('OrderProduction', () => {
     expect(screen.getByText('ACTIVITY')).toBeInTheDocument()
   })
 
-  it('summarizes each item with its title and details, money and progress', async () => {
+  it('summarizes who, when and how much, with the parts chip', async () => {
     getOrderMock.mockResolvedValue(
       order({
         title: '30× Llaveros de psicologa',
@@ -103,34 +119,14 @@ describe('OrderProduction', () => {
         customers: { name: 'Maria Noel', phone: '3794123456' },
       }),
     )
-    listOrderItemsMock.mockResolvedValue([
-      {
-        id: 'i1',
-        order_id: 'order-1',
-        product_type: 'other',
-        product_id: null,
-        description: 'Llaveros de psicologa',
-        personalization: 'con QR (armar uno de muestra)',
-        color_spec: {},
-        quantity: 30,
-        unit_price: null,
-        line_total: null,
-        position: 0,
-        created_at: '',
-        updated_at: '',
-      },
-    ])
     listPiecesMock.mockResolvedValue([
-      { status: 'printing', quantity_total: 30, quantity_done: 12 },
+      { id: 'p1', status: 'done', color: 'negro' },
+      { id: 'p2', status: 'printing', color: 'rojo' },
     ])
     await renderAt()
-    expect(screen.getByText('Llaveros de psicologa')).toBeInTheDocument()
-    expect(
-      screen.getByText('con QR (armar uno de muestra)'),
-    ).toBeInTheDocument()
-    expect(screen.getByText('30×')).toBeInTheDocument()
-    expect(screen.getByText('12/30')).toBeInTheDocument()
+    expect(screen.getByText('1/2 partes')).toBeInTheDocument()
     expect(screen.getByText('$3.000,00')).toBeInTheDocument()
+    expect(screen.getByText(/Pagado \$2\.000,00/)).toBeInTheDocument()
     expect(screen.getByText('Retira el viernes')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /WhatsApp/ })).toHaveAttribute(
       'href',
@@ -138,7 +134,7 @@ describe('OrderProduction', () => {
     )
   })
 
-  it('shows the stage line with the current stage', async () => {
+  it('shows the stepper with the current stage', async () => {
     await renderAt()
     const current = within(
       screen.getByRole('list', { name: 'Etapas del pedido' }),
@@ -146,7 +142,17 @@ describe('OrderProduction', () => {
     expect(current).toHaveAttribute('aria-current', 'step')
   })
 
-  it('lets the stage go back from the stepper, asking first', async () => {
+  it('explains what moves the order on by itself', async () => {
+    listPiecesMock.mockResolvedValue([
+      { id: 'p1', status: 'printing', color: 'negro' },
+    ])
+    await renderAt()
+    expect(
+      screen.getByText(/Pasa solo a Terminado cuando la pieza esté impresa/),
+    ).toBeInTheDocument()
+  })
+
+  it('sets the stage by hand from the stepper, asking first', async () => {
     getOrderMock.mockResolvedValue(order({ status: 'post_processing' }))
     const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false)
     await renderAt()
@@ -163,8 +169,21 @@ describe('OrderProduction', () => {
     })
     expect(updateOrderMock).toHaveBeenCalledWith('order-1', {
       status: 'printing',
+      stage_manual: true,
     })
     confirm.mockRestore()
+  })
+
+  it('offers to go back to automatic when the stage is pinned', async () => {
+    getOrderMock.mockResolvedValue(order({ stage_manual: true }))
+    await renderAt()
+    expect(screen.getByText(/fijada a mano/)).toBeInTheDocument()
+    await act(async () => {
+      screen.getByRole('button', { name: 'Volver a automático' }).click()
+    })
+    expect(updateOrderMock).toHaveBeenCalledWith('order-1', {
+      stage_manual: false,
+    })
   })
 
   it('omits a spec row when its field is empty', async () => {
@@ -176,21 +195,19 @@ describe('OrderProduction', () => {
     expect(screen.queryByText('Colores')).not.toBeInTheDocument()
   })
 
-  it('does not render commercial fields', async () => {
+  it('skips postprocess when the order has none', async () => {
     await renderAt()
-    expect(screen.queryByText(/Método de pago/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/Canal de origen/i)).not.toBeInTheDocument()
-    // status is 'printing' → saldo hidden
-    expect(screen.queryByText(/Saldo pendiente/)).not.toBeInTheDocument()
-  })
-
-  it('shows the pending balance only when the order is finished', async () => {
-    getOrderMock.mockResolvedValue(order({ status: 'finished' }))
-    await renderAt()
-    expect(screen.getByText(/Saldo pendiente: \$3\.000,00/)).toBeInTheDocument()
+    await act(async () => {
+      screen.getByRole('button', { name: /Avanzar a Terminado/i }).click()
+    })
+    expect(updateOrderMock).toHaveBeenCalledWith('order-1', {
+      status: 'finished',
+      stage_manual: true,
+    })
   })
 
   it('advances the production stage', async () => {
+    getOrderMock.mockResolvedValue(order({ pp_paint: true }))
     await renderAt()
     const btn = screen.getByRole('button', {
       name: /Avanzar a Post-procesado/i,
@@ -200,7 +217,36 @@ describe('OrderProduction', () => {
     })
     expect(updateOrderMock).toHaveBeenCalledWith('order-1', {
       status: 'post_processing',
+      stage_manual: true,
     })
+  })
+
+  it('registers a payment against the balance', async () => {
+    await renderAt()
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar pago' }))
+    fireEvent.change(screen.getByLabelText('¿Cuánto pagó?'), {
+      target: { value: '1000' },
+    })
+    await act(async () => {
+      screen.getByRole('button', { name: 'Guardar pago' }).click()
+    })
+    expect(updateOrderMock).toHaveBeenCalledWith('order-1', {
+      deposit: 3000,
+      pending_balance: 2000,
+    })
+  })
+
+  it('cancels from the more menu, asking first', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    await renderAt()
+    fireEvent.click(screen.getByRole('button', { name: /Más acciones/ }))
+    await act(async () => {
+      screen.getByRole('button', { name: /Cancelar pedido/ }).click()
+    })
+    expect(updateOrderMock).toHaveBeenCalledWith('order-1', {
+      status: 'cancelled',
+    })
+    confirm.mockRestore()
   })
 
   it('opens the edit modal', async () => {

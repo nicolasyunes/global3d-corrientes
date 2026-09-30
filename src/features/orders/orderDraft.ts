@@ -31,6 +31,9 @@ export interface OrderDraft {
   flexible: boolean
   // "Urgente": pinned above everything else, whatever its date.
   urgent: boolean
+  // Postprocess for the whole order, once everything is printed.
+  ppSand: boolean
+  ppPaint: boolean
 }
 
 export type DraftErrors = Partial<
@@ -58,6 +61,8 @@ export function emptyDraft(): OrderDraft {
     followUpOn: '',
     flexible: false,
     urgent: false,
+    ppSand: false,
+    ppPaint: false,
   }
 }
 
