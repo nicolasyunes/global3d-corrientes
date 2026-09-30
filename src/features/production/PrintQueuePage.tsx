@@ -297,7 +297,6 @@ export default function PrintQueuePage() {
           onAdd={(piece, delta) => void add(piece, delta)}
           by={groupBy}
           dateSeparators={sort === 'due'}
-          focus
         />
       )}
 
