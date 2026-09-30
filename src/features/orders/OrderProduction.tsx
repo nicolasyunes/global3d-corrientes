@@ -117,6 +117,20 @@ export default function OrderProduction() {
 
   const setStatus = (status: OrderStatus) => patchOrder({ status })
 
+  // The stepper lets the stage be set freely (a job can go back from post-
+  // processing to printing, or a click can be a mistake). Moving one step
+  // forward is what "Avanzar" does; going back or skipping ahead asks first.
+  function goToStatus(status: OrderStatus) {
+    if (!order || status === order.status) return
+    const from = ORDER_STATUS_FLOW.indexOf(order.status)
+    const to = ORDER_STATUS_FLOW.indexOf(status)
+    if (to !== from + 1) {
+      const verb = to < from ? 'Volver a' : 'Pasar directo a'
+      if (!window.confirm(`${verb} "${ORDER_STATUS_LABELS[status]}"?`)) return
+    }
+    void setStatus(status)
+  }
+
   async function patchOrder(fields: OrderUpdate) {
     if (!order) return
     setBusy(true)
@@ -211,9 +225,9 @@ export default function OrderProduction() {
       </header>
 
       {!isCancelled && (
-        <div className="stages" aria-label="Etapas del pedido">
+        <ol className="stepper" aria-label="Etapas del pedido">
           {ORDER_STATUS_FLOW.map((status, i) => (
-            <span
+            <li
               key={status}
               className={
                 i < stageIndex
@@ -222,12 +236,31 @@ export default function OrderProduction() {
                     ? 'is-current'
                     : undefined
               }
-              aria-current={i === stageIndex ? 'step' : undefined}
             >
-              {ORDER_STATUS_LABELS[status]}
-            </span>
+              <button
+                type="button"
+                className="stepper__step"
+                disabled={busy || waiting}
+                aria-current={i === stageIndex ? 'step' : undefined}
+                title={
+                  i === stageIndex
+                    ? 'Etapa actual'
+                    : i < stageIndex
+                      ? `Volver a ${ORDER_STATUS_LABELS[status]}`
+                      : `Pasar a ${ORDER_STATUS_LABELS[status]}`
+                }
+                onClick={() => goToStatus(status)}
+              >
+                <span className="stepper__dot">
+                  {i < stageIndex ? <Icon name="check" size={14} /> : i + 1}
+                </span>
+                <span className="stepper__label">
+                  {ORDER_STATUS_LABELS[status]}
+                </span>
+              </button>
+            </li>
           ))}
-        </div>
+        </ol>
       )}
 
       {waiting && (

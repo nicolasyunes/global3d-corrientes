@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
 import { useOperator } from '@/features/operators/operator-context'
 import { colorSwatch, type PieceStatus } from './pieces'
@@ -42,6 +43,26 @@ export default function PieceRow({
   onRemove,
 }: PieceRowProps) {
   const { byId } = useOperator()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDetailsElement>(null)
+
+  // A <details> menu doesn't close by itself: close on outside tap or Escape.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onPointer = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
+
   const status = piece.status as PieceStatus
   const who = byId(piece.updated_by)
   const swatch = colorSwatch(piece.color)
@@ -105,7 +126,12 @@ export default function PieceRow({
       <span className="piece__who">
         {who ? `${who.name} · ${timeAgo(piece.updated_at)}` : '—'}
       </span>
-      <details className="piece__menu">
+      <details
+        ref={menuRef}
+        className="piece__menu"
+        open={menuOpen}
+        onToggle={(e) => setMenuOpen(e.currentTarget.open)}
+      >
         <summary aria-label={`Más acciones para ${piece.label}`}>
           <Icon name="more" />
         </summary>
@@ -114,8 +140,8 @@ export default function PieceRow({
             <button
               type="button"
               disabled={busy}
-              onClick={(e) => {
-                e.currentTarget.closest('details')?.removeAttribute('open')
+              onClick={() => {
+                setMenuOpen(false)
                 onFail(piece)
               }}
             >
@@ -127,8 +153,8 @@ export default function PieceRow({
             type="button"
             className="is-danger"
             disabled={busy}
-            onClick={(e) => {
-              e.currentTarget.closest('details')?.removeAttribute('open')
+            onClick={() => {
+              setMenuOpen(false)
               onRemove(piece)
             }}
           >

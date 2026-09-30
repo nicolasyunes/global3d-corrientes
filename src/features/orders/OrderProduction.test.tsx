@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { OrderWithCustomer } from './orders.api'
@@ -140,10 +140,31 @@ describe('OrderProduction', () => {
 
   it('shows the stage line with the current stage', async () => {
     await renderAt()
-    const current = screen.getByText('Imprimiendo', {
-      selector: '.stages span',
-    })
+    const current = within(
+      screen.getByRole('list', { name: 'Etapas del pedido' }),
+    ).getByRole('button', { name: /Imprimiendo/ })
     expect(current).toHaveAttribute('aria-current', 'step')
+  })
+
+  it('lets the stage go back from the stepper, asking first', async () => {
+    getOrderMock.mockResolvedValue(order({ status: 'post_processing' }))
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false)
+    await renderAt()
+    const step = within(
+      screen.getByRole('list', { name: 'Etapas del pedido' }),
+    ).getByRole('button', { name: /Imprimiendo/ })
+    await act(async () => {
+      step.click()
+    })
+    expect(updateOrderMock).not.toHaveBeenCalled()
+    confirm.mockReturnValueOnce(true)
+    await act(async () => {
+      step.click()
+    })
+    expect(updateOrderMock).toHaveBeenCalledWith('order-1', {
+      status: 'printing',
+    })
+    confirm.mockRestore()
   })
 
   it('omits a spec row when its field is empty', async () => {

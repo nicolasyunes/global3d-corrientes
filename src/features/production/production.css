@@ -14,31 +14,94 @@
   gap: 18px;
 }
 
-.stages {
+/* Order stage stepper: every step can be tapped to set the stage. */
+.stepper {
+  list-style: none;
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
   margin-bottom: 18px;
-}
-.stages span {
-  flex: 1;
-  min-width: 96px;
-  text-align: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 9px 8px;
-  border-radius: var(--radius-md);
+  padding: 10px 8px;
   background: var(--color-white);
-  color: var(--color-carbon-muted);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
 }
-.stages span.is-done {
+.stepper > li {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+/* Connector to the previous step. */
+.stepper > li + li::before {
+  content: '';
+  position: absolute;
+  top: 22px;
+  right: 50%;
+  width: 100%;
+  height: 3px;
+  background: var(--color-carbon-line);
+  z-index: 0;
+}
+.stepper > li.is-done::before,
+.stepper > li.is-current::before {
+  background: var(--color-teal-50);
+}
+.stepper__step {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 6px 2px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-carbon-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.stepper__step:hover:not(:disabled) {
+  background: var(--color-bg);
+}
+.stepper__step:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.stepper__step:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+.stepper__dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  background: var(--color-carbon-soft);
+  color: var(--color-carbon-muted);
+}
+.stepper > li.is-done .stepper__dot {
   background: var(--color-teal-50);
   color: var(--color-teal);
 }
-.stages span.is-current {
-  background: var(--color-orange);
-  color: var(--color-carbon);
+.stepper > li.is-done .stepper__step {
+  color: var(--color-teal);
+}
+.stepper > li.is-current .stepper__step {
+  background: var(--color-accent-50);
+  color: var(--color-accent-700);
+}
+.stepper > li.is-current .stepper__dot {
+  background: color-mix(in srgb, var(--color-orange) 38%, var(--color-white));
+  color: var(--color-accent-700);
+}
+@media (max-width: 520px) {
+  .stepper__label {
+    font-size: 0.6875rem;
+  }
 }
 .stage-actions {
   display: flex;
@@ -243,6 +306,12 @@
 }
 .piece__menu {
   position: relative;
+}
+/* The row's entrance animation makes it its own stacking context, so the
+   open menu has to lift the whole row above the rows and buttons below. */
+.piece:has(.piece__menu[open]) {
+  position: relative;
+  z-index: 30;
 }
 .piece__menu summary {
   list-style: none;
