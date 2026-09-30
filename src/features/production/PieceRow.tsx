@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import Icon from '@/components/Icon'
 import { useOperator } from '@/features/operators/operator-context'
+import PieceColorPicker from './PieceColorPicker'
 import { colorSwatch, type PieceStatus } from './pieces'
-import type { PieceRow as Piece } from './production.api'
+import type { PieceEdit, PieceRow as Piece } from './production.api'
 
 const STATUS_LABEL: Record<PieceStatus, string> = {
   pending: 'Falta',
@@ -28,22 +29,108 @@ export function timeAgo(iso: string, now = Date.now()): string {
 interface PieceRowProps {
   piece: Piece
   busy: boolean
+  usedColors: string[]
   onCycle: (piece: Piece) => void
   onIncrement: (piece: Piece) => void
   onFail: (piece: Piece) => void
   onRemove: (piece: Piece) => void
+  // Resolves true when saved, so the row can leave edit mode.
+  onEdit: (piece: Piece, edit: PieceEdit) => Promise<boolean>
+}
+
+function PieceEditForm({
+  piece,
+  busy,
+  usedColors,
+  onSave,
+  onCancel,
+}: {
+  piece: Piece
+  busy: boolean
+  usedColors: string[]
+  onSave: (edit: PieceEdit) => void
+  onCancel: () => void
+}) {
+  const [label, setLabel] = useState(piece.label)
+  const [color, setColor] = useState(piece.color ?? '')
+  const [qty, setQty] = useState(String(piece.quantity_total))
+  // The total can't drop below what is already printed.
+  const min = Math.max(1, piece.quantity_done)
+
+  function submit(e: FormEvent) {
+    e.preventDefault()
+    if (!label.trim()) return
+    onSave({
+      label: label.trim(),
+      color: color.trim() || null,
+      quantityTotal: Math.max(min, Math.floor(Number(qty)) || min),
+    })
+  }
+
+  return (
+    <form
+      className="piece-edit"
+      noValidate
+      onSubmit={submit}
+      onKeyDown={(e) => e.key === 'Escape' && onCancel()}
+    >
+      <input
+        className="input piece-edit__label"
+        aria-label="Nombre de la pieza"
+        autoFocus
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+      />
+      <label className="add-piece__qty">
+        <span aria-hidden="true">×</span>
+        <input
+          className="input"
+          type="number"
+          min={min}
+          inputMode="numeric"
+          aria-label="Cantidad"
+          value={qty}
+          onChange={(e) => setQty(e.target.value)}
+        />
+      </label>
+      <PieceColorPicker
+        value={color}
+        onChange={setColor}
+        usedColors={usedColors}
+      />
+      <div className="piece-edit__actions">
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm"
+          onClick={onCancel}
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          className="btn btn--primary btn--sm"
+          disabled={busy || !label.trim()}
+        >
+          Guardar
+        </button>
+      </div>
+    </form>
+  )
 }
 
 export default function PieceRow({
   piece,
   busy,
+  usedColors,
   onCycle,
   onIncrement,
   onFail,
   onRemove,
+  onEdit,
 }: PieceRowProps) {
   const { byId } = useOperator()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
   const menuRef = useRef<HTMLDetailsElement>(null)
 
   // A <details> menu doesn't close by itself: close on outside tap or Escape.
@@ -68,6 +155,22 @@ export default function PieceRow({
   const swatch = colorSwatch(piece.color)
   const multi = piece.quantity_total > 1
 
+  if (editing) {
+    return (
+      <li className="piece piece--editing" data-status={status}>
+        <PieceEditForm
+          piece={piece}
+          busy={busy}
+          usedColors={usedColors}
+          onCancel={() => setEditing(false)}
+          onSave={async (edit) => {
+            if (await onEdit(piece, edit)) setEditing(false)
+          }}
+        />
+      </li>
+    )
+  }
+
   return (
     <li className="piece" data-status={status}>
       <button
@@ -75,18 +178,18 @@ export default function PieceRow({
         className="piece__state"
         disabled={busy}
         aria-label={`${piece.label}: ${STATUS_LABEL[status]}. Tocar para avanzar`}
-        title="Tocar para avanzar"
+        title={`${STATUS_LABEL[status]} · tocar para avanzar`}
         onClick={() => onCycle(piece)}
       >
-        {status === 'done' && <Icon name="check" size={16} />}
+        {status === 'done' && <Icon name="check" size={14} />}
       </button>
-      <span
-        className={`swatch piece__swatch${swatch ? '' : ' swatch--unknown'}`}
-        style={swatch ? { background: swatch } : undefined}
-        aria-hidden="true"
-      />
       <div className="piece__body">
         <p className="piece__name">
+          <span
+            className={`swatch piece__swatch${swatch ? '' : ' swatch--unknown'}`}
+            style={swatch ? { background: swatch } : undefined}
+            aria-hidden="true"
+          />
           <strong>
             {piece.label}
             {multi && ` ×${piece.quantity_total}`}
@@ -123,46 +226,60 @@ export default function PieceRow({
           </div>
         )}
       </div>
-      <span className="piece__who">
-        {who ? `${who.name} · ${timeAgo(piece.updated_at)}` : '—'}
-      </span>
-      <details
-        ref={menuRef}
-        className="piece__menu"
-        open={menuOpen}
-        onToggle={(e) => setMenuOpen(e.currentTarget.open)}
-      >
-        <summary aria-label={`Más acciones para ${piece.label}`}>
-          <Icon name="more" />
-        </summary>
-        <div className="piece__menu-panel">
-          {status !== 'done' && (
+      {who && (
+        <span className="piece__who">
+          {who.name} · {timeAgo(piece.updated_at)}
+        </span>
+      )}
+      <div className="piece__actions">
+        <button
+          type="button"
+          className="piece__act"
+          disabled={busy}
+          aria-label={`Editar ${piece.label}`}
+          title="Editar"
+          onClick={() => setEditing(true)}
+        >
+          <Icon name="edit" size={16} />
+        </button>
+        <details
+          ref={menuRef}
+          className="piece__menu"
+          open={menuOpen}
+          onToggle={(e) => setMenuOpen(e.currentTarget.open)}
+        >
+          <summary aria-label={`Más acciones para ${piece.label}`}>
+            <Icon name="more" />
+          </summary>
+          <div className="piece__menu-panel">
+            {status !== 'done' && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setMenuOpen(false)
+                  onFail(piece)
+                }}
+              >
+                <Icon name="alert" size={16} />
+                Registrar falla
+              </button>
+            )}
             <button
               type="button"
+              className="is-danger"
               disabled={busy}
               onClick={() => {
                 setMenuOpen(false)
-                onFail(piece)
+                onRemove(piece)
               }}
             >
-              <Icon name="alert" size={16} />
-              Registrar falla
+              <Icon name="trash" size={16} />
+              Quitar pieza
             </button>
-          )}
-          <button
-            type="button"
-            className="is-danger"
-            disabled={busy}
-            onClick={() => {
-              setMenuOpen(false)
-              onRemove(piece)
-            }}
-          >
-            <Icon name="trash" size={16} />
-            Quitar pieza
-          </button>
-        </div>
-      </details>
+          </div>
+        </details>
+      </div>
     </li>
   )
 }
