@@ -9,39 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      categories: {
-        Row: {
-          id: string
-          slug: string
-          name: string
-          icon: string | null
-          position: number
-          featured: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          slug: string
-          name: string
-          icon?: string | null
-          position?: number
-          featured?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          slug?: string
-          name?: string
-          icon?: string | null
-          position?: number
-          featured?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       customers: {
         Row: {
           id: string
@@ -72,7 +39,6 @@ export type Database = {
       inventory: {
         Row: {
           id: string
-          sku: string | null
           material: string
           color: string | null
           brand: string | null
@@ -85,7 +51,6 @@ export type Database = {
         }
         Insert: {
           id?: string
-          sku?: string | null
           material: string
           color?: string | null
           brand?: string | null
@@ -98,7 +63,6 @@ export type Database = {
         }
         Update: {
           id?: string
-          sku?: string | null
           material?: string
           color?: string | null
           brand?: string | null
@@ -110,6 +74,378 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      idea_collections: {
+        Row: {
+          id: string
+          name: string
+          target_date: string | null
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          target_date?: string | null
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          target_date?: string | null
+          position?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      ideas: {
+        Row: {
+          id: string
+          title: string
+          url: string | null
+          source: string
+          preview_image_url: string | null
+          preview_author: string | null
+          collection_id: string | null
+          status: string
+          priority: string
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          url?: string | null
+          source?: string
+          preview_image_url?: string | null
+          preview_author?: string | null
+          collection_id?: string | null
+          status?: string
+          priority?: string
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          url?: string | null
+          source?: string
+          preview_image_url?: string | null
+          preview_author?: string | null
+          collection_id?: string | null
+          status?: string
+          priority?: string
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'ideas_collection_id_fkey'
+            columns: ['collection_id']
+            isOneToOne: false
+            referencedRelation: 'idea_collections'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      filament_lines: {
+        Row: {
+          id: string
+          brand: string
+          name: string
+          material: string
+          presentation: string
+          price: number | null
+          refill_price: number | null
+          accent: string | null
+          position: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          brand: string
+          name: string
+          material?: string
+          presentation?: string
+          price?: number | null
+          refill_price?: number | null
+          accent?: string | null
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          brand?: string
+          name?: string
+          material?: string
+          presentation?: string
+          price?: number | null
+          refill_price?: number | null
+          accent?: string | null
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      filament_colors: {
+        Row: {
+          id: string
+          line_id: string
+          name: string
+          swatch: string
+          finish: string
+          price: number | null
+          stock: number
+          stock_refill: number | null
+          spool_available: boolean
+          min_stock: number
+          position: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          line_id: string
+          name: string
+          swatch?: string
+          finish?: string
+          price?: number | null
+          stock?: number
+          stock_refill?: number | null
+          spool_available?: boolean
+          min_stock?: number
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          line_id?: string
+          name?: string
+          swatch?: string
+          finish?: string
+          price?: number | null
+          stock?: number
+          stock_refill?: number | null
+          spool_available?: boolean
+          min_stock?: number
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'filament_colors_line_id_fkey'
+            columns: ['line_id']
+            isOneToOne: false
+            referencedRelation: 'filament_lines'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      filament_log: {
+        Row: {
+          id: string
+          created_at: string
+          operator_id: string | null
+          kind: string
+          line_label: string
+          color_label: string | null
+          refill: boolean
+          delta: number | null
+          note: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          operator_id?: string | null
+          kind: string
+          line_label: string
+          color_label?: string | null
+          refill?: boolean
+          delta?: number | null
+          note?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          operator_id?: string | null
+          kind?: string
+          line_label?: string
+          color_label?: string | null
+          refill?: boolean
+          delta?: number | null
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'filament_log_operator_id_fkey'
+            columns: ['operator_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      filament_movements: {
+        Row: {
+          id: string
+          color_id: string
+          refill: boolean
+          delta: number
+          kind: string
+          note: string | null
+          operator_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          color_id: string
+          refill?: boolean
+          delta: number
+          kind: string
+          note?: string | null
+          operator_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          color_id?: string
+          refill?: boolean
+          delta?: number
+          kind?: string
+          note?: string | null
+          operator_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'filament_movements_color_id_fkey'
+            columns: ['color_id']
+            isOneToOne: false
+            referencedRelation: 'filament_colors'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'filament_movements_operator_id_fkey'
+            columns: ['operator_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      idea_files: {
+        Row: {
+          id: string
+          idea_id: string
+          storage_path: string
+          kind: string
+          file_name: string
+          size_bytes: number | null
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          idea_id: string
+          storage_path: string
+          kind: string
+          file_name: string
+          size_bytes?: number | null
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          idea_id?: string
+          storage_path?: string
+          kind?: string
+          file_name?: string
+          size_bytes?: number | null
+          position?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'idea_files_idea_id_fkey'
+            columns: ['idea_id']
+            isOneToOne: false
+            referencedRelation: 'ideas'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      notices: {
+        Row: {
+          id: string
+          kind: string
+          body: string
+          important: boolean
+          created_by: string | null
+          created_at: string
+          done_at: string | null
+          done_by: string | null
+          archived_at: string | null
+          archived_by: string | null
+        }
+        Insert: {
+          id?: string
+          kind?: string
+          body: string
+          important?: boolean
+          created_by?: string | null
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+        }
+        Update: {
+          id?: string
+          kind?: string
+          body?: string
+          important?: boolean
+          created_by?: string | null
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notices_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notices_done_by_fkey'
+            columns: ['done_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notices_archived_by_fkey'
+            columns: ['archived_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
       }
       order_images: {
         Row: {
@@ -217,6 +553,7 @@ export type Database = {
           position: number
           created_at: string
           updated_at: string
+          filament_color_id: string | null
         }
         Insert: {
           id?: string
@@ -232,6 +569,7 @@ export type Database = {
           position?: number
           created_at?: string
           updated_at?: string
+          filament_color_id?: string | null
         }
         Update: {
           id?: string
@@ -247,6 +585,7 @@ export type Database = {
           position?: number
           created_at?: string
           updated_at?: string
+          filament_color_id?: string | null
         }
         Relationships: [
           {
@@ -363,10 +702,30 @@ export type Database = {
           reference_link: string | null
           title: string | null
           description: string | null
+          waiting_reason: string | null
+          follow_up_on: string | null
+          flexible: boolean
+          urgent: boolean
+          pp_sand: boolean
+          pp_paint: boolean
+          pp_notes: string | null
+          sand_done: boolean
+          paint_done: boolean
+          stage_manual: boolean
         }
         Insert: {
           id?: string
           customer_id: string
+          waiting_reason?: string | null
+          follow_up_on?: string | null
+          flexible?: boolean
+          urgent?: boolean
+          pp_sand?: boolean
+          pp_paint?: boolean
+          pp_notes?: string | null
+          sand_done?: boolean
+          paint_done?: boolean
+          stage_manual?: boolean
           product_type?: string
           title?: string | null
           description?: string | null
@@ -389,6 +748,16 @@ export type Database = {
         Update: {
           id?: string
           customer_id?: string
+          waiting_reason?: string | null
+          follow_up_on?: string | null
+          flexible?: boolean
+          urgent?: boolean
+          pp_sand?: boolean
+          pp_paint?: boolean
+          pp_notes?: string | null
+          sand_done?: boolean
+          paint_done?: boolean
+          stage_manual?: boolean
           product_type?: string
           title?: string | null
           description?: string | null
@@ -545,53 +914,6 @@ export type Database = {
           },
         ]
       }
-      product_variants: {
-        Row: {
-          id: string
-          product_id: string
-          name: string | null
-          color: string | null
-          size: string | null
-          personalization: boolean
-          price_delta: number
-          active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          product_id: string
-          name?: string | null
-          color?: string | null
-          size?: string | null
-          personalization?: boolean
-          price_delta?: number
-          active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          product_id?: string
-          name?: string | null
-          color?: string | null
-          size?: string | null
-          personalization?: boolean
-          price_delta?: number
-          active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'product_variants_product_id_fkey'
-            columns: ['product_id']
-            isOneToOne: false
-            referencedRelation: 'products'
-            referencedColumns: ['id']
-          },
-        ]
-      }
       products: {
         Row: {
           id: string
@@ -603,14 +925,6 @@ export type Database = {
           active: boolean
           created_at: string
           updated_at: string
-          slug: string | null
-          sku: string | null
-          compare_at_price: number | null
-          custom_on_request: boolean
-          personalizable: boolean
-          weight_grams: number | null
-          category_id: string | null
-          subcategory: string | null
         }
         Insert: {
           id?: string
@@ -622,14 +936,6 @@ export type Database = {
           active?: boolean
           created_at?: string
           updated_at?: string
-          slug?: string | null
-          sku?: string | null
-          compare_at_price?: number | null
-          custom_on_request?: boolean
-          personalizable?: boolean
-          weight_grams?: number | null
-          category_id?: string | null
-          subcategory?: string | null
         }
         Update: {
           id?: string
@@ -641,24 +947,8 @@ export type Database = {
           active?: boolean
           created_at?: string
           updated_at?: string
-          slug?: string | null
-          sku?: string | null
-          compare_at_price?: number | null
-          custom_on_request?: boolean
-          personalizable?: boolean
-          weight_grams?: number | null
-          category_id?: string | null
-          subcategory?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: 'products_category_id_fkey'
-            columns: ['category_id']
-            isOneToOne: false
-            referencedRelation: 'categories'
-            referencedColumns: ['id']
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -818,9 +1108,30 @@ export type Database = {
         }
         Returns: undefined
       }
+      move_filament: {
+        Args: {
+          p_color: string
+          p_refill: boolean
+          p_delta: number
+          p_kind: string
+          p_operator: string | null
+          p_note?: string | null
+        }
+        Returns: Database['public']['Tables']['filament_colors']['Row']
+      }
       increment_task: {
         Args: { p_task: string; p_delta: number; p_operator: string | null }
         Returns: Database['public']['Tables']['order_production_tasks']['Row']
+      }
+      log_order_event: {
+        Args: {
+          p_order: string
+          p_operator: string | null
+          p_kind: string
+          p_label: string
+          p_delta?: number | null
+        }
+        Returns: undefined
       }
       register_task_failure: {
         Args: { p_task: string; p_operator: string | null }

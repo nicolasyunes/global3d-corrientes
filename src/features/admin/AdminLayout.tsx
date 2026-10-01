@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import Icon, { type IconName } from '@/components/Icon'
 import { useAuth } from '@/features/auth/useAuth'
 import { useOperator } from '@/features/operators/operator-context'
+import { countOpenIdeas } from '@/features/ideas/ideas.api'
 import { useOrderModal } from '@/features/orders/order-modal-context'
 import { OrderModalProvider } from '@/features/orders/OrderModalProvider'
 import './shell.css'
@@ -27,17 +28,23 @@ interface NavItem {
   short?: string
   icon: IconName
   adminOnly?: boolean
+  // Sidebar only; on the phone it lives in "Más".
+  sideOnly?: boolean
 }
 
 const MAIN: NavItem[] = [
   { to: '/admin/hoy', label: 'Hoy', icon: 'home' },
-  {
-    to: '/admin/imprimir',
-    label: '¿Qué imprimo?',
-    short: 'Imprimir',
-    icon: 'printer',
-  },
+  { to: '/admin/semana', label: 'Semana', icon: 'calendar' },
   { to: '/admin/orders', label: 'Pedidos', icon: 'box' },
+  { to: '/admin/taller', label: 'Taller', icon: 'printer' },
+  { to: '/admin/avisos', label: 'Avisos', icon: 'chat', sideOnly: true },
+  { to: '/admin/ideas', label: 'Ideas', icon: 'bulb', sideOnly: true },
+  {
+    to: '/admin/filamentos',
+    label: 'Filamentos',
+    icon: 'spool',
+    sideOnly: true,
+  },
 ]
 
 const SECONDARY: NavItem[] = [
@@ -58,12 +65,32 @@ function navClass({ isActive }: { isActive: boolean }) {
 
 export default function AdminLayout() {
   const { signOut } = useAuth()
+
+  // Signing the workshop account out means typing its email and password
+  // again on this device; switching person only needs a PIN.
+  function confirmSignOut() {
+    if (
+      window.confirm(
+        'Vas a cerrar la cuenta del taller en este dispositivo. Para volver a entrar vas a necesitar el email y la contraseña (no solo el PIN).\n\nSi solo querés cambiar de persona, usá "Cambiar persona".\n\n¿Cerrar igual?',
+      )
+    )
+      void signOut()
+  }
   const { current, isAdmin, lock } = useOperator()
   const [moreOpen, setMoreOpen] = useState(false)
   const location = useLocation()
   const secondary = SECONDARY.filter((item) => !item.adminOnly || isAdmin)
+  const [openIdeas, setOpenIdeas] = useState(0)
 
   useEffect(() => setMoreOpen(false), [location.pathname])
+  useEffect(() => {
+    void countOpenIdeas().then(setOpenIdeas)
+  }, [location.pathname])
+
+  const badge = (item: NavItem) =>
+    item.to === '/admin/ideas' && openIdeas > 0 ? (
+      <span className="shell-nav__badge">{openIdeas}</span>
+    ) : null
 
   return (
     <OrderModalProvider>
@@ -80,6 +107,7 @@ export default function AdminLayout() {
               <NavLink key={item.to} to={item.to} className={navClass}>
                 <Icon name={item.icon} />
                 {item.label}
+                {badge(item)}
               </NavLink>
             ))}
             <p className="shell-nav__section">Taller</p>
@@ -105,7 +133,7 @@ export default function AdminLayout() {
               className="icon-btn shell-me__out"
               aria-label="Cerrar sesión del taller"
               title="Cerrar sesión del taller"
-              onClick={() => void signOut()}
+              onClick={confirmSignOut}
             >
               <Icon name="logout" />
             </button>
@@ -119,7 +147,7 @@ export default function AdminLayout() {
         <NewOrderFab />
 
         <nav className="shell-bottom" aria-label="Navegación">
-          {MAIN.map((item) => (
+          {MAIN.filter((item) => !item.sideOnly).map((item) => (
             <NavLink key={item.to} to={item.to} className={navClass}>
               <Icon name={item.icon} />
               {item.short ?? item.label}
@@ -150,12 +178,14 @@ export default function AdminLayout() {
               onClick={() => setMoreOpen(false)}
             />
             <div className="shell-more__panel">
-              {secondary.map((item) => (
-                <NavLink key={item.to} to={item.to} className={navClass}>
-                  <Icon name={item.icon} />
-                  {item.label}
-                </NavLink>
-              ))}
+              {[...MAIN.filter((item) => item.sideOnly), ...secondary].map(
+                (item) => (
+                  <NavLink key={item.to} to={item.to} className={navClass}>
+                    <Icon name={item.icon} />
+                    {item.label}
+                  </NavLink>
+                ),
+              )}
               <button type="button" className="shell-nav__link" onClick={lock}>
                 <Icon name="users" />
                 Cambiar persona ({current?.name})
@@ -163,7 +193,7 @@ export default function AdminLayout() {
               <button
                 type="button"
                 className="shell-nav__link"
-                onClick={() => void signOut()}
+                onClick={confirmSignOut}
               >
                 <Icon name="logout" />
                 Cerrar sesión del taller

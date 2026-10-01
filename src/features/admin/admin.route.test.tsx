@@ -15,10 +15,9 @@ vi.mock('@/features/auth/ProtectedRoute', () => ({
     <>{children}</>
   ),
 }))
-vi.mock('@/features/auth/AdminOnlyRoute', () => ({
-  AdminOnlyRoute: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
+vi.mock('@/features/auth/RecoveryRedirect', () => ({ default: () => null }))
+vi.mock('@/features/auth/ResetPasswordPage', () => ({
+  default: () => <div>RESET</div>,
 }))
 vi.mock('@/features/auth/LoginPage', () => ({
   default: () => <div>LOGIN</div>,
@@ -37,9 +36,9 @@ vi.mock('@/features/orders/OrdersList', () => ({
 vi.mock('@/features/orders/DeliveredOrdersList', () => ({
   default: () => <div />,
 }))
-vi.mock('@/features/sales/SalesForm', () => ({ default: () => <div /> }))
-vi.mock('@/features/sales/SalesList', () => ({ default: () => <div /> }))
-vi.mock('@/features/insumos/InsumosList', () => ({ default: () => <div /> }))
+vi.mock('@/features/calculator/CalculatorPage', () => ({
+  default: () => <div>CALC</div>,
+}))
 vi.mock('@/features/products/ProductForm', () => ({ default: () => <div /> }))
 vi.mock('@/features/products/ProductsList', () => ({ default: () => <div /> }))
 vi.mock('@/features/operators/OperatorProvider', () => ({
@@ -59,8 +58,11 @@ vi.mock('@/features/operators/PeoplePage', () => ({
 vi.mock('@/features/production/TodayPage', () => ({
   default: () => <div>TODAY</div>,
 }))
-vi.mock('@/features/production/PrintQueuePage', () => ({
-  default: () => <div>QUEUE</div>,
+vi.mock('@/features/production/WorkshopPage', () => ({
+  default: () => <div>WORKSHOP</div>,
+}))
+vi.mock('@/features/production/WeekPage', () => ({
+  default: () => <div>WEEK</div>,
 }))
 
 function renderAt(path: string) {
@@ -89,9 +91,29 @@ describe('admin routing table', () => {
     expect(screen.getByText('TODAY')).toBeInTheDocument()
   })
 
-  it('mounts the print queue', () => {
+  it('mounts the workshop, and sends the old print queue there', () => {
+    renderAt('/admin/taller')
+    expect(screen.getByText('WORKSHOP')).toBeInTheDocument()
+  })
+
+  it('redirects the old print queue to the workshop', () => {
     renderAt('/admin/imprimir')
-    expect(screen.getByText('QUEUE')).toBeInTheDocument()
+    expect(screen.getByText('WORKSHOP')).toBeInTheDocument()
+  })
+
+  it('mounts the week', () => {
+    renderAt('/admin/semana')
+    expect(screen.getByText('WEEK')).toBeInTheDocument()
+  })
+
+  it('mounts the calculator', () => {
+    renderAt('/admin/calculadora')
+    expect(screen.getByText('CALC')).toBeInTheDocument()
+  })
+
+  it('sends removed pages back to Hoy', () => {
+    renderAt('/admin/insumos')
+    expect(screen.getByText('TODAY')).toBeInTheDocument()
   })
 
   it('keeps admin-only pages away from regular operators', () => {

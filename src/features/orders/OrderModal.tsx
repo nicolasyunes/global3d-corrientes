@@ -29,12 +29,33 @@ import { useOperator } from '@/features/operators/operator-context'
 import { listProductTemplates } from '@/features/products/products.api'
 import { findTemplate, type ProductTemplate } from '@/features/products/parts'
 import { colorSwatch } from '@/features/production/pieces'
+import { AddAttachment, AttachmentGrid } from './attachments'
+import {
+  DEFAULT_WAITING_REASON,
+  FOLLOW_UP_CHOICES,
+  WAITING_REASONS,
+} from './orderFlow'
+import {
+  deleteOrderImage,
+  isPdf,
+  listOrderImages,
+  publicImageUrl,
+  uploadOrderImage,
+  type OrderImageRow,
+} from './orderImages.api'
 import './order-modal.css'
 
 interface OrderModalProps {
   orderId: string | null
   onClose: () => void
-  onSaved: (order: OrderRow) => void
+  onSaved: (order: OrderRow, warning?: string) => void
+}
+
+interface PendingFile {
+  id: string
+  file: File
+  note: string
+  url: string
 }
 
 const QUICK_DATES: [string, number][] = [
@@ -124,6 +145,9 @@ export default function OrderModal({
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [templates, setTemplates] = useState<ProductTemplate[]>([])
   const { current } = useOperator()
+  const [files, setFiles] = useState<PendingFile[]>([])
+  const [savedFiles, setSavedFiles] = useState<OrderImageRow[]>([])
+  const [fileError, setFileError] = useState<string | null>(null)
   const [hits, setHits] = useState<CustomerHit[]>([])
   const [showHits, setShowHits] = useState(false)
   const firstField = useRef<HTMLInputElement>(null)
@@ -138,6 +162,9 @@ export default function OrderModal({
       .then(setTemplates)
       .catch(() => undefined)
     if (!orderId) return
+    void listOrderImages(orderId)
+      .then(setSavedFiles)
+      .catch(() => undefined)
     loadDraft(orderId)
       .then(setDraft)
       .catch((err) =>
@@ -151,6 +178,47 @@ export default function OrderModal({
   useEffect(() => {
     if (!loading) firstField.current?.focus()
   }, [loading])
+
+  // Free the local previews of files that were never uploaded.
+  const filesRef = useRef(files)
+  filesRef.current = files
+  useEffect(
+    () => () => filesRef.current.forEach((f) => URL.revokeObjectURL(f.url)),
+    [],
+  )
+
+  function addFiles(list: File[], note: string) {
+    dirty.current = true
+    setFiles((prev) => [
+      ...prev,
+      ...list.map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        note,
+        url: URL.createObjectURL(file),
+      })),
+    ])
+  }
+
+  function dropFile(id: string) {
+    setFiles((prev) => {
+      const gone = prev.find((f) => f.id === id)
+      if (gone) URL.revokeObjectURL(gone.url)
+      return prev.filter((f) => f.id !== id)
+    })
+  }
+
+  async function deleteSaved(image: OrderImageRow) {
+    if (!window.confirm(`¿Borrar ${image.note ?? 'este archivo'}?`)) return
+    try {
+      await deleteOrderImage(image)
+      setSavedFiles((prev) => prev.filter((row) => row.id !== image.id))
+    } catch (err) {
+      setFileError(
+        err instanceof Error ? err.message : 'No se pudo borrar el archivo.',
+      )
+    }
+  }
 
   // Lock page scroll behind the modal.
   useEffect(() => {
@@ -271,7 +339,22 @@ export default function OrderModal({
       const order = editing
         ? await updateOrderFromDraft(orderId!, draft, current?.id ?? null)
         : await createOrderFromDraft(draft, current?.id ?? null)
-      onSaved(order)
+      // The order is saved at this point; a failed upload must not block it
+      // (saving again would duplicate the order), so it's reported instead.
+      const failed: string[] = []
+      for (const pending of files) {
+        try {
+          await uploadOrderImage(order.id, pending.file, pending.note)
+        } catch {
+          failed.push(pending.file.name)
+        }
+      }
+      onSaved(
+        order,
+        failed.length
+          ? `Pedido guardado, pero no se pudo subir: ${failed.join(', ')}. Subilo desde el pedido.`
+          : undefined,
+      )
     } catch (err) {
       setSaveError(
         err instanceof Error ? err.message : 'No se pudo guardar el pedido.',
@@ -509,10 +592,155 @@ export default function OrderModal({
               <h3 className="omodal__step">
                 <span>3</span>Entrega y pago
               </h3>
+              <div
+                className="segmented omodal__confirm"
+                role="group"
+                aria-label="¿Está confirmado?"
+              >
+                <button
+                  type="button"
+                  aria-pressed={!draft.waiting}
+                  onClick={() => set('waiting', false)}
+                >
+                  <Icon name="check" size={16} />
+                  Confirmado
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={draft.waiting}
+                  onClick={() => {
+                    set('waiting', true)
+                    if (!draft.followUpOn)
+                      set('followUpOn', addDaysISO(today, 7))
+                  }}
+                >
+                  <Icon name="alert" size={16} />
+                  En espera
+                </button>
+              </div>
+              {draft.waiting ? (
+                <div className="omodal__waiting">
+                  <p className="omodal__hint">
+                    No entra a producción hasta que lo confirmes. Vuelve a
+                    aparecer en <strong>Hoy</strong> el día que elijas para
+                    revisarlo.
+                  </p>
+                  <div className="chips" role="group" aria-label="Motivo">
+                    {WAITING_REASONS.map((reason) => (
+                      <button
+                        key={reason}
+                        type="button"
+                        className="chip"
+                        aria-pressed={
+                          (draft.waitingReason || DEFAULT_WAITING_REASON) ===
+                          reason
+                        }
+                        onClick={() => set('waitingReason', reason)}
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="omodal__row omodal__row--wrap">
+                    <div className="omodal__field">
+                      <label className="field-label" htmlFor="om-follow">
+                        Revisar el
+                      </label>
+                      <input
+                        id="om-follow"
+                        className="input"
+                        type="date"
+                        value={draft.followUpOn}
+                        onChange={(e) => set('followUpOn', e.target.value)}
+                      />
+                    </div>
+                    <div className="chips omodal__quick">
+                      {FOLLOW_UP_CHOICES.map(([label, days]) => {
+                        const value = addDaysISO(today, days)
+                        return (
+                          <button
+                            key={label}
+                            type="button"
+                            className="chip"
+                            aria-pressed={draft.followUpOn === value}
+                            onClick={() => set('followUpOn', value)}
+                          >
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <label className="omodal__flex">
+                  <input
+                    type="checkbox"
+                    checked={draft.flexible}
+                    onChange={(e) => set('flexible', e.target.checked)}
+                  />
+                  <span>
+                    <strong>Sin apuro</strong>
+                    <small>
+                      La fecha es orientativa: se imprime cuando haya tiempo y
+                      no cuenta como atrasado.
+                    </small>
+                  </span>
+                </label>
+              )}
+              {!draft.waiting && (
+                <label className="omodal__flex omodal__flex--urgent">
+                  <input
+                    type="checkbox"
+                    checked={draft.urgent}
+                    onChange={(e) => {
+                      set('urgent', e.target.checked)
+                      if (e.target.checked) set('flexible', false)
+                    }}
+                  />
+                  <span>
+                    <strong>Urgente</strong>
+                    <small>
+                      Aparece primero en Pedidos, arriba de todo, aunque haya
+                      otros atrasados. Sirve para eventos o fechas que no se
+                      pueden mover.
+                    </small>
+                  </span>
+                </label>
+              )}
+              <div className="omodal__post">
+                <span className="field-label">
+                  Posprocesado del pedido, cuando todo esté impreso
+                </span>
+                <div className="chips" role="group" aria-label="Posprocesado">
+                  <button
+                    type="button"
+                    className="chip"
+                    aria-pressed={draft.ppSand}
+                    onClick={() => set('ppSand', !draft.ppSand)}
+                  >
+                    <Icon name="sand" size={16} />
+                    Lijar
+                  </button>
+                  <button
+                    type="button"
+                    className="chip"
+                    aria-pressed={draft.ppPaint}
+                    onClick={() => set('ppPaint', !draft.ppPaint)}
+                  >
+                    <Icon name="brush" size={16} />
+                    Pintar
+                  </button>
+                </div>
+              </div>
               <div className="omodal__row omodal__row--wrap">
                 <div className="omodal__field">
                   <label className="field-label" htmlFor="om-due">
-                    Fecha de entrega
+                    {draft.waiting
+                      ? 'Fecha estimada (opcional)'
+                      : draft.flexible
+                        ? 'Fecha orientativa'
+                        : 'Fecha de entrega'}
                   </label>
                   <input
                     id="om-due"
@@ -627,6 +855,38 @@ export default function OrderModal({
               />
             </section>
 
+            <section className="omodal__section">
+              <h3 className="omodal__step">
+                <span>5</span>Archivos
+                <em className="omodal__optional">opcional</em>
+              </h3>
+              <p className="muted omodal__hint">
+                Foto de referencia, comprobante de la seña, diseño… Se guardan
+                junto con el pedido.
+              </p>
+              <AddAttachment onFiles={addFiles} onError={setFileError} />
+              {fileError && <p className="omodal__err">{fileError}</p>}
+              <AttachmentGrid
+                items={[
+                  ...savedFiles.map((image) => ({
+                    key: image.id,
+                    url: publicImageUrl(image.storage_path),
+                    pdf: isPdf(image.storage_path),
+                    label: image.note,
+                    onRemove: () => void deleteSaved(image),
+                  })),
+                  ...files.map((f) => ({
+                    key: f.id,
+                    url: f.url,
+                    pdf: f.file.type === 'application/pdf',
+                    label: f.note,
+                    pending: true,
+                    onRemove: () => dropFile(f.id),
+                  })),
+                ]}
+              />
+            </section>
+
             {(title || description) && (
               <section
                 className="omodal__preview"
@@ -666,10 +926,14 @@ export default function OrderModal({
               disabled={saving || loading}
             >
               {saving
-                ? 'Guardando…'
-                : editing
-                  ? 'Guardar cambios'
-                  : 'Guardar pedido'}
+                ? files.length
+                  ? 'Guardando y subiendo archivos…'
+                  : 'Guardando…'
+                : `${editing ? 'Guardar cambios' : 'Guardar pedido'}${
+                    files.length
+                      ? ` y ${files.length} archivo${files.length === 1 ? '' : 's'}`
+                      : ''
+                  }`}
             </button>
           </div>
         </footer>

@@ -32,14 +32,6 @@ const PRODUCT: ProductRow = {
   active: true,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
-  slug: null,
-  sku: null,
-  compare_at_price: null,
-  custom_on_request: false,
-  personalizable: false,
-  weight_grams: null,
-  category_id: null,
-  subcategory: null,
 }
 
 function createdRow(overrides = {}) {
@@ -233,14 +225,12 @@ describe('ProductSaleSheet', () => {
 
   it('closes on the backdrop and on Escape', async () => {
     const onClose = vi.fn()
-    const { container } = await renderOpen({ onClose })
+    await renderOpen({ onClose })
 
-    fireEvent.click(container.querySelector('.sale-sheet__backdrop')!)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Cerrar' })[0])
     expect(onClose).toHaveBeenCalledTimes(1)
 
-    fireEvent.keyDown(container.querySelector('.sale-sheet')!, {
-      key: 'Escape',
-    })
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 })
