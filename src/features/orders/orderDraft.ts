@@ -1,5 +1,6 @@
 import type { OriginChannel } from '@/lib/domain-constants'
 import type { PartLine } from '@/features/products/parts'
+import type { DeliveryKind } from './delivery'
 
 export interface ItemDraft {
   id?: string
@@ -34,6 +35,13 @@ export interface OrderDraft {
   // Postprocess for the whole order, once everything is printed.
   ppSand: boolean
   ppPaint: boolean
+  // How it gets to the customer: who picks it up or where it goes, when, and
+  // a note for whoever hands it over. All optional.
+  deliveryKind: DeliveryKind | ''
+  deliveryPlace: string
+  deliveryTime: string
+  deliveryPerson: string
+  deliveryNote: string
 }
 
 export type DraftErrors = Partial<
@@ -63,6 +71,11 @@ export function emptyDraft(): OrderDraft {
     urgent: false,
     ppSand: false,
     ppPaint: false,
+    deliveryKind: '',
+    deliveryPlace: '',
+    deliveryTime: '',
+    deliveryPerson: '',
+    deliveryNote: '',
   }
 }
 

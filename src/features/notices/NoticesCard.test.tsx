@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import ImportantStrip from './ImportantStrip'
 import NoticesCard from './NoticesCard'
+import { useNotices } from './useNotices'
 import { noticeAge, openTasks, sortNotices, visibleNotices } from './notices'
 import type { Notice } from './notices'
 
@@ -22,6 +24,17 @@ vi.mock('@/features/operators/operator-context', () => ({
 }))
 
 const NOW = new Date('2026-10-01T15:00:00')
+
+// Hoy loads the notices once and hands them to the strip and the card.
+function Board() {
+  const notices = useNotices()
+  return (
+    <>
+      <ImportantStrip notices={notices} />
+      <NoticesCard notices={notices} />
+    </>
+  )
+}
 
 function notice(over: Partial<Notice>): Notice {
   return {
@@ -102,7 +115,7 @@ describe('NoticesCard', () => {
   })
 
   async function renderCard() {
-    render(<NoticesCard />)
+    render(<Board />)
     await act(async () => {})
     return screen.getByRole('region', { name: 'Avisos' })
   }
@@ -189,5 +202,47 @@ describe('NoticesCard', () => {
     expect(
       within(card).getByText(/No hay avisos ni tareas/),
     ).toBeInTheDocument()
+  })
+
+  it('shows the strip only while something important is open', async () => {
+    await renderCard()
+    const strip = screen.getByRole('region', { name: 'Avisos importantes' })
+    expect(
+      within(strip).getByText('El jueves cerramos a las 18'),
+    ).toBeInTheDocument()
+    expect(
+      within(strip).getByRole('button', { name: /Ver todos/ }),
+    ).toHaveTextContent('2')
+    // Archiving the only important one makes the strip disappear.
+    mocks.archiveNotice.mockResolvedValue(undefined)
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Archivar: El jueves cerramos a las 18',
+        }),
+      )
+    })
+    expect(
+      screen.queryByRole('region', { name: 'Avisos importantes' }),
+    ).toBeNull()
+  })
+
+  it('has no strip when nothing is important', async () => {
+    mocks.listNotices.mockResolvedValue([notice({ id: 'x', body: 'Hola' })])
+    await renderCard()
+    expect(
+      screen.queryByRole('region', { name: 'Avisos importantes' }),
+    ).toBeNull()
+  })
+
+  it('counts the important ones that do not fit', async () => {
+    mocks.listNotices.mockResolvedValue([
+      notice({ id: '1', body: 'Uno', important: true }),
+      notice({ id: '2', body: 'Dos', important: true }),
+      notice({ id: '3', body: 'Tres', important: true }),
+    ])
+    await renderCard()
+    const strip = screen.getByRole('region', { name: 'Avisos importantes' })
+    expect(within(strip).getByText('y 1 importante más')).toBeInTheDocument()
   })
 })

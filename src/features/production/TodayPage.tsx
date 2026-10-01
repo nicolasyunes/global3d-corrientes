@@ -8,7 +8,9 @@ import {
   type Idea,
 } from '@/features/ideas/ideas'
 import { listCollections, listIdeas } from '@/features/ideas/ideas.api'
+import ImportantStrip from '@/features/notices/ImportantStrip'
 import NoticesCard from '@/features/notices/NoticesCard'
+import { useNotices } from '@/features/notices/useNotices'
 import { useOperator } from '@/features/operators/operator-context'
 import { useOrderModal } from '@/features/orders/order-modal-context'
 import {
@@ -16,6 +18,11 @@ import {
   listOrders,
   type OrderWithCustomer,
 } from '@/features/orders/orders.api'
+import {
+  deliveryLine,
+  deliveryNote,
+  hasDelivery,
+} from '@/features/orders/delivery'
 import { formatMoney } from '@/features/orders/format'
 import { addDaysISO } from '@/features/orders/list'
 import { toISODate } from '@/features/orders/validation'
@@ -142,6 +149,7 @@ export default function TodayPage() {
   const { current } = useOperator()
   const { openNew } = useOrderModal()
   const [toast, showToast] = useToast()
+  const notices = useNotices()
   const [orders, setOrders] = useState<OrderWithCustomer[]>([])
   const [progress, setProgress] = useState<Record<string, OrderProgress>>({})
   const [itemCounts, setItemCounts] = useState<Record<string, number>>({})
@@ -359,7 +367,7 @@ export default function TodayPage() {
         </p>
       )}
 
-      <NoticesCard />
+      <ImportantStrip notices={notices} />
 
       <div className="td-kpis" role="group" aria-label="Resumen del día">
         {kpis.map((k) => (
@@ -438,123 +446,6 @@ export default function TodayPage() {
 
       <div className="td-grid">
         <div className="td-col">
-          <section className="card td-card" aria-label="Imprimiendo ahora">
-            <div className="td-card__head">
-              <Icon name="printer" size={20} className="td-card__icon" />
-              <h2>Imprimiendo ahora</h2>
-              <Link to="/admin/taller" className="td-card__link">
-                Ir al taller →
-              </Link>
-            </div>
-            {loading ? (
-              <p className="muted">Cargando…</p>
-            ) : printing.length === 0 ? (
-              <p className="td-empty">
-                Ninguna impresora en marcha. Empezá una pieza desde el Taller.
-              </p>
-            ) : (
-              <ul className="td-printing">
-                {printing.map((p) => {
-                  const multi = p.quantity_total > 1
-                  const late = !p.flexible && p.due_date < today
-                  const where = pieceIndex.get(p.id)
-                  return (
-                    <li key={p.id}>
-                      <span className="td-printing__dot" aria-hidden="true" />
-                      <Link
-                        to={`/admin/orders/${p.order_id}`}
-                        className="td-printing__who"
-                      >
-                        <strong>
-                          {p.label}
-                          {multi && ` ×${p.quantity_total}`}
-                          {where && ` · ${where}`}
-                        </strong>
-                        <span>
-                          {p.customer_name}
-                          {p.urgent
-                            ? ' · Urgente'
-                            : late
-                              ? ` · atrasado ${daysBetween(p.due_date, today)} d`
-                              : ''}
-                        </span>
-                      </Link>
-                      <span className="td-printing__color">
-                        <Dot color={p.color} />
-                        {p.color?.trim() || 'Sin color'}
-                      </span>
-                      <span className="td-printing__since">
-                        {sinceText(p.updated_at)}
-                      </span>
-                      <button
-                        type="button"
-                        className="td-done"
-                        disabled={busyId === p.id}
-                        onClick={() => void finish(p)}
-                      >
-                        <Icon name="check" size={16} />
-                        {multi
-                          ? `+1 · ${p.quantity_done}/${p.quantity_total}`
-                          : 'Impresa'}
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </section>
-
-          <section
-            className="card td-card"
-            aria-label="Lo próximo para imprimir"
-          >
-            <div className="td-card__head">
-              <Icon name="calendar" size={20} className="td-card__icon" />
-              <h2>Lo próximo para imprimir</h2>
-              <Link to="/admin/taller" className="td-card__link">
-                Ver cola →
-              </Link>
-            </div>
-            {loading ? (
-              <p className="muted">Cargando…</p>
-            ) : upNext.length === 0 ? (
-              <p className="td-empty">No hay piezas esperando. Todo impreso.</p>
-            ) : (
-              <ul className="td-next">
-                {upNext.slice(0, NEXT_SHOWN).map((p) => {
-                  const left = p.quantity_total - p.quantity_done
-                  const due = pieceDue(p, today)
-                  return (
-                    <li key={p.id}>
-                      <Link
-                        to={`/admin/orders/${p.order_id}`}
-                        className={`td-chip${p.urgent ? ' is-urgent' : ''}`}
-                      >
-                        <strong>
-                          {p.label}
-                          {left > 1 && ` ×${left}`}
-                          {p.color?.trim() && ` · ${p.color.trim()}`}
-                        </strong>
-                        <span className={due.startsWith('+') ? 'is-late' : ''}>
-                          {due}
-                        </span>
-                      </Link>
-                    </li>
-                  )
-                })}
-                {upNext.length > NEXT_SHOWN && (
-                  <li>
-                    <Link to="/admin/taller" className="td-chip td-chip--more">
-                      +{upNext.length - NEXT_SHOWN} más
-                    </Link>
-                  </li>
-                )}
-              </ul>
-            )}
-          </section>
-        </div>
-
-        <div className="td-col">
           <section className="card td-card" aria-label="Próximas entregas">
             <div className="td-card__head">
               <Icon name="box" size={20} className="td-card__icon" />
@@ -607,6 +498,12 @@ export default function TodayPage() {
                         <span className="td-deliv__who">
                           <strong>{o.customers?.name ?? 'Sin cliente'}</strong>
                           <span>{orderTitle(o, itemCounts[o.id])}</span>
+                          {hasDelivery(o) && (
+                            <span className="td-deliv__how">
+                              {deliveryLine(o) || 'Entrega'}
+                              {deliveryNote(o) && ` · “${deliveryNote(o)}”`}
+                            </span>
+                          )}
                         </span>
                         <span className="td-deliv__prog">
                           {prog && prog.total ? (
@@ -644,6 +541,134 @@ export default function TodayPage() {
               </ul>
             )}
           </section>
+
+          <div className="td-pair">
+            <section className="card td-card" aria-label="Imprimiendo ahora">
+              <div className="td-card__head">
+                <Icon name="printer" size={20} className="td-card__icon" />
+                <h2>Imprimiendo ahora</h2>
+                <Link to="/admin/taller" className="td-card__link">
+                  Ir al taller →
+                </Link>
+              </div>
+              {loading ? (
+                <p className="muted">Cargando…</p>
+              ) : printing.length === 0 ? (
+                <p className="td-empty">
+                  Ninguna impresora en marcha. Empezá una pieza desde el Taller.
+                </p>
+              ) : (
+                <ul className="td-printing">
+                  {printing.map((p) => {
+                    const multi = p.quantity_total > 1
+                    const late = !p.flexible && p.due_date < today
+                    const where = pieceIndex.get(p.id)
+                    return (
+                      <li key={p.id}>
+                        <span className="td-printing__dot" aria-hidden="true" />
+                        <Link
+                          to={`/admin/orders/${p.order_id}`}
+                          className="td-printing__who"
+                        >
+                          <strong>
+                            {p.label}
+                            {multi && ` ×${p.quantity_total}`}
+                            {where && ` · ${where}`}
+                          </strong>
+                          <span>
+                            {p.customer_name}
+                            {p.urgent
+                              ? ' · Urgente'
+                              : late
+                                ? ` · atrasado ${daysBetween(p.due_date, today)} d`
+                                : ''}
+                          </span>
+                        </Link>
+                        <span className="td-printing__color">
+                          <Dot color={p.color} />
+                          {p.color?.trim() || 'Sin color'}
+                        </span>
+                        <span className="td-printing__since">
+                          {sinceText(p.updated_at)}
+                        </span>
+                        <button
+                          type="button"
+                          className="td-done"
+                          disabled={busyId === p.id}
+                          onClick={() => void finish(p)}
+                        >
+                          <Icon name="check" size={16} />
+                          {multi
+                            ? `+1 · ${p.quantity_done}/${p.quantity_total}`
+                            : 'Impresa'}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
+
+            <section
+              className="card td-card"
+              aria-label="Lo próximo para imprimir"
+            >
+              <div className="td-card__head">
+                <Icon name="calendar" size={20} className="td-card__icon" />
+                <h2>Lo próximo para imprimir</h2>
+                <Link to="/admin/taller" className="td-card__link">
+                  Ver cola →
+                </Link>
+              </div>
+              {loading ? (
+                <p className="muted">Cargando…</p>
+              ) : upNext.length === 0 ? (
+                <p className="td-empty">
+                  No hay piezas esperando. Todo impreso.
+                </p>
+              ) : (
+                <ul className="td-next">
+                  {upNext.slice(0, NEXT_SHOWN).map((p) => {
+                    const left = p.quantity_total - p.quantity_done
+                    const due = pieceDue(p, today)
+                    return (
+                      <li key={p.id}>
+                        <Link
+                          to={`/admin/orders/${p.order_id}`}
+                          className={`td-chip${p.urgent ? ' is-urgent' : ''}`}
+                        >
+                          <strong>
+                            {p.label}
+                            {left > 1 && ` ×${left}`}
+                            {p.color?.trim() && ` · ${p.color.trim()}`}
+                          </strong>
+                          <span
+                            className={due.startsWith('+') ? 'is-late' : ''}
+                          >
+                            {due}
+                          </span>
+                        </Link>
+                      </li>
+                    )
+                  })}
+                  {upNext.length > NEXT_SHOWN && (
+                    <li>
+                      <Link
+                        to="/admin/taller"
+                        className="td-chip td-chip--more"
+                      >
+                        +{upNext.length - NEXT_SHOWN} más
+                      </Link>
+                    </li>
+                  )}
+                </ul>
+              )}
+            </section>
+          </div>
+        </div>
+
+        <div className="td-col td-col--side">
+          <NoticesCard notices={notices} />
 
           {ideas && (
             <section className="card td-card" aria-label="Ideas">

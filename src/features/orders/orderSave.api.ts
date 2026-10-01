@@ -16,6 +16,7 @@ import {
 } from './orderDraft'
 import { piecesForItem } from '@/features/products/parts'
 import { DEFAULT_WAITING_REASON, followUpFrom } from './orderFlow'
+import { normalizeTime, type DeliveryKind } from './delivery'
 import { toISODate } from './validation'
 import type { OrderRow } from './orders.api'
 
@@ -82,6 +83,11 @@ function orderFields(draft: OrderDraft) {
     urgent: draft.urgent && !draft.waiting,
     pp_sand: draft.ppSand,
     pp_paint: draft.ppPaint,
+    delivery_kind: draft.deliveryKind || null,
+    delivery_place: draft.deliveryPlace.trim() || null,
+    delivery_time: normalizeTime(draft.deliveryTime) || null,
+    delivery_person: draft.deliveryPerson.trim() || null,
+    delivery_note: draft.deliveryNote.trim() || null,
   }
 }
 
@@ -321,5 +327,10 @@ export async function loadDraft(orderId: string): Promise<OrderDraft> {
     urgent: order.urgent ?? false,
     ppSand: order.pp_sand ?? false,
     ppPaint: order.pp_paint ?? false,
+    deliveryKind: (order.delivery_kind as DeliveryKind | null) ?? '',
+    deliveryPlace: order.delivery_place ?? '',
+    deliveryTime: order.delivery_time ?? '',
+    deliveryPerson: order.delivery_person ?? '',
+    deliveryNote: order.delivery_note ?? '',
   }
 }
