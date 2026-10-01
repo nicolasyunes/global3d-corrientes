@@ -8,6 +8,7 @@ import {
   type Idea,
 } from '@/features/ideas/ideas'
 import { listCollections, listIdeas } from '@/features/ideas/ideas.api'
+import NoticesCard from '@/features/notices/NoticesCard'
 import { useOperator } from '@/features/operators/operator-context'
 import { useOrderModal } from '@/features/orders/order-modal-context'
 import {
@@ -357,6 +358,8 @@ export default function TodayPage() {
           {error}
         </p>
       )}
+
+      <NoticesCard />
 
       <div className="td-kpis" role="group" aria-label="Resumen del día">
         {kpis.map((k) => (

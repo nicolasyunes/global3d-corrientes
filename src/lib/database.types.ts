@@ -386,6 +386,67 @@ export type Database = {
           },
         ]
       }
+      notices: {
+        Row: {
+          id: string
+          kind: string
+          body: string
+          important: boolean
+          created_by: string | null
+          created_at: string
+          done_at: string | null
+          done_by: string | null
+          archived_at: string | null
+          archived_by: string | null
+        }
+        Insert: {
+          id?: string
+          kind?: string
+          body: string
+          important?: boolean
+          created_by?: string | null
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+        }
+        Update: {
+          id?: string
+          kind?: string
+          body?: string
+          important?: boolean
+          created_by?: string | null
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notices_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notices_done_by_fkey'
+            columns: ['done_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notices_archived_by_fkey'
+            columns: ['archived_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       order_images: {
         Row: {
           id: string
