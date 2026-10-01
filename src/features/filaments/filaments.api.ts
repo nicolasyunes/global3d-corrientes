@@ -4,6 +4,8 @@ import type {
   FilamentColor,
   FilamentLine,
   FilamentLineRow,
+  FilamentLogRow,
+  LogKind,
   FilamentMovement,
   MovementKind,
 } from './filaments'
@@ -49,6 +51,49 @@ export async function moveFilament(
   })
   if (error) throw error
   return data as FilamentColor
+}
+
+export interface LogEntry {
+  kind: LogKind
+  lineLabel: string
+  colorLabel?: string | null
+  refill?: boolean
+  delta?: number | null
+  note?: string | null
+}
+
+// The audit log: who did what, when. Rows are only ever added.
+export async function logEvent(
+  operatorId: string | null,
+  entry: LogEntry,
+): Promise<void> {
+  const { error } = await supabase.from('filament_log').insert({
+    operator_id: operatorId,
+    kind: entry.kind,
+    line_label: entry.lineLabel,
+    color_label: entry.colorLabel ?? null,
+    refill: entry.refill ?? false,
+    delta: entry.delta ?? null,
+    note: entry.note ?? null,
+  })
+  if (error) throw error
+}
+
+export async function listLog(limit = 100): Promise<FilamentLogRow[]> {
+  const { data, error } = await supabase
+    .from('filament_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data ?? []
+}
+
+export interface RemovedColor {
+  id: string
+  name: string
+  // Spools it still had, so the log shows the stock that went away.
+  spools: number
 }
 
 export interface MovementWithColor extends FilamentMovement {
@@ -99,8 +144,9 @@ export async function saveLine(
   lineId: string | null,
   line: LineDraft,
   colors: readonly ColorDraft[],
-  removedIds: readonly string[],
+  removed: readonly RemovedColor[],
   position: number,
+  operatorId: string | null,
 ): Promise<{ line: FilamentLineRow; colorIds: string[] }> {
   let saved: FilamentLineRow
   if (lineId) {
@@ -121,14 +167,29 @@ export async function saveLine(
       .single()
     if (error) throw error
     saved = data
+    await logEvent(operatorId, {
+      kind: 'line_added',
+      lineLabel: `${saved.brand} ${saved.name}`,
+    })
   }
+  const lineLabel = `${saved.brand} ${saved.name}`
 
-  if (removedIds.length) {
+  if (removed.length) {
     const { error } = await supabase
       .from('filament_colors')
       .delete()
-      .in('id', removedIds as string[])
+      .in(
+        'id',
+        removed.map((r) => r.id),
+      )
     if (error) throw error
+    for (const r of removed)
+      await logEvent(operatorId, {
+        kind: 'color_removed',
+        lineLabel,
+        colorLabel: r.name,
+        delta: r.spools > 0 ? -r.spools : null,
+      })
   }
 
   const both = line.presentation === 'both'
@@ -164,12 +225,33 @@ export async function saveLine(
         .single()
       if (error) throw error
       colorIds.push(data.id)
+      await logEvent(operatorId, {
+        kind: 'color_added',
+        lineLabel,
+        colorLabel: fields.name,
+      })
     }
   }
   return { line: saved, colorIds }
 }
 
-export async function deleteLine(id: string): Promise<void> {
-  const { error } = await supabase.from('filament_lines').delete().eq('id', id)
+export async function deleteLine(
+  line: FilamentLine,
+  operatorId: string | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from('filament_lines')
+    .delete()
+    .eq('id', line.id)
   if (error) throw error
+  const spools = line.colors.reduce(
+    (n, c) => n + c.stock + (c.stock_refill ?? 0),
+    0,
+  )
+  await logEvent(operatorId, {
+    kind: 'line_removed',
+    lineLabel: `${line.brand} ${line.name}`,
+    delta: spools > 0 ? -spools : null,
+    note: `${line.colors.length} colores`,
+  })
 }

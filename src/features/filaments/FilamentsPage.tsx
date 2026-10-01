@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Icon from '@/components/Icon'
 import { useToast } from '@/components/useToast'
 import { useOperator } from '@/features/operators/operator-context'
+import ActivityView from './ActivityView'
 import ColorView from './ColorView'
 import LineCard, { type MoveHandler } from './LineCard'
 import LineDrawer from './LineDrawer'
@@ -18,12 +19,13 @@ import { listLines, moveFilament } from './filaments.api'
 import '@/features/orders/taller.css'
 import './filaments.css'
 
-type View = 'brand' | 'color'
+type View = 'brand' | 'color' | 'activity'
 const VIEW_KEY = 'g3d.filamentsView'
 
 function readView(): View {
   try {
-    return localStorage.getItem(VIEW_KEY) === 'color' ? 'color' : 'brand'
+    const saved = localStorage.getItem(VIEW_KEY)
+    return saved === 'color' || saved === 'activity' ? saved : 'brand'
   } catch {
     return 'brand'
   }
@@ -42,6 +44,8 @@ export default function FilamentsPage() {
   // undefined = closed, null = new line.
   const [editing, setEditing] = useState<FilamentLine | null | undefined>()
   const [buying, setBuying] = useState<{ lineId: string | null } | null>(null)
+  // Bumps on every saved change so the activity list refetches.
+  const [changes, setChanges] = useState(0)
 
   const reload = useCallback(async () => {
     try {
@@ -100,13 +104,14 @@ export default function FilamentsPage() {
         refill,
       },
     )
-      .then(() =>
+      .then(() => {
+        setChanges((n) => n + 1)
         showToast(
           `${color.name} · ${line.brand} ${line.name}: ${signed(delta)}${
             delta < 0 ? ' (se terminó)' : ''
           }`,
-        ),
-      )
+        )
+      })
       .catch(() => {
         apply(-delta)
         showToast('No se pudo guardar el cambio de stock.')
@@ -173,35 +178,39 @@ export default function FilamentsPage() {
         </div>
       )}
       <div className="fl-bar">
-        <label className="fl-search">
-          <Icon name="search" size={16} />
-          <input
-            placeholder="Buscar color o marca"
-            aria-label="Buscar color o marca"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </label>
-        <div className="fl-seg" role="group" aria-label="Material">
-          {['all', ...MATERIAL_TABS].map((m) => (
-            <button
-              key={m}
-              type="button"
-              aria-pressed={material === m}
-              onClick={() => setMaterial(m)}
-            >
-              {m === 'all' ? 'Todos' : m}
-            </button>
-          ))}
-        </div>
-        <label className="fl-check">
-          <input
-            type="checkbox"
-            checked={hideEmpty}
-            onChange={(e) => setHideEmpty(e.target.checked)}
-          />
-          Ocultar sin stock
-        </label>
+        {view !== 'activity' && (
+          <>
+            <label className="fl-search">
+              <Icon name="search" size={16} />
+              <input
+                placeholder="Buscar color o marca"
+                aria-label="Buscar color o marca"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
+            <div className="fl-seg" role="group" aria-label="Material">
+              {['all', ...MATERIAL_TABS].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={material === m}
+                  onClick={() => setMaterial(m)}
+                >
+                  {m === 'all' ? 'Todos' : m}
+                </button>
+              ))}
+            </div>
+            <label className="fl-check">
+              <input
+                type="checkbox"
+                checked={hideEmpty}
+                onChange={(e) => setHideEmpty(e.target.checked)}
+              />
+              Ocultar sin stock
+            </label>
+          </>
+        )}
         <div
           className="fl-seg fl-seg--view fl-bar__view"
           role="group"
@@ -223,10 +232,20 @@ export default function FilamentsPage() {
             <span className="fl-rainbow" aria-hidden="true" />
             Por color
           </button>
+          <button
+            type="button"
+            aria-pressed={view === 'activity'}
+            onClick={() => setView('activity')}
+          >
+            <Icon name="receipt" size={15} />
+            Actividad
+          </button>
         </div>
       </div>
 
-      {loading ? (
+      {view === 'activity' ? (
+        <ActivityView reloadKey={changes} />
+      ) : loading ? (
         <p className="fl-quiet">Cargando filamentos…</p>
       ) : lines.length === 0 ? (
         <div className="fl-empty">

@@ -21,6 +21,7 @@ import {
   moveFilament,
   saveLine,
   type ColorDraft,
+  type RemovedColor,
   type MovementWithColor,
 } from './filaments.api'
 import { Stepper } from './parts'
@@ -90,7 +91,7 @@ export default function LineDrawer({
     line?.refill_price == null ? '' : money(line.refill_price),
   )
   const [rows, setRows] = useState<Row[]>(() => toRows(line))
-  const [removed, setRemoved] = useState<string[]>([])
+  const [removed, setRemoved] = useState<RemovedColor[]>([])
   const [adding, setAdding] = useState('')
   const [showAll, setShowAll] = useState(rows.length <= SHOWN + 2)
   const [moves, setMoves] = useState<MovementWithColor[] | null>(null)
@@ -171,7 +172,11 @@ export default function LineDrawer({
     )
       return
     setRows((prev) => prev.filter((r) => r.key !== row.key))
-    if (row.id) setRemoved((prev) => [...prev, row.id!])
+    if (row.id)
+      setRemoved((prev) => [
+        ...prev,
+        { id: row.id!, name: row.name, spools: row.was + (row.wasRefill ?? 0) },
+      ])
   }
 
   async function save() {
@@ -206,6 +211,7 @@ export default function LineDrawer({
         drafts,
         removed,
         position,
+        current?.id ?? null,
       )
       const opId = current?.id ?? null
       const adjust = (id: string, d: number, refill: boolean) =>
@@ -239,7 +245,7 @@ export default function LineDrawer({
       return
     setBusy(true)
     try {
-      await deleteLine(line.id)
+      await deleteLine(line, current?.id ?? null)
       onSaved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo borrar.')

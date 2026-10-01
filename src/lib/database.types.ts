@@ -253,6 +253,50 @@ export type Database = {
           },
         ]
       }
+      filament_log: {
+        Row: {
+          id: string
+          created_at: string
+          operator_id: string | null
+          kind: string
+          line_label: string
+          color_label: string | null
+          refill: boolean
+          delta: number | null
+          note: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          operator_id?: string | null
+          kind: string
+          line_label: string
+          color_label?: string | null
+          refill?: boolean
+          delta?: number | null
+          note?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          operator_id?: string | null
+          kind?: string
+          line_label?: string
+          color_label?: string | null
+          refill?: boolean
+          delta?: number | null
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'filament_log_operator_id_fkey'
+            columns: ['operator_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       filament_movements: {
         Row: {
           id: string

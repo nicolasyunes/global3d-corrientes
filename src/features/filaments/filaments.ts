@@ -10,6 +10,9 @@ export interface FilamentLine extends FilamentLineRow {
 
 export type Presentation = 'spool' | 'refill' | 'both'
 export type MovementKind = 'purchase' | 'used' | 'adjust'
+export type LogKind =
+  MovementKind | 'color_added' | 'color_removed' | 'line_added' | 'line_removed'
+export type FilamentLogRow = Tables['filament_log']['Row']
 
 export const MATERIALS = ['PLA', 'PLA especial', 'PETG', 'TPU', 'Otro'] as const
 export const MATERIAL_TABS = ['PLA', 'PLA especial', 'PETG', 'TPU'] as const
@@ -348,4 +351,77 @@ export function moveWhen(stamp: string, now = new Date()): string {
   if (d >= start) return `hoy ${TIME.format(d)}`
   if (diff < 1) return `ayer ${TIME.format(d)}`
   return DAY.format(d).replace('.', '')
+}
+
+// ---------- Actividad ----------
+
+export const LOG_TEXT: Record<LogKind, string> = {
+  purchase: 'Compra',
+  used: 'Se terminó en el taller',
+  adjust: 'Ajuste de stock',
+  color_added: 'Color agregado',
+  color_removed: 'Color borrado',
+  line_added: 'Línea nueva',
+  line_removed: 'Línea borrada',
+}
+
+export type LogFilter = 'all' | 'in' | 'out' | 'setup'
+
+export function logGroup(kind: string): 'stock' | 'setup' {
+  return kind.startsWith('color_') || kind.startsWith('line_')
+    ? 'setup'
+    : 'stock'
+}
+
+export function filterLog(
+  rows: readonly FilamentLogRow[],
+  { kind, person, query }: { kind: LogFilter; person: string; query: string },
+): FilamentLogRow[] {
+  const q = fold(query)
+  return rows.filter((r) => {
+    if (person !== 'all' && r.operator_id !== person) return false
+    if (kind === 'setup' && logGroup(r.kind) !== 'setup') return false
+    if (kind === 'in' && !((r.delta ?? 0) > 0 && logGroup(r.kind) === 'stock'))
+      return false
+    if (kind === 'out' && !((r.delta ?? 0) < 0)) return false
+    return (
+      q === '' || fold(`${r.line_label} ${r.color_label ?? ''}`).includes(q)
+    )
+  })
+}
+
+const FULL = new Intl.DateTimeFormat('es-AR', {
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+// "1 oct, 09:25": always the full date and time, it is for auditing.
+export function logStamp(stamp: string): string {
+  return FULL.format(new Date(stamp)).replace('.', '')
+}
+
+const DAY_HEAD = new Intl.DateTimeFormat('es-AR', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+})
+
+export function logDayLabel(stamp: string, now = new Date()): string {
+  const d = new Date(stamp)
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const diff = Math.round((start.getTime() - dayStart.getTime()) / 86_400_000)
+  const text = DAY_HEAD.format(d)
+  const label = text.charAt(0).toUpperCase() + text.slice(1)
+  if (diff === 0) return `Hoy · ${label}`
+  if (diff === 1) return `Ayer · ${label}`
+  return label
+}
+
+export function logDayKey(stamp: string): string {
+  const d = new Date(stamp)
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
 }

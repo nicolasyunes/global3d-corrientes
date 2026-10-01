@@ -9,13 +9,18 @@ const mocks = vi.hoisted(() => ({
   saveLine: vi.fn(),
   listLineMovements: vi.fn(),
   deleteLine: vi.fn(),
+  listLog: vi.fn(),
 }))
 
 vi.mock('./filaments.api', () => mocks)
 vi.mock('@/features/operators/operator-context', () => ({
   useOperator: () => ({
     current: { id: 'op-1', name: 'nicolas' },
-    byId: () => ({ name: 'nicolas' }),
+    operators: [
+      { id: 'op-1', name: 'nicolas' },
+      { id: 'op-2', name: 'sabri' },
+    ],
+    byId: (id: string) => ({ name: id === 'op-2' ? 'sabri' : 'nicolas' }),
   }),
 }))
 
@@ -31,6 +36,30 @@ describe('FilamentsPage', () => {
     mocks.listLines.mockResolvedValue(designLines())
     mocks.moveFilament.mockResolvedValue({})
     mocks.listLineMovements.mockResolvedValue([])
+    mocks.listLog.mockResolvedValue([
+      {
+        id: 'a',
+        created_at: new Date().toISOString(),
+        operator_id: 'op-2',
+        kind: 'used',
+        line_label: '3N3 PLA',
+        color_label: 'Rojo',
+        refill: false,
+        delta: -1,
+        note: null,
+      },
+      {
+        id: 'b',
+        created_at: new Date().toISOString(),
+        operator_id: 'op-1',
+        kind: 'color_removed',
+        line_label: 'Elegoo PLA',
+        color_label: 'Gris',
+        refill: false,
+        delta: -1,
+        note: null,
+      },
+    ])
   })
 
   it('shows the stock numbers and every brand', async () => {
@@ -115,5 +144,25 @@ describe('FilamentsPage', () => {
       'op-1',
       { refill: false, note: null },
     )
+  })
+
+  it('lists the activity with who and when, and filters it', async () => {
+    await renderPage()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Actividad' }))
+    })
+    const list = screen.getByRole('region', { name: /Hoy/ })
+    expect(within(list).getByText('Rojo')).toBeInTheDocument()
+    expect(within(list).getByText('sabri')).toBeInTheDocument()
+    expect(
+      within(list).getByText('Se terminó en el taller'),
+    ).toBeInTheDocument()
+    expect(within(list).getByText('Color borrado')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByDisplayValue('Todas las personas'), {
+      target: { value: 'op-2' },
+    })
+    expect(within(list).queryByText('Gris')).not.toBeInTheDocument()
+    expect(within(list).getByText('Rojo')).toBeInTheDocument()
   })
 })
