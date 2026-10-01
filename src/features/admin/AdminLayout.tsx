@@ -38,6 +38,12 @@ const MAIN: NavItem[] = [
   { to: '/admin/orders', label: 'Pedidos', icon: 'box' },
   { to: '/admin/taller', label: 'Taller', icon: 'printer' },
   { to: '/admin/ideas', label: 'Ideas', icon: 'bulb', sideOnly: true },
+  {
+    to: '/admin/filamentos',
+    label: 'Filamentos',
+    icon: 'spool',
+    sideOnly: true,
+  },
 ]
 
 const SECONDARY: NavItem[] = [

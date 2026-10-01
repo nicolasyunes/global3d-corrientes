@@ -155,6 +155,196 @@ export type Database = {
           },
         ]
       }
+      filament_lines: {
+        Row: {
+          id: string
+          brand: string
+          name: string
+          material: string
+          presentation: string
+          price: number | null
+          refill_price: number | null
+          accent: string | null
+          position: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          brand: string
+          name: string
+          material?: string
+          presentation?: string
+          price?: number | null
+          refill_price?: number | null
+          accent?: string | null
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          brand?: string
+          name?: string
+          material?: string
+          presentation?: string
+          price?: number | null
+          refill_price?: number | null
+          accent?: string | null
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      filament_colors: {
+        Row: {
+          id: string
+          line_id: string
+          name: string
+          swatch: string
+          finish: string
+          price: number | null
+          stock: number
+          stock_refill: number | null
+          spool_available: boolean
+          min_stock: number
+          position: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          line_id: string
+          name: string
+          swatch?: string
+          finish?: string
+          price?: number | null
+          stock?: number
+          stock_refill?: number | null
+          spool_available?: boolean
+          min_stock?: number
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          line_id?: string
+          name?: string
+          swatch?: string
+          finish?: string
+          price?: number | null
+          stock?: number
+          stock_refill?: number | null
+          spool_available?: boolean
+          min_stock?: number
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'filament_colors_line_id_fkey'
+            columns: ['line_id']
+            isOneToOne: false
+            referencedRelation: 'filament_lines'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      filament_log: {
+        Row: {
+          id: string
+          created_at: string
+          operator_id: string | null
+          kind: string
+          line_label: string
+          color_label: string | null
+          refill: boolean
+          delta: number | null
+          note: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          operator_id?: string | null
+          kind: string
+          line_label: string
+          color_label?: string | null
+          refill?: boolean
+          delta?: number | null
+          note?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          operator_id?: string | null
+          kind?: string
+          line_label?: string
+          color_label?: string | null
+          refill?: boolean
+          delta?: number | null
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'filament_log_operator_id_fkey'
+            columns: ['operator_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      filament_movements: {
+        Row: {
+          id: string
+          color_id: string
+          refill: boolean
+          delta: number
+          kind: string
+          note: string | null
+          operator_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          color_id: string
+          refill?: boolean
+          delta: number
+          kind: string
+          note?: string | null
+          operator_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          color_id?: string
+          refill?: boolean
+          delta?: number
+          kind?: string
+          note?: string | null
+          operator_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'filament_movements_color_id_fkey'
+            columns: ['color_id']
+            isOneToOne: false
+            referencedRelation: 'filament_colors'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'filament_movements_operator_id_fkey'
+            columns: ['operator_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       idea_files: {
         Row: {
           id: string
@@ -302,6 +492,7 @@ export type Database = {
           position: number
           created_at: string
           updated_at: string
+          filament_color_id: string | null
         }
         Insert: {
           id?: string
@@ -317,6 +508,7 @@ export type Database = {
           position?: number
           created_at?: string
           updated_at?: string
+          filament_color_id?: string | null
         }
         Update: {
           id?: string
@@ -332,6 +524,7 @@ export type Database = {
           position?: number
           created_at?: string
           updated_at?: string
+          filament_color_id?: string | null
         }
         Relationships: [
           {
@@ -853,6 +1046,17 @@ export type Database = {
           p_admin_pin: string
         }
         Returns: undefined
+      }
+      move_filament: {
+        Args: {
+          p_color: string
+          p_refill: boolean
+          p_delta: number
+          p_kind: string
+          p_operator: string | null
+          p_note?: string | null
+        }
+        Returns: Database['public']['Tables']['filament_colors']['Row']
       }
       increment_task: {
         Args: { p_task: string; p_delta: number; p_operator: string | null }

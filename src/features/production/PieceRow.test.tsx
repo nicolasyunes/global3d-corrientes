@@ -21,6 +21,7 @@ const piece: Piece = {
   position: 0,
   created_at: '',
   updated_at: '2026-09-30T10:00:00Z',
+  filament_color_id: null,
 }
 
 function renderRow(over: Partial<Piece> = {}) {

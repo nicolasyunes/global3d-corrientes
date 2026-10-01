@@ -20,6 +20,7 @@ function piece(over: Partial<QueuePiece>): QueuePiece {
     position: 0,
     created_at: '',
     updated_at: '',
+    filament_color_id: null,
     due_date: '2026-09-30',
     order_status: 'new',
     customer_id: 'c1',

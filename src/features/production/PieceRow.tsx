@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
 import { useOperator } from '@/features/operators/operator-context'
+import FilamentPicker, {
+  filamentLabel,
+  useFilamentLines,
+} from '@/features/filaments/FilamentPicker'
 import PieceColorPicker from './PieceColorPicker'
-import { colorSwatch, type PieceStatus } from './pieces'
+import { colorSwatch, TO_PAINT, type PieceStatus } from './pieces'
 import type { PieceEdit, PieceRow as Piece } from './production.api'
 
 const STATUS_LABEL: Record<PieceStatus, string> = {
@@ -52,6 +56,9 @@ export default function PieceRow({
   const [name, setName] = useState(piece.label)
   const [color, setColor] = useState(piece.color ?? '')
   const [colorOpen, setColorOpen] = useState(false)
+  const [picking, setPicking] = useState(false)
+  const lines = useFilamentLines()
+  const lineName = filamentLabel(lines, piece.filament_color_id)
   const popRef = useRef<HTMLDivElement>(null)
 
   // Follow the saved row (another person or the list may change it).
@@ -80,8 +87,18 @@ export default function PieceRow({
 
   function closeColor() {
     setColorOpen(false)
+    setPicking(false)
     const next = color.trim() || null
-    if (next !== (piece.color ?? null)) void save({ color: next })
+    // Typing or tapping a plain color drops the filament chosen before.
+    if (next !== (piece.color ?? null))
+      void save({ color: next, filamentColorId: null })
+  }
+
+  function pickFilament(next: string, filamentId: string | null) {
+    setColor(next)
+    setColorOpen(false)
+    setPicking(false)
+    void save({ color: next, filamentColorId: filamentId })
   }
 
   // The color popover closes (and saves) on outside tap or Escape.
@@ -160,14 +177,33 @@ export default function PieceRow({
             aria-hidden="true"
           />
           {color || 'Sin color'}
+          {lineName && <span className="fl-piece-line">· {lineName}</span>}
         </button>
-        {colorOpen && (
+        {colorOpen && picking && (
+          <div className="prt__pop prt__pop--wide">
+            <FilamentPicker
+              pieceLabel={piece.label}
+              value={piece.filament_color_id}
+              toPaintLabel={TO_PAINT}
+              onPick={(c) => pickFilament(c.color, c.filamentId)}
+            />
+          </div>
+        )}
+        {colorOpen && !picking && (
           <div className="prt__pop">
             <PieceColorPicker
               value={color}
               onChange={setColor}
               usedColors={usedColors}
             />
+            <button
+              type="button"
+              className="fl-pickbtn"
+              onClick={() => setPicking(true)}
+            >
+              <Icon name="spool" size={16} />
+              Elegir del stock de filamentos
+            </button>
             <button
               type="button"
               className="btn btn--ghost btn--sm"

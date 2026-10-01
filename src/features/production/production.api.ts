@@ -219,6 +219,8 @@ export interface PieceEdit {
   label: string
   color: string | null
   quantityTotal: number
+  // Left out = keep it; null = no filament chosen.
+  filamentColorId?: string | null
 }
 
 // Rename / recolor / re-count a piece. The database keeps the done count and
@@ -234,6 +236,9 @@ export async function updatePiece(
       label: edit.label,
       color: edit.color,
       quantity_total: edit.quantityTotal,
+      ...(edit.filamentColorId !== undefined && {
+        filament_color_id: edit.filamentColorId,
+      }),
       updated_by: operatorId,
     })
     .eq('id', id)
