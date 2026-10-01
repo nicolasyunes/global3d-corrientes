@@ -7,12 +7,10 @@ import ColorView from './ColorView'
 import ExportModal from './ExportModal'
 import LineCard, { type MoveHandler } from './LineCard'
 import LineDrawer from './LineDrawer'
-import PrintSheet from './PrintSheet'
 import PurchaseModal from './PurchaseModal'
 import {
   filterLines,
   MATERIAL_TABS,
-  type ExportOptions,
   money,
   signed,
   summarize,
@@ -49,7 +47,6 @@ export default function FilamentsPage() {
   const [buying, setBuying] = useState<{ lineId: string | null } | null>(null)
   // Bumps on every saved change so the activity list refetches.
   const [exporting, setExporting] = useState(false)
-  const [printing, setPrinting] = useState<ExportOptions | null>(null)
   const [changes, setChanges] = useState(0)
 
   const reload = useCallback(async () => {
@@ -317,17 +314,7 @@ export default function FilamentsPage() {
         <ExportModal
           lines={lines}
           onClose={() => setExporting(false)}
-          onExport={(options) => {
-            setExporting(false)
-            setPrinting(options)
-          }}
-        />
-      )}
-      {printing && (
-        <PrintSheet
-          lines={lines}
-          options={printing}
-          onDone={() => setPrinting(null)}
+          onNotice={showToast}
         />
       )}
       {toast}

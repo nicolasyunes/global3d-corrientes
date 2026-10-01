@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Icon from '@/components/Icon'
+import { createPalettePdf, palettePlainText, pdfFileName } from './pdf'
 import {
   brandsOf,
   selectForExport,
@@ -19,11 +20,11 @@ const STOCK: [StockFilter, string][] = [
 export default function ExportModal({
   lines,
   onClose,
-  onExport,
+  onNotice,
 }: {
   lines: readonly FilamentLine[]
   onClose: () => void
-  onExport: (options: ExportOptions) => void
+  onNotice: (message: string) => void
 }) {
   const brands = brandsOf(lines)
   const [all, setAll] = useState(true)
@@ -31,6 +32,8 @@ export default function ExportModal({
   const [stock, setStock] = useState<StockFilter>('all')
   const [showStock, setShowStock] = useState(false)
   const [showPrice, setShowPrice] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -49,6 +52,66 @@ export default function ExportModal({
   const chosen = selectForExport(lines, options)
   const colors = chosen.reduce((n, l) => n + l.colors.length, 0)
   const brandCount = new Set(chosen.map((l) => l.brand)).size
+
+  function download(blob: Blob, name: string) {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = name
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  }
+
+  // One action at a time; a failure stays on screen instead of closing.
+  async function run(name: string, action: () => Promise<string | null>) {
+    setBusy(name)
+    setError(null)
+    try {
+      const notice = await action()
+      if (notice) onNotice(notice)
+      if (notice) onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo generar.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const savePdf = () =>
+    run('pdf', async () => {
+      download(await createPalettePdf(lines, options), pdfFileName())
+      return 'PDF descargado'
+    })
+
+  const sharePdf = () =>
+    run('share', async () => {
+      const blob = await createPalettePdf(lines, options)
+      const file = new File([blob], pdfFileName(), { type: 'application/pdf' })
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'Paleta de filamentos',
+          })
+        } catch (err) {
+          // Closing the share sheet is not an error.
+          if (err instanceof DOMException && err.name === 'AbortError')
+            return null
+          throw err
+        }
+        return 'PDF compartido'
+      }
+      download(blob, file.name)
+      return 'Este equipo no deja compartir archivos: se descargó el PDF para que lo adjuntes'
+    })
+
+  const copyList = () =>
+    run('copy', async () => {
+      await navigator.clipboard.writeText(palettePlainText(lines, options))
+      return 'Lista copiada: pegala en el chat'
+    })
 
   function toggle(brand: string) {
     setPicked((prev) =>
@@ -87,6 +150,11 @@ export default function ExportModal({
         </header>
 
         <div className="fl-drawer__body">
+          {error && (
+            <p className="fl-error" role="alert">
+              {error}
+            </p>
+          )}
           <fieldset className="fl-opt-group">
             <legend>Marcas</legend>
             <div className="fl-seg" role="group" aria-label="Marcas">
@@ -176,12 +244,30 @@ export default function ExportModal({
           </button>
           <button
             type="button"
+            className="fl-btn"
+            disabled={colors === 0 || busy !== null}
+            onClick={copyList}
+          >
+            <Icon name="copy" size={16} />
+            Copiar lista
+          </button>
+          <button
+            type="button"
+            className="fl-btn"
+            disabled={colors === 0 || busy !== null}
+            onClick={sharePdf}
+          >
+            <Icon name="chat" size={16} />
+            {busy === 'share' ? 'Preparando…' : 'Compartir'}
+          </button>
+          <button
+            type="button"
             className="fl-btn fl-btn--primary"
-            disabled={colors === 0}
-            onClick={() => onExport(options)}
+            disabled={colors === 0 || busy !== null}
+            onClick={savePdf}
           >
             <Icon name="download" size={16} />
-            Generar PDF
+            {busy === 'pdf' ? 'Generando…' : 'Descargar PDF'}
           </button>
         </footer>
       </div>

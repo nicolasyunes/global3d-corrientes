@@ -182,10 +182,16 @@ describe('FilamentsPage', () => {
     expect(code).toHaveValue('#7cc4ec')
   })
 
-  it('opens the print dialog with the palette chosen', async () => {
-    const print = vi.fn()
-    vi.stubGlobal('print', print)
-    window.print = print
+  it('downloads the palette as a PDF with the chosen options', async () => {
+    const create = vi.fn(() => 'blob:fake')
+    const revoke = vi.fn()
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: create, revokeObjectURL: revoke }),
+    )
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {})
     await renderPage()
     fireEvent.click(screen.getByRole('button', { name: /Exportar PDF/ }))
     const dialog = screen.getByRole('dialog', { name: 'Exportar a PDF' })
@@ -209,24 +215,44 @@ describe('FilamentsPage', () => {
 
     await act(async () => {
       fireEvent.click(
-        within(dialog).getByRole('button', { name: 'Generar PDF' }),
+        within(dialog).getByRole('button', { name: 'Descargar PDF' }),
       )
     })
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 60))
+      await new Promise((r) => setTimeout(r, 300))
     })
-    expect(print).toHaveBeenCalledTimes(1)
-    expect(document.body.classList.contains('fl-printing')).toBe(true)
-    const sheet = document.querySelector('.fl-print')!
-    expect(sheet.textContent).toContain('Paleta de filamentos')
-    expect(sheet.textContent).toContain('Solo con stock')
-    expect(sheet.textContent).toContain('Piel 720')
-    expect(sheet.textContent).not.toContain('Elegoo')
+    expect(create).toHaveBeenCalledTimes(1)
+    const blob = (create.mock.calls[0] as unknown[])[0] as Blob
+    expect(blob.type).toBe('application/pdf')
+    expect(blob.size).toBeGreaterThan(1000)
+    expect(click).toHaveBeenCalled()
+    expect(screen.queryByRole('dialog', { name: 'Exportar a PDF' })).toBeNull()
+    click.mockRestore()
+  })
 
-    await act(async () => {
-      window.dispatchEvent(new Event('afterprint'))
+  it('copies the list as plain text for a chat', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
     })
-    expect(document.querySelector('.fl-print')).toBeNull()
-    expect(document.body.classList.contains('fl-printing')).toBe(false)
+    await renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /Exportar PDF/ }))
+    const dialog = screen.getByRole('dialog', { name: 'Exportar a PDF' })
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Solo con stock' }),
+    )
+    fireEvent.click(within(dialog).getByLabelText('Cantidad de bobinas'))
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Copiar lista' }),
+      )
+    })
+    const text = writeText.mock.calls[0][0] as string
+    expect(text).toContain('*3N3 PLA* (PLA)')
+    expect(text).toContain('• Rojo (15 bob.)')
+    // 3N3 PLA has no blue in stock, so it is not listed under that line.
+    const section = text.split('*3N3 PLA*')[1].split('*')[0]
+    expect(section).not.toContain('Azul')
   })
 })

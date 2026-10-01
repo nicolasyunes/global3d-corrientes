@@ -13,6 +13,7 @@ import {
   summarize,
   type FilamentColor,
 } from './filaments'
+import { createPalettePdf, pdfFileName, swatchColors } from './pdf'
 
 const lines = designLines()
 const byName = (brand: string, name: string) =>
@@ -163,5 +164,41 @@ describe('exportar', () => {
 
     const grilon = selectForExport(lines, { brands: ['Grilon3'], stock: 'all' })
     expect(grilon.map((l) => l.name)).toEqual(['PLA', 'PLA especial', 'PETG'])
+  })
+})
+
+describe('pdf', () => {
+  it('reads the colors of a swatch', () => {
+    expect(swatchColors('#d0312d')).toEqual([[208, 49, 45]])
+    expect(
+      swatchColors('conic-gradient(#d0312d,#caa13a,#2e8b4a)'),
+    ).toHaveLength(3)
+    // Translucent colors are blended on white.
+    expect(swatchColors('#d0312d99')[0][0]).toBeGreaterThan(208)
+    expect(swatchColors('rgba(220,230,235,.6)')).toEqual([[234, 240, 243]])
+    expect(swatchColors('not a color')).toHaveLength(1)
+  })
+
+  it('names the file with the date', () => {
+    expect(pdfFileName(new Date(2026, 9, 1))).toBe(
+      'paleta-filamentos-2026-10-01.pdf',
+    )
+  })
+
+  it('builds a pdf file for the whole palette', async () => {
+    const blob = await createPalettePdf(lines, {
+      brands: null,
+      stock: 'all',
+      showStock: true,
+      showPrice: true,
+    })
+    expect(blob.type).toBe('application/pdf')
+    const head = await new Promise<string>((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.readAsText(blob.slice(0, 5))
+    })
+    expect(head).toBe('%PDF-')
+    expect(blob.size).toBeGreaterThan(5000)
   })
 })
