@@ -328,8 +328,6 @@ export default function TodayPage() {
         </p>
       )}
 
-      <NoticesCard compact />
-
       <div className="td-kpis" role="group" aria-label="Resumen del día">
         {kpis.map((k) => (
           <button
@@ -407,6 +405,7 @@ export default function TodayPage() {
 
       <div className="td-grid">
         <div className="td-col">
+          <NoticesCard compact />
           <section className="card td-card" aria-label="Imprimiendo ahora">
             <div className="td-card__head">
               <Icon name="printer" size={20} className="td-card__icon" />
