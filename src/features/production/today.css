@@ -1,5 +1,5 @@
 /* Hoy: cuatro números que abren su lista, lo que se imprime ahora, lo que
-   sigue, las entregas de los próximos días y las ideas. */
+   sigue, las entregas de los próximos días y lo que se imprime. */
 
 .td .num {
   font-family: inherit;
@@ -182,6 +182,15 @@
   gap: 12px;
   padding: 12px 0;
   border-top: 1px solid var(--line);
+}
+.td-printing li.td-printing__more {
+  display: block;
+  padding: 10px 0 0;
+}
+.td-printing__more a {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-2);
 }
 .td-printing li:first-child {
   border-top: 0;
@@ -444,28 +453,5 @@
   padding: 10px 0 0;
   font-size: 0.875rem;
   font-weight: 700;
-  color: var(--text-2);
-}
-
-/* Ideas */
-.td-ideas {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 12px;
-  padding-top: 12px;
-}
-.td-ideas strong {
-  font-weight: 800;
-}
-.td-ideas__left {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--accent-strong);
-}
-.td-ideas__sum {
-  margin-left: auto;
-  font-size: 0.875rem;
-  font-weight: 600;
   color: var(--text-2);
 }

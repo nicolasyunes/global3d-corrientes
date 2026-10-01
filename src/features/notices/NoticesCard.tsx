@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import Icon from '@/components/Icon'
 import { useToast } from '@/components/useToast'
 import { useOperator } from '@/features/operators/operator-context'
@@ -21,10 +22,16 @@ import {
 import './notices.css'
 
 const KINDS: NoticeKind[] = ['notice', 'task']
+const COMPACT_SHOWN = 4
 
 // Hoy's board for the shop and the workshop: notices to read and tasks to
 // tick. Anyone adds one; ticking a task keeps who did it and when.
-export default function NoticesCard() {
+export default function NoticesCard({
+  compact = false,
+}: {
+  // On Hoy: the first few, with a link to the full screen.
+  compact?: boolean
+}) {
   const { current, byId } = useOperator()
   const operatorId = current?.id ?? null
   const [toast, showToast] = useToast()
@@ -55,6 +62,7 @@ export default function NoticesCard() {
 
   const shown = sortNotices(visibleNotices(rows ?? []))
   const pending = openTasks(shown)
+  const listed = compact ? shown.slice(0, COMPACT_SHOWN) : shown
 
   function replace(next: Notice) {
     setRows((prev) => (prev ?? []).map((n) => (n.id === next.id ? next : n)))
@@ -126,6 +134,13 @@ export default function NoticesCard() {
             {pending} {pending === 1 ? 'tarea pendiente' : 'tareas pendientes'}
           </span>
         )}
+        {compact && (
+          <Link to="/admin/avisos" className="td-card__link">
+            {shown.length > COMPACT_SHOWN
+              ? `Ver los ${shown.length} →`
+              : 'Ver todos →'}
+          </Link>
+        )}
       </div>
 
       {error && (
@@ -142,7 +157,7 @@ export default function NoticesCard() {
         </p>
       ) : (
         <ul className="nt__list">
-          {shown.map((n) => {
+          {listed.map((n) => {
             const isTask = n.kind === 'task'
             const done = !!n.done_at
             const who = byId(n.created_by)?.name

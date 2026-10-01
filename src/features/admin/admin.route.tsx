@@ -18,6 +18,7 @@ import TodayPage from '@/features/production/TodayPage'
 import WeekPage from '@/features/production/WeekPage'
 import WorkshopPage from '@/features/production/WorkshopPage'
 import CalculatorPage from '@/features/calculator/CalculatorPage'
+import NoticesPage from '@/features/notices/NoticesPage'
 import IdeasPage from '@/features/ideas/IdeasPage'
 import FilamentsPage from '@/features/filaments/FilamentsPage'
 import AdminLayout from './AdminLayout'
@@ -54,6 +55,7 @@ export function Component() {
             path="imprimir"
             element={<Navigate to="/admin/taller" replace />}
           />
+          <Route path="avisos" element={<NoticesPage />} />
           <Route path="ideas" element={<IdeasPage />} />
           <Route path="filamentos" element={<FilamentsPage />} />
           <Route path="orders" element={<OrdersList />} />
