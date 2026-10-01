@@ -25,6 +25,7 @@ import {
   type MovementWithColor,
 } from './filaments.api'
 import { Stepper } from './parts'
+import SwatchPicker from './SwatchPicker'
 
 const SHOWN = 9
 const PRESENTATIONS: Presentation[] = ['spool', 'refill', 'both']
@@ -53,11 +54,6 @@ function toRows(line: FilamentLine | null): Row[] {
     was: c.stock,
     wasRefill: c.stock_refill,
   }))
-}
-
-// A hex the native color input accepts; degradés keep their own value.
-function asHex(swatch: string): string {
-  return /^#[0-9a-f]{6}$/i.test(swatch) ? swatch : '#b8b0a6'
 }
 
 let seq = 0
@@ -398,18 +394,11 @@ export default function LineDrawer({
                 key={r.key}
                 className={`fl-edit${both ? ' fl-edit--both' : ''}`}
               >
-                <label
-                  className="fl-swatch"
-                  style={{ background: r.swatch }}
-                  title="Cambiar color de muestra"
-                >
-                  <input
-                    type="color"
-                    aria-label={`Color de muestra de ${r.name || 'color nuevo'}`}
-                    value={asHex(r.swatch)}
-                    onChange={(e) => patch(r.key, { swatch: e.target.value })}
-                  />
-                </label>
+                <SwatchPicker
+                  value={r.swatch}
+                  label={r.name || 'color nuevo'}
+                  onChange={(swatch) => patch(r.key, { swatch })}
+                />
                 <input
                   className="fl-edit__name"
                   aria-label="Nombre del color"

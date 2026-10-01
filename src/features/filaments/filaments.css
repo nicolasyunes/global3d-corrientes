@@ -717,23 +717,22 @@
   color: var(--text-3);
 }
 .fl-swatch {
-  position: relative;
+  display: block;
   width: 30px;
   height: 30px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
-  overflow: hidden;
   cursor: pointer;
 }
-.fl-swatch input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
+.fl-swatch:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18),
+    0 0 0 3px #fbe3d3;
 }
-.fl-swatch:focus-within {
+.fl-swatch:focus-visible,
+.fl-swp__dot:focus-visible {
   outline: 2px solid var(--color-orange);
   outline-offset: 2px;
 }
@@ -1257,5 +1256,193 @@
   .fl-log__who {
     grid-column: 3;
     grid-row: 1 / span 2;
+  }
+}
+
+/* ---------- Editor del color de muestra ---------- */
+.fl-swp {
+  position: relative;
+  display: block;
+}
+.fl-swp__pop {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 8px);
+  left: 0;
+  display: grid;
+  gap: 12px;
+  width: 264px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--color-white);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.18),
+    0 0 0 1px var(--line);
+}
+.fl-swp__top {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.fl-swp__wheel {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: none;
+  cursor: pointer;
+}
+.fl-swp__grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+}
+.fl-swp__dot {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+}
+.fl-swp__dot[aria-pressed='true'] {
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18),
+    0 0 0 2px var(--color-white),
+    0 0 0 4px var(--color-orange);
+}
+
+/* ---------- Exportar a PDF ---------- */
+.fl-opt-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+.fl-opt-group legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+.fl-opt-group .fl-seg {
+  justify-self: start;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.fl-opt-group .fl-check {
+  justify-self: start;
+}
+.fl-brands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+}
+
+/* La hoja que se imprime: oculta en pantalla, única visible al imprimir. */
+.fl-print {
+  display: none;
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+  body.fl-printing > *:not(.fl-print) {
+    display: none !important;
+  }
+  body.fl-printing {
+    background: #fff;
+  }
+  .fl-print {
+    display: block;
+    color: #1d1b19;
+    font-family: var(--font-sans);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .fl-print__head {
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f37021;
+  }
+  .fl-print__head h1 {
+    font-size: 22pt;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .fl-print__head p {
+    margin-top: 3px;
+    font-size: 9.5pt;
+    font-weight: 600;
+    color: #4d4640;
+  }
+  .fl-print__line {
+    margin-bottom: 16px;
+    break-inside: avoid;
+  }
+  .fl-print__line h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #d8d1c8;
+    font-size: 13pt;
+    font-weight: 800;
+  }
+  .fl-print__line h2 span {
+    font-weight: 600;
+    color: #4d4640;
+  }
+  .fl-print__line h2 small {
+    margin-left: auto;
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: #5f5851;
+  }
+  .fl-print__line ul {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px 14px;
+    padding-top: 8px;
+    list-style: none;
+  }
+  .fl-print__line li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    break-inside: avoid;
+  }
+  .fl-print__dot {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+  }
+  .fl-print__name {
+    flex: 1;
+    min-width: 0;
+    font-size: 10pt;
+    font-weight: 700;
+  }
+  .fl-print__name em {
+    margin-left: 5px;
+    font-size: 7.5pt;
+    font-style: normal;
+    font-weight: 800;
+    color: #5f5851;
+  }
+  .fl-print__meta {
+    font-family: var(--font-mono);
+    font-size: 8.5pt;
+    color: #4d4640;
+    white-space: nowrap;
   }
 }

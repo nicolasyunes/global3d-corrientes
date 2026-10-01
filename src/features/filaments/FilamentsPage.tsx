@@ -4,12 +4,15 @@ import { useToast } from '@/components/useToast'
 import { useOperator } from '@/features/operators/operator-context'
 import ActivityView from './ActivityView'
 import ColorView from './ColorView'
+import ExportModal from './ExportModal'
 import LineCard, { type MoveHandler } from './LineCard'
 import LineDrawer from './LineDrawer'
+import PrintSheet from './PrintSheet'
 import PurchaseModal from './PurchaseModal'
 import {
   filterLines,
   MATERIAL_TABS,
+  type ExportOptions,
   money,
   signed,
   summarize,
@@ -45,6 +48,8 @@ export default function FilamentsPage() {
   const [editing, setEditing] = useState<FilamentLine | null | undefined>()
   const [buying, setBuying] = useState<{ lineId: string | null } | null>(null)
   // Bumps on every saved change so the activity list refetches.
+  const [exporting, setExporting] = useState(false)
+  const [printing, setPrinting] = useState<ExportOptions | null>(null)
   const [changes, setChanges] = useState(0)
 
   const reload = useCallback(async () => {
@@ -136,6 +141,15 @@ export default function FilamentsPage() {
           >
             <Icon name="plus" size={16} />
             Nueva línea
+          </button>
+          <button
+            type="button"
+            className="fl-btn"
+            disabled={lines.length === 0}
+            onClick={() => setExporting(true)}
+          >
+            <Icon name="download" size={16} />
+            Exportar PDF
           </button>
           <button
             type="button"
@@ -297,6 +311,23 @@ export default function FilamentsPage() {
             )
             void reload()
           }}
+        />
+      )}
+      {exporting && (
+        <ExportModal
+          lines={lines}
+          onClose={() => setExporting(false)}
+          onExport={(options) => {
+            setExporting(false)
+            setPrinting(options)
+          }}
+        />
+      )}
+      {printing && (
+        <PrintSheet
+          lines={lines}
+          options={printing}
+          onDone={() => setPrinting(null)}
         />
       )}
       {toast}

@@ -165,4 +165,68 @@ describe('FilamentsPage', () => {
     expect(within(list).queryByText('Gris')).not.toBeInTheDocument()
     expect(within(list).getByText('Rojo')).toBeInTheDocument()
   })
+
+  it('changes the color of a swatch from the editor', async () => {
+    mocks.saveLine.mockResolvedValue({ line: {}, colorIds: [] })
+    await renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Editar 3N3 PLA' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Cambiar el color de Blanco' }),
+    )
+    const code = screen.getByRole('textbox', { name: 'Código del color' })
+    fireEvent.change(code, { target: { value: '#ff0000' } })
+    expect(
+      screen.getByRole('button', { name: 'Cambiar el color de Blanco' }),
+    ).toHaveStyle({ background: 'rgb(255, 0, 0)' })
+    fireEvent.click(screen.getByRole('button', { name: 'Celeste' }))
+    expect(code).toHaveValue('#7cc4ec')
+  })
+
+  it('opens the print dialog with the palette chosen', async () => {
+    const print = vi.fn()
+    vi.stubGlobal('print', print)
+    window.print = print
+    await renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /Exportar PDF/ }))
+    const dialog = screen.getByRole('dialog', { name: 'Exportar a PDF' })
+    expect(
+      within(dialog).getByText('126 colores en 8 marcas'),
+    ).toBeInTheDocument()
+
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Solo con stock' }),
+    )
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Elegir marcas' }),
+    )
+    expect(
+      within(dialog).getByText('No hay colores con esa selección'),
+    ).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByLabelText('Grilon3'))
+    expect(
+      within(dialog).getByText('15 colores en 1 marca'),
+    ).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Generar PDF' }),
+      )
+    })
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 60))
+    })
+    expect(print).toHaveBeenCalledTimes(1)
+    expect(document.body.classList.contains('fl-printing')).toBe(true)
+    const sheet = document.querySelector('.fl-print')!
+    expect(sheet.textContent).toContain('Paleta de filamentos')
+    expect(sheet.textContent).toContain('Solo con stock')
+    expect(sheet.textContent).toContain('Piel 720')
+    expect(sheet.textContent).not.toContain('Elegoo')
+
+    await act(async () => {
+      window.dispatchEvent(new Event('afterprint'))
+    })
+    expect(document.querySelector('.fl-print')).toBeNull()
+    expect(document.body.classList.contains('fl-printing')).toBe(false)
+  })
 })

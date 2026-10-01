@@ -6,7 +6,9 @@ import {
   groupByFamily,
   lineSubtitle,
   moveWhen,
+  brandsOf,
   parseMoney,
+  selectForExport,
   stockState,
   summarize,
   type FilamentColor,
@@ -128,5 +130,38 @@ describe('helpers', () => {
     expect(moveWhen('2026-10-01T09:05:00', now)).toBe('hoy 09:05')
     expect(moveWhen('2026-09-30T21:40:00', now)).toBe('ayer 21:40')
     expect(moveWhen('2026-09-12T10:00:00', now)).toMatch(/^12 sept?$/)
+  })
+})
+
+describe('exportar', () => {
+  it('lists the brands once, sorted', () => {
+    expect(brandsOf(lines)).toEqual(
+      [
+        'Bambu Lab',
+        'Elegoo',
+        'Fila Nova',
+        'Flashforge',
+        'Freemover',
+        'GST3D',
+        'Grilon3',
+        '3N3',
+      ].sort((a, b) => a.localeCompare(b, 'es')),
+    )
+  })
+
+  it('keeps the chosen brands and colors by stock', () => {
+    const all = selectForExport(lines, { brands: null, stock: 'all' })
+    expect(all.reduce((n, l) => n + l.colors.length, 0)).toBe(126)
+
+    const withStock = selectForExport(lines, { brands: null, stock: 'with' })
+    expect(withStock.reduce((n, l) => n + l.colors.length, 0)).toBe(43)
+    // GST3D has nothing in stock, so it is left out.
+    expect(withStock.some((l) => l.brand === 'GST3D')).toBe(false)
+
+    const without = selectForExport(lines, { brands: null, stock: 'without' })
+    expect(without.reduce((n, l) => n + l.colors.length, 0)).toBe(83)
+
+    const grilon = selectForExport(lines, { brands: ['Grilon3'], stock: 'all' })
+    expect(grilon.map((l) => l.name)).toEqual(['PLA', 'PLA especial', 'PETG'])
   })
 })

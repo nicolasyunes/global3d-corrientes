@@ -425,3 +425,71 @@ export function logDayKey(stamp: string): string {
   const d = new Date(stamp)
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
 }
+
+// ---------- Colores de muestra ----------
+
+// The usual filament colors, to start from when matching a real spool.
+export const SWATCH_PRESETS: [string, string][] = [
+  ['Blanco', '#f7f5f0'],
+  ['Hueso', '#efe6d2'],
+  ['Beige', '#e5d3b3'],
+  ['Gris claro', '#b9bcc0'],
+  ['Gris', '#8f9296'],
+  ['Gris espacial', '#4a4e55'],
+  ['Negro', '#1d1b19'],
+  ['Rojo', '#d0312d'],
+  ['Bordó', '#6e1a2a'],
+  ['Naranja', '#f07b22'],
+  ['Amarillo', '#f2c230'],
+  ['Dorado', '#caa13a'],
+  ['Verde manzana', '#7ac943'],
+  ['Verde', '#2e8b4a'],
+  ['Turquesa', '#2bb3b1'],
+  ['Celeste', '#7cc4ec'],
+  ['Azul', '#2450b8'],
+  ['Azul prusia', '#1f3a68'],
+  ['Violeta', '#7b4bb3'],
+  ['Fucsia', '#d6317e'],
+  ['Rosa', '#f3a0b8'],
+  ['Piel', '#d9a07a'],
+  ['Bronce', '#a0703c'],
+  ['Chocolate', '#5a3a24'],
+]
+
+// ---------- Exportar ----------
+
+export type StockFilter = 'all' | 'with' | 'without'
+
+export interface ExportOptions {
+  // null = every brand.
+  brands: string[] | null
+  stock: StockFilter
+  showStock: boolean
+  showPrice: boolean
+}
+
+export function brandsOf(lines: readonly FilamentLine[]): string[] {
+  return [...new Set(lines.map((l) => l.brand))].sort((a, b) =>
+    a.localeCompare(b, 'es'),
+  )
+}
+
+// Lines to print: chosen brands only, and each color kept or dropped by stock.
+// Lines left with no colors are left out.
+export function selectForExport(
+  lines: readonly FilamentLine[],
+  { brands, stock }: Pick<ExportOptions, 'brands' | 'stock'>,
+): FilamentLine[] {
+  const out: FilamentLine[] = []
+  for (const line of lines) {
+    if (brands && !brands.includes(line.brand)) continue
+    const colors = line.colors.filter((c) => {
+      const has = colorTotal(c) > 0
+      return stock === 'all' || (stock === 'with' ? has : !has)
+    })
+    if (colors.length > 0) out.push({ ...line, colors })
+  }
+  return out.sort(
+    (a, b) => a.brand.localeCompare(b.brand, 'es') || a.position - b.position,
+  )
+}
