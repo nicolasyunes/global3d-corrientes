@@ -14,8 +14,6 @@ const mocks = vi.hoisted(() => ({
   listWorkshopPieces: vi.fn(),
   setPieceStatus: vi.fn(),
   incrementPiece: vi.fn(),
-  listIdeas: vi.fn(),
-  listCollections: vi.fn(),
 }))
 
 vi.mock('@/features/orders/orders.api', () => ({
@@ -31,12 +29,18 @@ vi.mock('./production.api', () => ({
 vi.mock('./workshop.api', () => ({
   listWorkshopPieces: mocks.listWorkshopPieces,
 }))
-vi.mock('@/features/ideas/ideas.api', () => ({
-  listIdeas: mocks.listIdeas,
-  listCollections: mocks.listCollections,
+vi.mock('@/features/notices/notices.api', () => ({
+  listNotices: vi.fn().mockResolvedValue([]),
+  createNotice: vi.fn(),
+  setTaskDone: vi.fn(),
+  setImportant: vi.fn(),
+  archiveNotice: vi.fn(),
 }))
 vi.mock('@/features/operators/operator-context', () => ({
-  useOperator: () => ({ current: { id: 'op-1', name: 'nicolas' } }),
+  useOperator: () => ({
+    current: { id: 'op-1', name: 'nicolas' },
+    byId: () => undefined,
+  }),
 }))
 vi.mock('@/features/orders/order-modal-context', () => ({
   useOrderModal: () => ({ openNew: vi.fn() }),
@@ -166,8 +170,6 @@ describe('TodayPage', () => {
         color: 'amarillo',
       }),
     ])
-    mocks.listIdeas.mockResolvedValue([])
-    mocks.listCollections.mockResolvedValue([])
     mocks.setPieceStatus.mockResolvedValue({})
   })
 

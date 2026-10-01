@@ -2,12 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from '@/components/Icon'
 import { useToast } from '@/components/useToast'
-import {
-  collectionCountdown,
-  type Collection,
-  type Idea,
-} from '@/features/ideas/ideas'
-import { listCollections, listIdeas } from '@/features/ideas/ideas.api'
+import NoticesCard from '@/features/notices/NoticesCard'
 import { useOperator } from '@/features/operators/operator-context'
 import { useOrderModal } from '@/features/orders/order-modal-context'
 import {
@@ -48,6 +43,7 @@ const PANEL_TITLE: Record<Panel, string> = {
 
 const CLOSED = ['finished', 'delivered', 'cancelled']
 const DAYS_AHEAD = 5
+const PRINTING_SHOWN = 4
 const NEXT_SHOWN = 8
 const DELIVERIES_SHOWN = 6
 
@@ -145,8 +141,6 @@ export default function TodayPage() {
   const [progress, setProgress] = useState<Record<string, OrderProgress>>({})
   const [itemCounts, setItemCounts] = useState<Record<string, number>>({})
   const [pieces, setPieces] = useState<WorkPiece[]>([])
-  const [ideas, setIdeas] = useState<Idea[] | null>(null)
-  const [collections, setCollections] = useState<Collection[]>([])
   const [panel, setPanel] = useState<Panel | null>(null)
   const [day, setDay] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -179,14 +173,6 @@ export default function TodayPage() {
           ),
       )
       .finally(() => !cancelled && setLoading(false))
-    // Ideas are a side card: if they fail, the day still loads.
-    Promise.all([listIdeas(), listCollections()])
-      .then(([i, c]) => {
-        if (cancelled) return
-        setIdeas(i)
-        setCollections(c)
-      })
-      .catch(() => {})
     return () => {
       cancelled = true
     }
@@ -309,22 +295,6 @@ export default function TodayPage() {
           ? s.ready
           : []
 
-  // The collection coming up next (by date), else the one with most ideas.
-  const nextCollection = useMemo(() => {
-    if (!ideas) return null
-    const dated = collections
-      .filter((c) => c.target_date && c.target_date >= today)
-      .sort((a, b) => a.target_date!.localeCompare(b.target_date!))
-    if (dated.length) return dated[0]
-    return (
-      [...collections].sort(
-        (a, b) =>
-          ideas.filter((i) => i.collection_id === b.id).length -
-          ideas.filter((i) => i.collection_id === a.id).length,
-      )[0] ?? null
-    )
-  }, [ideas, collections, today])
-
   const dateLabel = new Date().toLocaleDateString('es-AR', {
     weekday: 'long',
     day: 'numeric',
@@ -435,6 +405,7 @@ export default function TodayPage() {
 
       <div className="td-grid">
         <div className="td-col">
+          <NoticesCard compact />
           <section className="card td-card" aria-label="Imprimiendo ahora">
             <div className="td-card__head">
               <Icon name="printer" size={20} className="td-card__icon" />
@@ -451,7 +422,7 @@ export default function TodayPage() {
               </p>
             ) : (
               <ul className="td-printing">
-                {printing.map((p) => {
+                {printing.slice(0, PRINTING_SHOWN).map((p) => {
                   const multi = p.quantity_total > 1
                   const late = !p.flexible && p.due_date < today
                   const where = pieceIndex.get(p.id)
@@ -497,52 +468,10 @@ export default function TodayPage() {
                     </li>
                   )
                 })}
-              </ul>
-            )}
-          </section>
-
-          <section
-            className="card td-card"
-            aria-label="Lo próximo para imprimir"
-          >
-            <div className="td-card__head">
-              <Icon name="calendar" size={20} className="td-card__icon" />
-              <h2>Lo próximo para imprimir</h2>
-              <Link to="/admin/taller" className="td-card__link">
-                Ver cola →
-              </Link>
-            </div>
-            {loading ? (
-              <p className="muted">Cargando…</p>
-            ) : upNext.length === 0 ? (
-              <p className="td-empty">No hay piezas esperando. Todo impreso.</p>
-            ) : (
-              <ul className="td-next">
-                {upNext.slice(0, NEXT_SHOWN).map((p) => {
-                  const left = p.quantity_total - p.quantity_done
-                  const due = pieceDue(p, today)
-                  return (
-                    <li key={p.id}>
-                      <Link
-                        to={`/admin/orders/${p.order_id}`}
-                        className={`td-chip${p.urgent ? ' is-urgent' : ''}`}
-                      >
-                        <strong>
-                          {p.label}
-                          {left > 1 && ` ×${left}`}
-                          {p.color?.trim() && ` · ${p.color.trim()}`}
-                        </strong>
-                        <span className={due.startsWith('+') ? 'is-late' : ''}>
-                          {due}
-                        </span>
-                      </Link>
-                    </li>
-                  )
-                })}
-                {upNext.length > NEXT_SHOWN && (
-                  <li>
-                    <Link to="/admin/taller" className="td-chip td-chip--more">
-                      +{upNext.length - NEXT_SHOWN} más
+                {printing.length > PRINTING_SHOWN && (
+                  <li className="td-printing__more">
+                    <Link to="/admin/taller">
+                      +{printing.length - PRINTING_SHOWN} más en el taller
                     </Link>
                   </li>
                 )}
@@ -642,71 +571,57 @@ export default function TodayPage() {
             )}
           </section>
 
-          {ideas && (
-            <section className="card td-card" aria-label="Ideas">
-              <div className="td-card__head">
-                <Icon
-                  name="bulb"
-                  size={20}
-                  className="td-card__icon td-card__icon--idea"
-                />
-                <h2>Ideas</h2>
-                <Link to="/admin/ideas" className="td-card__link">
-                  Ver ideas →
-                </Link>
-              </div>
-              {nextCollection ? (
-                <IdeasLine
-                  collection={nextCollection}
-                  ideas={ideas.filter(
-                    (i) => i.collection_id === nextCollection.id,
-                  )}
-                  today={today}
-                />
-              ) : (
-                <p className="td-empty">
-                  {ideas.length
-                    ? `${ideas.length} ${ideas.length === 1 ? 'idea guardada' : 'ideas guardadas'}, sin colección.`
-                    : 'Todavía no hay ideas. Guardá links o capturas de cosas para probar.'}
-                </p>
-              )}
-            </section>
-          )}
+          <section
+            className="card td-card"
+            aria-label="Lo próximo para imprimir"
+          >
+            <div className="td-card__head">
+              <Icon name="calendar" size={20} className="td-card__icon" />
+              <h2>Lo próximo para imprimir</h2>
+              <Link to="/admin/taller" className="td-card__link">
+                Ver cola →
+              </Link>
+            </div>
+            {loading ? (
+              <p className="muted">Cargando…</p>
+            ) : upNext.length === 0 ? (
+              <p className="td-empty">No hay piezas esperando. Todo impreso.</p>
+            ) : (
+              <ul className="td-next">
+                {upNext.slice(0, NEXT_SHOWN).map((p) => {
+                  const left = p.quantity_total - p.quantity_done
+                  const due = pieceDue(p, today)
+                  return (
+                    <li key={p.id}>
+                      <Link
+                        to={`/admin/orders/${p.order_id}`}
+                        className={`td-chip${p.urgent ? ' is-urgent' : ''}`}
+                      >
+                        <strong>
+                          {p.label}
+                          {left > 1 && ` ×${left}`}
+                          {p.color?.trim() && ` · ${p.color.trim()}`}
+                        </strong>
+                        <span className={due.startsWith('+') ? 'is-late' : ''}>
+                          {due}
+                        </span>
+                      </Link>
+                    </li>
+                  )
+                })}
+                {upNext.length > NEXT_SHOWN && (
+                  <li>
+                    <Link to="/admin/taller" className="td-chip td-chip--more">
+                      +{upNext.length - NEXT_SHOWN} más
+                    </Link>
+                  </li>
+                )}
+              </ul>
+            )}
+          </section>
         </div>
       </div>
       {toast}
     </main>
-  )
-}
-
-function IdeasLine({
-  collection,
-  ideas,
-  today,
-}: {
-  collection: Collection
-  ideas: Idea[]
-  today: string
-}) {
-  const left = collectionCountdown(collection.target_date, today)
-  const tested = ideas.filter((i) => i.status === 'tested').length
-  const untested = ideas.length - tested
-  return (
-    <p className="td-ideas">
-      <strong>{collection.name}</strong>
-      {left && <span className="td-ideas__left">{left}</span>}
-      <span className="td-ideas__sum">
-        {ideas.length === 0
-          ? 'Sin ideas todavía'
-          : [
-              tested
-                ? `${tested} ${tested === 1 ? 'probada' : 'probadas'}`
-                : '',
-              untested ? `${untested} sin probar` : '',
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-      </span>
-    </p>
   )
 }

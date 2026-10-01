@@ -37,6 +37,7 @@ const MAIN: NavItem[] = [
   { to: '/admin/semana', label: 'Semana', icon: 'calendar' },
   { to: '/admin/orders', label: 'Pedidos', icon: 'box' },
   { to: '/admin/taller', label: 'Taller', icon: 'printer' },
+  { to: '/admin/avisos', label: 'Avisos', icon: 'chat', sideOnly: true },
   { to: '/admin/ideas', label: 'Ideas', icon: 'bulb', sideOnly: true },
   {
     to: '/admin/filamentos',

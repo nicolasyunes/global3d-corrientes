@@ -259,7 +259,7 @@
   display: grid;
   grid-template-columns:
     minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr)
-    minmax(0, 1fr) minmax(0, 0.8fr);
+    minmax(0, 1fr) minmax(0, 0.95fr);
   align-items: center;
   gap: 16px;
   padding: 12px 18px;
@@ -331,8 +331,26 @@
   color: var(--late);
 }
 .pn-row__money {
+  display: grid;
+  gap: 1px;
+  justify-items: end;
   font-size: 0.875rem;
   text-align: right;
+}
+.pn-row__money strong {
+  font-weight: 800;
+  white-space: nowrap;
+}
+.pn-row__money small {
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pn-row__money .is-owed {
+  color: var(--accent-strong);
+}
+.pn-row__money .is-paid {
+  color: var(--st-ready-fg);
 }
 @media (max-width: 899px) {
   .pn-table__head {
@@ -347,10 +365,15 @@
     grid-column: 1 / -1;
   }
   .pn-row__money {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 2px 8px;
     text-align: left;
   }
   .pn-row > [data-label='Posprocesado'],
-  .pn-row > [data-label='Saldo'] {
+  .pn-row > [data-label='Total y saldo'] {
     font-size: 0.8125rem;
   }
 }
