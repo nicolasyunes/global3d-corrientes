@@ -321,7 +321,7 @@ export default function OrdersList() {
             <span role="columnheader">Partes</span>
             <span role="columnheader">Posprocesado</span>
             <span role="columnheader">Entrega</span>
-            <span role="columnheader">Saldo</span>
+            <span role="columnheader">Total y saldo</span>
           </div>
           {rows.map((order) => {
             const stage = stageOf(order)
@@ -330,6 +330,7 @@ export default function OrdersList() {
               closed: stage === 'on_hold',
             })
             const balance = order.pending_balance ?? 0
+            const total = order.total_amount ?? 0
             return (
               <Link
                 key={order.id}
@@ -367,8 +368,21 @@ export default function OrdersList() {
                 >
                   {due.label}
                 </span>
-                <span data-label="Saldo" className="pn-row__money num">
-                  {balance > 0 ? formatMoney(balance) : '—'}
+                <span data-label="Total y saldo" className="pn-row__money">
+                  {total > 0 ? (
+                    <>
+                      <strong className="num">{formatMoney(total)}</strong>
+                      <small
+                        className={`num ${balance > 0 ? 'is-owed' : 'is-paid'}`}
+                      >
+                        {balance > 0
+                          ? `Debe ${formatMoney(balance)}`
+                          : 'Pagado'}
+                      </small>
+                    </>
+                  ) : (
+                    <span className="num">—</span>
+                  )}
                 </span>
               </Link>
             )
