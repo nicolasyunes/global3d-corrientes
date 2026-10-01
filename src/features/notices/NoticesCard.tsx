@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import Icon from '@/components/Icon'
 import { useToast } from '@/components/useToast'
 import { useOperator } from '@/features/operators/operator-context'
@@ -14,25 +14,44 @@ import {
 import {
   archiveNotice,
   createNotice,
+  listNotices,
   setImportant,
   setTaskDone,
 } from './notices.api'
-import type { NoticesState } from './useNotices'
 import './notices.css'
 
 const KINDS: NoticeKind[] = ['notice', 'task']
 
 // Hoy's board for the shop and the workshop: notices to read and tasks to
 // tick. Anyone adds one; ticking a task keeps who did it and when.
-export default function NoticesCard({ notices }: { notices: NoticesState }) {
+export default function NoticesCard() {
   const { current, byId } = useOperator()
   const operatorId = current?.id ?? null
   const [toast, showToast] = useToast()
-  const { rows, setRows, error, setError, reload: load } = notices
+  const [rows, setRows] = useState<Notice[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [kind, setKind] = useState<NoticeKind>('notice')
   const [body, setBody] = useState('')
   const [important, setFlag] = useState(false)
   const [busy, setBusy] = useState(false)
+
+  const load = useCallback(async () => {
+    try {
+      setRows(await listNotices())
+      setError(null)
+    } catch (err) {
+      setRows([])
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudieron cargar los avisos.',
+      )
+    }
+  }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
 
   const shown = sortNotices(visibleNotices(rows ?? []))
   const pending = openTasks(shown)
@@ -98,12 +117,7 @@ export default function NoticesCard({ notices }: { notices: NoticesState }) {
   }
 
   return (
-    <section
-      id="avisos"
-      tabIndex={-1}
-      className="card td-card nt"
-      aria-label="Avisos"
-    >
+    <section className="card td-card nt" aria-label="Avisos">
       <div className="td-card__head">
         <Icon name="chat" className="td-card__icon" />
         <h2>Avisos</h2>

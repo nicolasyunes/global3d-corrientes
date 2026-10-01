@@ -3,7 +3,6 @@ import Icon from '@/components/Icon'
 import { ORIGIN_CHANNEL, ORIGIN_CHANNEL_LABELS } from '@/lib/domain-constants'
 import { addDaysISO } from './list'
 import { formatMoney } from './format'
-import { DELIVERY_LABEL, normalizeTime, type DeliveryKind } from './delivery'
 import {
   balanceOf,
   buildDescription,
@@ -772,99 +771,6 @@ export default function OrderModal({
               {errors.dueDate && (
                 <p className="omodal__err">{errors.dueDate}</p>
               )}
-              <div className="omodal__post omodal__delivery">
-                <span className="field-label">
-                  ¿Cómo se entrega? (opcional)
-                </span>
-                <div
-                  className="chips"
-                  role="group"
-                  aria-label="Forma de entrega"
-                >
-                  {(['pickup', 'shipping'] as DeliveryKind[]).map((kind) => (
-                    <button
-                      key={kind}
-                      type="button"
-                      className="chip"
-                      aria-pressed={draft.deliveryKind === kind}
-                      onClick={() =>
-                        set(
-                          'deliveryKind',
-                          draft.deliveryKind === kind ? '' : kind,
-                        )
-                      }
-                    >
-                      {DELIVERY_LABEL[kind]}
-                    </button>
-                  ))}
-                </div>
-                {draft.deliveryKind && (
-                  <>
-                    <div className="omodal__row omodal__row--wrap">
-                      {draft.deliveryKind === 'shipping' && (
-                        <div className="omodal__field omodal__field--grow">
-                          <label className="field-label" htmlFor="om-dplace">
-                            ¿A dónde se envía?
-                          </label>
-                          <input
-                            id="om-dplace"
-                            className="input"
-                            placeholder="Dirección o referencia"
-                            value={draft.deliveryPlace}
-                            onChange={(e) =>
-                              set('deliveryPlace', e.target.value)
-                            }
-                          />
-                        </div>
-                      )}
-                      <div className="omodal__field omodal__field--grow">
-                        <label className="field-label" htmlFor="om-dperson">
-                          {draft.deliveryKind === 'shipping'
-                            ? '¿Quién recibe?'
-                            : '¿Quién pasa a retirar?'}
-                        </label>
-                        <input
-                          id="om-dperson"
-                          className="input"
-                          placeholder="Nombre"
-                          value={draft.deliveryPerson}
-                          onChange={(e) =>
-                            set('deliveryPerson', e.target.value)
-                          }
-                        />
-                      </div>
-                      <div className="omodal__field">
-                        <label className="field-label" htmlFor="om-dtime">
-                          ¿A qué hora?
-                        </label>
-                        <input
-                          id="om-dtime"
-                          className="input"
-                          inputMode="numeric"
-                          placeholder="17:00"
-                          value={draft.deliveryTime}
-                          onChange={(e) => set('deliveryTime', e.target.value)}
-                          onBlur={(e) =>
-                            set('deliveryTime', normalizeTime(e.target.value))
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="omodal__field">
-                      <label className="field-label" htmlFor="om-dnote">
-                        Nota de la casa
-                      </label>
-                      <input
-                        id="om-dnote"
-                        className="input"
-                        placeholder="Ej: dejar con el portero, tocar timbre 2B"
-                        value={draft.deliveryNote}
-                        onChange={(e) => set('deliveryNote', e.target.value)}
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
               <div className="omodal__row omodal__money">
                 <div className="omodal__field">
                   <label className="field-label" htmlFor="om-total">

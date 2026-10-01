@@ -2008,22 +2008,3 @@
 .od .osum2__link {
   font-size: 0.875rem;
 }
-
-/* Detalle de entrega en el resumen del pedido */
-.osum2__delivery {
-  display: grid;
-  gap: 2px;
-  margin-top: 8px;
-  padding: 9px 12px;
-  border-radius: 10px;
-  background: var(--color-bg);
-}
-.osum2__delivery strong {
-  font-size: 0.875rem;
-  font-weight: 800;
-}
-.osum2__delivery span {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-2);
-}

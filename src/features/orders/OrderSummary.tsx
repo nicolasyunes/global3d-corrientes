@@ -1,4 +1,3 @@
-import { deliveryLine, deliveryNote, hasDelivery } from './delivery'
 import { useState, type FormEvent } from 'react'
 import Icon from '@/components/Icon'
 import { daysBetween } from '@/features/production/due'
@@ -141,12 +140,6 @@ export default function OrderSummary({
           </span>
         </div>
         <p className="osum2__big">{formatDueDate(order.due_date)}</p>
-        {hasDelivery(order) && (
-          <div className="osum2__delivery">
-            <strong>{deliveryLine(order) || 'Entrega'}</strong>
-            {deliveryNote(order) && <span>“{deliveryNote(order)}”</span>}
-          </div>
-        )}
         {!closed && (
           <div className="osum2__timeline" aria-hidden="true">
             <div className="osum2__track">

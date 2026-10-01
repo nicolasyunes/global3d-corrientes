@@ -709,11 +709,6 @@ export type Database = {
           pp_sand: boolean
           pp_paint: boolean
           pp_notes: string | null
-          delivery_kind: string | null
-          delivery_place: string | null
-          delivery_time: string | null
-          delivery_person: string | null
-          delivery_note: string | null
           sand_done: boolean
           paint_done: boolean
           stage_manual: boolean
@@ -728,11 +723,6 @@ export type Database = {
           pp_sand?: boolean
           pp_paint?: boolean
           pp_notes?: string | null
-          delivery_kind?: string | null
-          delivery_place?: string | null
-          delivery_time?: string | null
-          delivery_person?: string | null
-          delivery_note?: string | null
           sand_done?: boolean
           paint_done?: boolean
           stage_manual?: boolean
@@ -765,11 +755,6 @@ export type Database = {
           pp_sand?: boolean
           pp_paint?: boolean
           pp_notes?: string | null
-          delivery_kind?: string | null
-          delivery_place?: string | null
-          delivery_time?: string | null
-          delivery_person?: string | null
-          delivery_note?: string | null
           sand_done?: boolean
           paint_done?: boolean
           stage_manual?: boolean
