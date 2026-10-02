@@ -4,6 +4,7 @@ import Icon, { type IconName } from '@/components/Icon'
 import { useAuth } from '@/features/auth/useAuth'
 import { useOperator } from '@/features/operators/operator-context'
 import { countOpenIdeas } from '@/features/ideas/ideas.api'
+import { countOpenTasks } from '@/features/notices/notices.api'
 import { useOrderModal } from '@/features/orders/order-modal-context'
 import { OrderModalProvider } from '@/features/orders/OrderModalProvider'
 import './shell.css'
@@ -37,7 +38,12 @@ const MAIN: NavItem[] = [
   { to: '/admin/semana', label: 'Semana', icon: 'calendar' },
   { to: '/admin/orders', label: 'Pedidos', icon: 'box' },
   { to: '/admin/taller', label: 'Taller', icon: 'printer' },
-  { to: '/admin/avisos', label: 'Avisos', icon: 'chat', sideOnly: true },
+  {
+    to: '/admin/avisos',
+    label: 'Avisos y tareas',
+    icon: 'check',
+    sideOnly: true,
+  },
   { to: '/admin/ideas', label: 'Ideas', icon: 'bulb', sideOnly: true },
   {
     to: '/admin/filamentos',
@@ -81,15 +87,21 @@ export default function AdminLayout() {
   const location = useLocation()
   const secondary = SECONDARY.filter((item) => !item.adminOnly || isAdmin)
   const [openIdeas, setOpenIdeas] = useState(0)
+  const [pendingTasks, setPendingTasks] = useState(0)
 
   useEffect(() => setMoreOpen(false), [location.pathname])
   useEffect(() => {
     void countOpenIdeas().then(setOpenIdeas)
+    void countOpenTasks().then(setPendingTasks)
   }, [location.pathname])
 
+  const counts: Record<string, number> = {
+    '/admin/ideas': openIdeas,
+    '/admin/avisos': pendingTasks,
+  }
   const badge = (item: NavItem) =>
-    item.to === '/admin/ideas' && openIdeas > 0 ? (
-      <span className="shell-nav__badge">{openIdeas}</span>
+    counts[item.to] > 0 ? (
+      <span className="shell-nav__badge">{counts[item.to]}</span>
     ) : null
 
   return (
