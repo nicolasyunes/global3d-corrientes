@@ -77,7 +77,7 @@ describe('helpers', () => {
       notice({ id: 'new', created_at: '2026-10-01T10:00:00Z' }),
       notice({
         id: 'imp',
-        important: true,
+        priority: 'alta',
         created_at: '2026-09-28T10:00:00Z',
       }),
     ]
