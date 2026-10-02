@@ -398,6 +398,17 @@ export type Database = {
           done_by: string | null
           archived_at: string | null
           archived_by: string | null
+          sector: string
+          priority: string
+          assignee_id: string | null
+          due_on: string | null
+          repeat: string | null
+          link: string | null
+          color: string
+          pinned: boolean
+          expires_on: string | null
+          last_done_at: string | null
+          last_done_by: string | null
         }
         Insert: {
           id?: string
@@ -410,6 +421,17 @@ export type Database = {
           done_by?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          sector?: string
+          priority?: string
+          assignee_id?: string | null
+          due_on?: string | null
+          repeat?: string | null
+          link?: string | null
+          color?: string
+          pinned?: boolean
+          expires_on?: string | null
+          last_done_at?: string | null
+          last_done_by?: string | null
         }
         Update: {
           id?: string
@@ -422,6 +444,17 @@ export type Database = {
           done_by?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          sector?: string
+          priority?: string
+          assignee_id?: string | null
+          due_on?: string | null
+          repeat?: string | null
+          link?: string | null
+          color?: string
+          pinned?: boolean
+          expires_on?: string | null
+          last_done_at?: string | null
+          last_done_by?: string | null
         }
         Relationships: [
           {
@@ -441,6 +474,20 @@ export type Database = {
           {
             foreignKeyName: 'notices_archived_by_fkey'
             columns: ['archived_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notices_assignee_id_fkey'
+            columns: ['assignee_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notices_last_done_by_fkey'
+            columns: ['last_done_by']
             isOneToOne: false
             referencedRelation: 'operators'
             referencedColumns: ['id']

@@ -35,6 +35,17 @@ function notice(over: Partial<Notice>): Notice {
     done_by: null,
     archived_at: null,
     archived_by: null,
+    sector: 'local',
+    priority: 'media',
+    assignee_id: null,
+    due_on: null,
+    repeat: null,
+    link: null,
+    color: 'amarillo',
+    pinned: false,
+    expires_on: null,
+    last_done_at: null,
+    last_done_by: null,
     ...over,
   }
 }
