@@ -164,7 +164,7 @@ export default function ResourceModal({
           {read && (
             <div className="rs-read">
               <span
-                className="rs-initial rs-initial--reparar"
+                className={`rs-initial rs-initial--${cat}`}
                 aria-hidden="true"
               >
                 {initialOf(read.title)}
