@@ -64,6 +64,9 @@ vi.mock('@/features/production/WorkshopPage', () => ({
 vi.mock('@/features/production/WeekPage', () => ({
   default: () => <div>WEEK</div>,
 }))
+vi.mock('@/features/resources/ResourcesPage', () => ({
+  default: () => <div>RECURSOS</div>,
+}))
 
 function renderAt(path: string) {
   render(
@@ -109,6 +112,11 @@ describe('admin routing table', () => {
   it('mounts the calculator', () => {
     renderAt('/admin/calculadora')
     expect(screen.getByText('CALC')).toBeInTheDocument()
+  })
+
+  it('mounts the recursos page', () => {
+    renderAt('/admin/recursos')
+    expect(screen.getByText('RECURSOS')).toBeInTheDocument()
   })
 
   it('sends removed pages back to Hoy', () => {

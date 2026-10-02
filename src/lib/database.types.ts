@@ -398,6 +398,17 @@ export type Database = {
           done_by: string | null
           archived_at: string | null
           archived_by: string | null
+          sector: string
+          priority: string
+          assignee_id: string | null
+          due_on: string | null
+          repeat: string | null
+          link: string | null
+          color: string
+          pinned: boolean
+          expires_on: string | null
+          last_done_at: string | null
+          last_done_by: string | null
         }
         Insert: {
           id?: string
@@ -410,6 +421,17 @@ export type Database = {
           done_by?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          sector?: string
+          priority?: string
+          assignee_id?: string | null
+          due_on?: string | null
+          repeat?: string | null
+          link?: string | null
+          color?: string
+          pinned?: boolean
+          expires_on?: string | null
+          last_done_at?: string | null
+          last_done_by?: string | null
         }
         Update: {
           id?: string
@@ -422,6 +444,17 @@ export type Database = {
           done_by?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          sector?: string
+          priority?: string
+          assignee_id?: string | null
+          due_on?: string | null
+          repeat?: string | null
+          link?: string | null
+          color?: string
+          pinned?: boolean
+          expires_on?: string | null
+          last_done_at?: string | null
+          last_done_by?: string | null
         }
         Relationships: [
           {
@@ -441,6 +474,20 @@ export type Database = {
           {
             foreignKeyName: 'notices_archived_by_fkey'
             columns: ['archived_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notices_assignee_id_fkey'
+            columns: ['assignee_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notices_last_done_by_fkey'
+            columns: ['last_done_by']
             isOneToOne: false
             referencedRelation: 'operators'
             referencedColumns: ['id']
@@ -914,6 +961,62 @@ export type Database = {
           },
         ]
       }
+      resources: {
+        Row: {
+          id: string
+          name: string
+          url: string
+          category: string
+          description: string | null
+          price: string
+          needs_account: boolean
+          account_hint: string | null
+          search_url: string | null
+          pinned: boolean
+          position: number
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          url: string
+          category: string
+          description?: string | null
+          price?: string
+          needs_account?: boolean
+          account_hint?: string | null
+          search_url?: string | null
+          pinned?: boolean
+          position?: number
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          url?: string
+          category?: string
+          description?: string | null
+          price?: string
+          needs_account?: boolean
+          account_hint?: string | null
+          search_url?: string | null
+          pinned?: boolean
+          position?: number
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'resources_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       products: {
         Row: {
           id: string
@@ -949,6 +1052,54 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      saved_searches: {
+        Row: {
+          id: string
+          name: string
+          query: string
+          resource_ids: string[]
+          collection_id: string | null
+          last_used_at: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          query: string
+          resource_ids?: string[]
+          collection_id?: string | null
+          last_used_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          query?: string
+          resource_ids?: string[]
+          collection_id?: string | null
+          last_used_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'saved_searches_collection_id_fkey'
+            columns: ['collection_id']
+            isOneToOne: false
+            referencedRelation: 'idea_collections'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'saved_searches_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
       }
       profiles: {
         Row: {

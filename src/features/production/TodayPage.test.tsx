@@ -32,8 +32,8 @@ vi.mock('./workshop.api', () => ({
 vi.mock('@/features/notices/notices.api', () => ({
   listNotices: vi.fn().mockResolvedValue([]),
   createNotice: vi.fn(),
-  setTaskDone: vi.fn(),
-  setImportant: vi.fn(),
+  markTask: vi.fn(),
+  setPriority: vi.fn(),
   archiveNotice: vi.fn(),
 }))
 vi.mock('@/features/operators/operator-context', () => ({
