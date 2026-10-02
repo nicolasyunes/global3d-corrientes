@@ -21,6 +21,7 @@ import CalculatorPage from '@/features/calculator/CalculatorPage'
 import NoticesPage from '@/features/notices/NoticesPage'
 import IdeasPage from '@/features/ideas/IdeasPage'
 import FilamentsPage from '@/features/filaments/FilamentsPage'
+import ResourcesPage from '@/features/resources/ResourcesPage'
 import AdminLayout from './AdminLayout'
 
 function OperatorAdminOnly({ children }: { children: ReactNode }) {
@@ -57,6 +58,7 @@ export function Component() {
           />
           <Route path="avisos" element={<NoticesPage />} />
           <Route path="ideas" element={<IdeasPage />} />
+          <Route path="recursos" element={<ResourcesPage />} />
           <Route path="filamentos" element={<FilamentsPage />} />
           <Route path="orders" element={<OrdersList />} />
           <Route path="orders/:id" element={<OrderProduction />} />

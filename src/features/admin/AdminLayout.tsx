@@ -46,6 +46,12 @@ const MAIN: NavItem[] = [
   },
   { to: '/admin/ideas', label: 'Ideas', icon: 'bulb', sideOnly: true },
   {
+    to: '/admin/recursos',
+    label: 'Recursos',
+    icon: 'globe',
+    sideOnly: true,
+  },
+  {
     to: '/admin/filamentos',
     label: 'Filamentos',
     icon: 'spool',
