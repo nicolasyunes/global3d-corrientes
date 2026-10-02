@@ -961,6 +961,62 @@ export type Database = {
           },
         ]
       }
+      resources: {
+        Row: {
+          id: string
+          name: string
+          url: string
+          category: string
+          description: string | null
+          price: string
+          needs_account: boolean
+          account_hint: string | null
+          search_url: string | null
+          pinned: boolean
+          position: number
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          url: string
+          category: string
+          description?: string | null
+          price?: string
+          needs_account?: boolean
+          account_hint?: string | null
+          search_url?: string | null
+          pinned?: boolean
+          position?: number
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          url?: string
+          category?: string
+          description?: string | null
+          price?: string
+          needs_account?: boolean
+          account_hint?: string | null
+          search_url?: string | null
+          pinned?: boolean
+          position?: number
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'resources_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       products: {
         Row: {
           id: string
@@ -996,6 +1052,54 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      saved_searches: {
+        Row: {
+          id: string
+          name: string
+          query: string
+          resource_ids: string[]
+          collection_id: string | null
+          last_used_at: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          query: string
+          resource_ids?: string[]
+          collection_id?: string | null
+          last_used_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          query?: string
+          resource_ids?: string[]
+          collection_id?: string | null
+          last_used_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'saved_searches_collection_id_fkey'
+            columns: ['collection_id']
+            isOneToOne: false
+            referencedRelation: 'idea_collections'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'saved_searches_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
       }
       profiles: {
         Row: {
