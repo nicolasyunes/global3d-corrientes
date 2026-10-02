@@ -7,8 +7,8 @@ import type { Notice } from './notices'
 const mocks = vi.hoisted(() => ({
   listNotices: vi.fn(),
   createNotice: vi.fn(),
-  setTaskDone: vi.fn(),
-  setImportant: vi.fn(),
+  markTask: vi.fn(),
+  setPriority: vi.fn(),
   archiveNotice: vi.fn(),
 }))
 
@@ -102,7 +102,11 @@ describe('NoticesCard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.listNotices.mockResolvedValue([
-      notice({ id: 'a', body: 'El jueves cerramos a las 18', important: true }),
+      notice({
+        id: 'a',
+        body: 'El jueves cerramos a las 18',
+        priority: 'alta',
+      }),
       notice({
         id: 'b',
         kind: 'task',
@@ -134,7 +138,7 @@ describe('NoticesCard', () => {
         id: 'c',
         kind: 'task',
         body: 'Pedir filamento',
-        important: true,
+        priority: 'alta',
       }),
     )
     const card = await renderCard()
@@ -149,7 +153,8 @@ describe('NoticesCard', () => {
       fireEvent.click(within(card).getByRole('button', { name: /Agregar/ }))
     })
     expect(mocks.createNotice).toHaveBeenCalledWith(
-      { kind: 'task', body: 'Pedir filamento', important: true },
+      'task',
+      { body: 'Pedir filamento', priority: 'alta' },
       'op-1',
     )
     expect(within(card).getByText('Pedir filamento')).toBeInTheDocument()
@@ -157,7 +162,7 @@ describe('NoticesCard', () => {
   })
 
   it('ticks a task and keeps who did it', async () => {
-    mocks.setTaskDone.mockResolvedValue(
+    mocks.markTask.mockResolvedValue(
       notice({
         id: 'b',
         kind: 'task',
@@ -174,7 +179,11 @@ describe('NoticesCard', () => {
         }),
       )
     })
-    expect(mocks.setTaskDone).toHaveBeenCalledWith('b', true, 'op-1')
+    expect(mocks.markTask).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'b' }),
+      true,
+      'op-1',
+    )
     expect(within(card).getByText(/hecha por nicolas/)).toBeInTheDocument()
     expect(within(card).queryByText('1 tarea pendiente')).toBeNull()
   })
@@ -200,5 +209,18 @@ describe('NoticesCard', () => {
     expect(
       within(card).getByText(/No hay avisos ni tareas/),
     ).toBeInTheDocument()
+  })
+
+  it('toggles high importance', async () => {
+    mocks.setPriority.mockResolvedValue(undefined)
+    const card = await renderCard()
+    await act(async () => {
+      fireEvent.click(
+        within(card).getByRole('button', {
+          name: 'Marcar como importante: Limpiar la cama',
+        }),
+      )
+    })
+    expect(mocks.setPriority).toHaveBeenCalledWith('b', 'alta')
   })
 })

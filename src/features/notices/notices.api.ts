@@ -1,5 +1,26 @@
 import { supabase } from '@/lib/supabase'
-import type { Notice, NoticeKind } from './notices'
+import {
+  markPatch,
+  type Notice,
+  type NoticeKind,
+  type Priority,
+} from './notices'
+
+export type NoticeFields = Partial<
+  Pick<
+    Notice,
+    | 'body'
+    | 'sector'
+    | 'priority'
+    | 'assignee_id'
+    | 'due_on'
+    | 'repeat'
+    | 'link'
+    | 'color'
+    | 'pinned'
+    | 'expires_on'
+  >
+>
 
 // Not archived; the done-task window is applied on screen.
 export async function listNotices(): Promise<Notice[]> {
@@ -13,15 +34,16 @@ export async function listNotices(): Promise<Notice[]> {
 }
 
 export async function createNotice(
-  input: { kind: NoticeKind; body: string; important: boolean },
+  kind: NoticeKind,
+  fields: NoticeFields & { body: string },
   operatorId: string | null,
 ): Promise<Notice> {
   const { data, error } = await supabase
     .from('notices')
     .insert({
-      kind: input.kind,
-      body: input.body.trim(),
-      important: input.important,
+      ...fields,
+      kind,
+      body: fields.body.trim(),
       created_by: operatorId,
     })
     .select('*')
@@ -30,17 +52,13 @@ export async function createNotice(
   return data
 }
 
-export async function setTaskDone(
+export async function updateNotice(
   id: string,
-  done: boolean,
-  operatorId: string | null,
+  fields: NoticeFields,
 ): Promise<Notice> {
   const { data, error } = await supabase
     .from('notices')
-    .update({
-      done_at: done ? new Date().toISOString() : null,
-      done_by: done ? operatorId : null,
-    })
+    .update(fields)
     .eq('id', id)
     .select('*')
     .single()
@@ -48,13 +66,29 @@ export async function setTaskDone(
   return data
 }
 
-export async function setImportant(
+// A repeated task logs who did it and moves its date; others get done.
+export async function markTask(
+  task: Notice,
+  done: boolean,
+  operatorId: string | null,
+): Promise<Notice> {
+  const { data, error } = await supabase
+    .from('notices')
+    .update(markPatch(task, done, operatorId))
+    .eq('id', task.id)
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function setPriority(
   id: string,
-  important: boolean,
+  priority: Priority,
 ): Promise<void> {
   const { error } = await supabase
     .from('notices')
-    .update({ important })
+    .update({ priority })
     .eq('id', id)
   if (error) throw error
 }
@@ -73,4 +107,21 @@ export async function archiveNotice(
     })
     .eq('id', id)
   if (error) throw error
+}
+
+export async function deleteNotice(id: string): Promise<void> {
+  const { error } = await supabase.from('notices').delete().eq('id', id)
+  if (error) throw error
+}
+
+// For the side menu badge; a failed count just hides it.
+export async function countOpenTasks(): Promise<number> {
+  const { count, error } = await supabase
+    .from('notices')
+    .select('id', { count: 'exact', head: true })
+    .eq('kind', 'task')
+    .is('done_at', null)
+    .is('archived_at', null)
+  if (error) return 0
+  return count ?? 0
 }

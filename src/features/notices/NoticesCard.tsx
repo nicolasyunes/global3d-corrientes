@@ -16,8 +16,8 @@ import {
   archiveNotice,
   createNotice,
   listNotices,
-  setImportant,
-  setTaskDone,
+  markTask,
+  setPriority,
 } from './notices.api'
 import './notices.css'
 
@@ -75,7 +75,8 @@ export default function NoticesCard({
     setBusy(true)
     try {
       const created = await createNotice(
-        { kind, body: text, important },
+        kind,
+        { body: text, priority: important ? 'alta' : 'media' },
         operatorId,
       )
       setRows((prev) => [created, ...(prev ?? [])])
@@ -91,17 +92,17 @@ export default function NoticesCard({
 
   async function toggleDone(n: Notice) {
     try {
-      replace(await setTaskDone(n.id, !n.done_at, operatorId))
+      replace(await markTask(n, !n.done_at, operatorId))
     } catch {
       showToast('No se pudo marcar la tarea.')
     }
   }
 
   async function toggleImportant(n: Notice) {
-    const next = !n.important
-    replace({ ...n, important: next })
+    const next = n.priority === 'alta' ? 'media' : 'alta'
+    replace({ ...n, priority: next })
     try {
-      await setImportant(n.id, next)
+      await setPriority(n.id, next)
     } catch {
       replace(n)
       showToast('No se pudo cambiar.')
@@ -165,7 +166,7 @@ export default function NoticesCard({
             return (
               <li
                 key={n.id}
-                className={`nt__row${n.important && !done ? ' is-important' : ''}${done ? ' is-done' : ''}`}
+                className={`nt__row${n.priority === 'alta' && !done ? ' is-important' : ''}${done ? ' is-done' : ''}`}
               >
                 {isTask ? (
                   <button
@@ -187,7 +188,7 @@ export default function NoticesCard({
                   <span className="nt__body">{n.body}</span>
                   <span className="nt__meta">
                     {isTask ? 'Tarea' : 'Aviso'}
-                    {n.important && !done && (
+                    {n.priority === 'alta' && !done && (
                       <strong className="nt__flag"> · Importante</strong>
                     )}
                     {' · '}
@@ -200,9 +201,9 @@ export default function NoticesCard({
                   {!done && (
                     <button
                       type="button"
-                      className={`icon-btn nt__btn${n.important ? ' is-on' : ''}`}
-                      aria-pressed={n.important}
-                      aria-label={`${n.important ? 'Quitar de' : 'Marcar como'} importante: ${n.body}`}
+                      className={`icon-btn nt__btn${n.priority === 'alta' ? ' is-on' : ''}`}
+                      aria-pressed={n.priority === 'alta'}
+                      aria-label={`${n.priority === 'alta' ? 'Quitar de' : 'Marcar como'} importante: ${n.body}`}
                       title="Importante"
                       onClick={() => void toggleImportant(n)}
                     >
