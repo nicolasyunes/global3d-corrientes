@@ -259,7 +259,12 @@
 .ntf__prio {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
+}
+.ntf__tabs {
+  max-width: 100%;
+  overflow-x: auto;
 }
 .ntf__label {
   font-weight: 700;

@@ -91,15 +91,17 @@ export default function NoticeTable({
                 <td>
                   <TaskCheck task={t} onToggle={onToggle} />
                 </td>
-                <td className="ntt__task">
-                  <button
-                    type="button"
-                    className="ntb-card__body"
-                    onClick={() => onOpen(t)}
-                  >
-                    {t.body}
-                  </button>
-                  {t.link && <LinkText link={t.link} />}
+                <td>
+                  <div className="ntt__task">
+                    <button
+                      type="button"
+                      className="ntb-card__body"
+                      onClick={() => onOpen(t)}
+                    >
+                      {t.body}
+                    </button>
+                    {t.link && <LinkText link={t.link} />}
+                  </div>
                 </td>
                 <td>{SECTOR_LABEL[t.sector as Sector]}</td>
                 <td>

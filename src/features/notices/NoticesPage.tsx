@@ -136,7 +136,9 @@ export default function NoticesPage() {
       showToast(`${KIND_LABEL[n.kind as NoticeKind]} archivado`, {
         label: 'Deshacer',
         onClick: () => {
-          void archiveNotice(n.id, false, me).then(load)
+          archiveNotice(n.id, false, me)
+            .then(load)
+            .catch(() => showToast('No se pudo deshacer.'))
         },
       })
     } catch {
