@@ -158,7 +158,7 @@ export default function MultiSearch({
           <button
             type="submit"
             className="btn btn--primary"
-            disabled={busy || !name.trim()}
+            disabled={busy || !name.trim() || !query.trim()}
           >
             Guardar búsqueda
           </button>

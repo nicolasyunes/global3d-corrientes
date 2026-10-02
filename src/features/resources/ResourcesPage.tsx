@@ -33,6 +33,7 @@ import {
   touchSavedSearch,
   updateResource,
 } from './resources.api'
+import '@/features/orders/taller.css'
 import './resources.css'
 
 const EXCLUDED_KEY = 'rs-sites-off'
