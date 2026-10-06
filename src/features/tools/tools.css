@@ -1,0 +1,181 @@
+/* Herramientas: settings card on the left, live preview on the right
+   (stacked on the phone). */
+.tools__tabs {
+  margin-bottom: 16px;
+}
+.tools {
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 1000px) {
+  .tools {
+    grid-template-columns: 380px minmax(0, 1fr);
+    align-items: start;
+  }
+  .tools__preview {
+    position: sticky;
+    top: 16px;
+  }
+}
+.tools__panel .segmented {
+  flex-wrap: wrap;
+}
+.tools__hint {
+  font-size: 0.8125rem;
+  color: var(--color-carbon-muted);
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+}
+.tools__warn {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--status-amber);
+  margin: 8px 0 0;
+}
+.tools__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 4px 16px;
+}
+.tools__row > div {
+  flex: 1;
+  min-width: 120px;
+}
+.tools__row input[type='range'],
+.tools__panel input[type='range'] {
+  width: 100%;
+  accent-color: var(--color-orange);
+}
+.tools__color {
+  width: 56px;
+  height: 40px;
+  padding: 3px;
+  border: 1px solid var(--color-carbon-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  cursor: pointer;
+}
+.tools__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 14px 0 4px;
+  cursor: pointer;
+}
+.tools__check input {
+  accent-color: var(--color-orange);
+  width: 18px;
+  height: 18px;
+}
+
+.tools__drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 22px 12px;
+  border: 2px dashed var(--color-carbon-line);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-carbon);
+  cursor: pointer;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.tools__drop span {
+  font-size: 0.8125rem;
+  color: var(--color-carbon-muted);
+}
+.tools__drop:hover,
+.tools__drop.is-over {
+  border-color: var(--color-orange);
+  background: var(--color-accent-50);
+}
+
+.tools__compare {
+  display: grid;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .tools__compare {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.tools__compare figure {
+  margin: 0;
+}
+.tools__compare figcaption {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-carbon-muted);
+  margin-top: 6px;
+  text-align: center;
+}
+.tools__canvas {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+/* Fill the box: an SVG with a size in mm would otherwise render tiny. */
+.tools__canvas img {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  max-height: 420px;
+  object-fit: contain;
+}
+/* Checkerboard shows where the SVG is transparent (removed background). */
+.tools__canvas--checker {
+  background-color: var(--color-white);
+  background-image:
+    linear-gradient(45deg, var(--color-bg-deep) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--color-bg-deep) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--color-bg-deep) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--color-bg-deep) 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+}
+.tools__busy {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-carbon);
+  color: var(--color-white);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.tools__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.tools__swatches span {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-carbon-line);
+}
+.tools__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}

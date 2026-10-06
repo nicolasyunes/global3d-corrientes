@@ -67,6 +67,9 @@ vi.mock('@/features/production/WeekPage', () => ({
 vi.mock('@/features/resources/ResourcesPage', () => ({
   default: () => <div>RECURSOS</div>,
 }))
+vi.mock('@/features/tools/ToolsPage', () => ({
+  default: () => <div>HERRAMIENTAS</div>,
+}))
 
 function renderAt(path: string) {
   render(
@@ -117,6 +120,11 @@ describe('admin routing table', () => {
   it('mounts the recursos page', () => {
     renderAt('/admin/recursos')
     expect(screen.getByText('RECURSOS')).toBeInTheDocument()
+  })
+
+  it('mounts the herramientas page (lazy-loaded)', async () => {
+    renderAt('/admin/herramientas')
+    expect(await screen.findByText('HERRAMIENTAS')).toBeInTheDocument()
   })
 
   it('sends removed pages back to Hoy', () => {
