@@ -72,6 +72,8 @@ Perfil = corte de la pared, desde el frente (z = 0) hacia atrás.
 
 ### 10. Letra curva
 - La letra se **barre en un arco** (60°, radio 60, centro de rotación 120 mm, 128 segmentos) sobre una base con esquinas redondeadas. Es un objeto decorativo de escritorio, no un cartel de pared. Frente de acrílico opcional.
+- **Cómo se arma** (visto en su vista 3D y verificado con las medidas): el eje es **horizontal y paralelo a la línea del texto**. La palabra arranca acostada sobre la base, con el pie de la letra a radio + centro (180 mm) del eje, y sube en arco hacia atrás. Cada trazo vertical queda como una aleta curva. Con un texto de 260 × 100: alto = 280 · sen 60° + base 10 = 252,5 mm ✓.
+- Base: espesor 10, margen a los costados 20, margen atrás 15, avance frontal 0, esquinas redondeadas 5.
 - Exporta una sola pieza unida (no separada).
 
 ### 11. Calado paramétrico
@@ -103,4 +105,12 @@ Perfil = corte de la pared, desde el frente (z = 0) hacia atrás.
 5. ✅ *LED doble* (9) y *calado* (11). Calado con fondo impreso o PVC (DXF con agujeros).
 6. ✅ *Neón* (12), con traba plana abajo e inclinada arriba; *orgánica* (13), con zigzag, ondas o serrucho y aviso de voladizo; y *curva* (10), extrusión en arco con base.
 
-Pendientes que quedaron fuera de este alcance: estilos 3 y 4 (apoyo doble/único con PVC, que ya tienen la pieza común), corte automático de letras que pasan la cama, plantilla de perforación para la halo y acentos unidos a su letra.
+7. ✅ **Tres piezas: contorno · frente · base**. Son los estilos de ellos que llevan acrílico adelante y PVC atrás. En los nuestros la base también se imprime en 3D (por defecto) o sale en DXF para cortarla en PVC. Lo mismo vale para el frente.
+   - *Frente y base al ras* (2, fondo hueco): pared doble con un rebaje en cada punta.
+   - *Apoyo doble* (3): solo pared exterior, con un apoyo inclinado para cada placa.
+   - *Ajuste trasero* (5): reborde frontal, y el frente entra por atrás dentro de la pared interior. Se imprime con el reborde en la cama.
+   - El calado usa el mismo control de base (antes compartía el del frente).
+   - Hay un DXF por placa (frente → acrílico, base → PVC), con una capa por letra.
+8. ✅ *Curva* rehecha: el eje pasa a ser horizontal (antes era vertical y las letras se pisaban). Se agregan el avance frontal y el redondeo de la base, y avisos de soportes (arco > 50°) y de tamaño de cama.
+
+Pendientes: estilo 4 (apoyo único con fondo impreso), plantilla de perforación para la halo y acentos unidos a su letra. El corte automático de letras grandes queda descartado: alcanza con separar en piezas.

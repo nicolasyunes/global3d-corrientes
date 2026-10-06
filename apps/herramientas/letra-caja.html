@@ -125,6 +125,11 @@
             <option value="acrFondo">Frente acrílico · fondo impreso</option>
             <option value="acrEncastre">Frente acrílico · encastre</option>
           </optgroup>
+          <optgroup label="Tres piezas (contorno · frente · base)">
+            <option value="tresRebaje">Frente y base al ras (rebajes)</option>
+            <option value="apoyoDoble">Apoyo doble (apoyos inclinados)</option>
+            <option value="ajusteTrasero">Ajuste trasero (reborde frontal)</option>
+          </optgroup>
           <optgroup label="Luz especial">
             <option value="ledDoble">LED doble · fondo impreso</option>
             <option value="calado">Calado paramétrico</option>
@@ -142,14 +147,16 @@
           <input type="range" id="tapa" min="0.8" max="4" step="0.2" value="1.6" />
         </div>
         <div id="grupoAcrilico">
-          <label id="placaNombre">Frente</label>
-          <div class="seg" role="group" aria-label="Material de la placa">
-            <button type="button" id="frenteImpreso" aria-pressed="true">Impreso en 3D</button>
-            <button type="button" id="frenteAcrilico" aria-pressed="false">Acrílico (DXF)</button>
+          <div id="grupoPlacaFrente">
+            <label>Frente</label>
+            <div class="seg" role="group" aria-label="Material del frente">
+              <button type="button" id="frenteImpreso" aria-pressed="true">Impreso en 3D</button>
+              <button type="button" id="frenteAcrilico" aria-pressed="false">Acrílico (DXF)</button>
+            </div>
+            <p class="hint" id="frenteHint"></p>
+            <label for="acr"><span id="acrNombre">Espesor del frente</span> <span id="acrV"></span></label>
+            <input type="range" id="acr" min="1" max="10" step="0.1" value="3.1" />
           </div>
-          <p class="hint" id="frenteHint"></p>
-          <label for="acr"><span id="acrNombre">Espesor del frente</span> <span id="acrV"></span></label>
-          <input type="range" id="acr" min="1" max="10" step="0.1" value="3.1" />
           <div id="grupoParedInt">
             <label for="paredInt">Pared interior (rebaje) <span id="paredIntV"></span></label>
             <input type="range" id="paredInt" min="1" max="5" step="0.2" value="2" />
@@ -160,6 +167,16 @@
             <label for="bordeEsp">Espesor del reborde frontal <span id="bordeEspV"></span></label>
             <input type="range" id="bordeEsp" min="0.6" max="4" step="0.2" value="1" />
           </div>
+        </div>
+        <div id="grupoBase">
+          <label>Base</label>
+          <div class="seg" role="group" aria-label="Material de la base">
+            <button type="button" id="baseImpresa" aria-pressed="true">Impresa en 3D</button>
+            <button type="button" id="basePvc" aria-pressed="false">PVC o acrílico (DXF)</button>
+          </div>
+          <p class="hint" id="baseHint"></p>
+          <label for="baseEsp">Espesor de la base <span id="baseEspV"></span></label>
+          <input type="range" id="baseEsp" min="1" max="12" step="0.1" value="3.1" />
         </div>
         <div id="grupoLabio">
           <label for="labioAlto"><span id="labioAltoNombre">Alto del labio</span> <span id="labioAltoV"></span></label>
@@ -244,16 +261,20 @@
         </div>
         <div id="grupoCurva">
           <label for="curvaAngulo">Ángulo del arco <span id="curvaAnguloV"></span></label>
-          <input type="range" id="curvaAngulo" min="10" max="360" step="5" value="60" />
-          <label for="curvaRadio">Radio (eje a la letra) <span id="curvaRadioV"></span></label>
-          <input type="range" id="curvaRadio" min="0" max="400" step="5" value="60" />
+          <input type="range" id="curvaAngulo" min="10" max="180" step="5" value="60" />
+          <label for="curvaRadio">Radio (del eje al pie de la letra) <span id="curvaRadioV"></span></label>
+          <input type="range" id="curvaRadio" min="10" max="400" step="5" value="100" />
           <label for="curvaSeg">Segmentos <span id="curvaSegV"></span></label>
           <input type="range" id="curvaSeg" min="20" max="128" step="4" value="96" />
           <label for="curvaBase">Espesor de la base (0 = sin base) <span id="curvaBaseV"></span></label>
-          <input type="range" id="curvaBase" min="0" max="10" step="0.5" value="3" />
-          <label for="curvaMargen">Margen de la base <span id="curvaMargenV"></span></label>
-          <input type="range" id="curvaMargen" min="0" max="30" step="1" value="8" />
-          <p class="hint">Pieza decorativa de escritorio, sin LED: la letra se extruye a lo largo de un arco y se imprime parada sobre la base.</p>
+          <input type="range" id="curvaBase" min="0" max="20" step="0.5" value="8" />
+          <label for="curvaMargen">Margen de la base (costados y atrás) <span id="curvaMargenV"></span></label>
+          <input type="range" id="curvaMargen" min="0" max="40" step="1" value="15" />
+          <label for="curvaAvance">Avance de la base al frente <span id="curvaAvanceV"></span></label>
+          <input type="range" id="curvaAvance" min="0" max="150" step="1" value="0" />
+          <label for="curvaRedondeo">Redondeo de esquinas <span id="curvaRedondeoV"></span></label>
+          <input type="range" id="curvaRedondeo" min="0" max="40" step="1" value="5" />
+          <p class="hint">Pieza decorativa de escritorio, sin LED: la palabra arranca acostada sobre la base y sube en arco hacia atrás, girando alrededor de un eje paralelo al texto. Se imprime en una pieza, apoyada en la base.</p>
         </div>
 
         <div id="seccionLed">
@@ -302,7 +323,6 @@
         <div class="actions">
           <button class="btn primary" id="bajar3mf">Descargar 3MF (piezas impresas)</button>
           <div id="stlBotones" style="display: grid; gap: 8px"></div>
-          <button class="btn" id="bajarDxf" hidden>DXF de la placa (corte)</button>
           <p class="hint" id="notaColor"></p>
         </div>
         <p class="hint">Las piezas salen orientadas para imprimir sin soportes: cada una apoya en la cama su cara plana (el frente, el fondo o la tapa) con el encastre hacia arriba.</p>
@@ -364,6 +384,8 @@
       const matLuz = new THREE.MeshBasicMaterial({ color: '#fff4d8', side: THREE.DoubleSide })
       // Frente de acrílico: mismo color que el frente, translúcido
       const matAcr = new THREE.MeshStandardMaterial({ color: $('colorTapa').value, roughness: 0.15, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
+      // Base cortada en PVC espumado: blanco mate
+      const matPvc = new THREE.MeshStandardMaterial({ color: '#f1f1ee', roughness: 0.9, side: THREE.DoubleSide })
       const grupo = new THREE.Group()
       scene.add(grupo)
 
@@ -447,8 +469,9 @@
         const w = b.max[0] - b.min[0], h = b.max[1] - b.min[1]
         if (p.modo !== 'neon' && p.modo !== 'curva' && hueco.area() / S.area() < 0.3)
           warns.push(`Letra ${n}: trazos finos para pared de ${p.pared} mm; casi no queda hueco para el LED.`)
-        if (Math.max(w, h) > CAMA)
-          warns.push(`${p.modo === 'curva' ? 'La pieza' : `Letra ${n}`} mide ${Math.round(w)}×${Math.round(h)} mm: no entra en una cama de ${CAMA} mm.`)
+        // La curva calcula su propia huella (con la base y el arco)
+        if (p.modo !== 'curva' && Math.max(w, h) > CAMA)
+          warns.push(`Letra ${n} mide ${Math.round(w)}×${Math.round(h)} mm: no entra en una cama de ${CAMA} mm.`)
 
         if (p.modo === 'trasera') {
           // Frente + paredes en una pieza, impresa con el frente sobre la cama (cara lisa).
@@ -550,26 +573,48 @@
           const frente = g(g(contorno.extrude(p.acr)).translate([0, 0, p.prof - p.acr]))
           return [
             { nombre: 'cuerpo', mat: 0, exportar: cuerpo, visual: [{ m: cuerpo, mat: 0 }], voltear: false, mueve: 0 },
-            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: 1, cortable: true, contorno: contorno.toPolygons() },
+            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: 1, cortable: 'frente', contorno: contorno.toPolygons() },
           ]
         }
 
         if (p.modo === 'curva') {
-          // La letra parada se barre alrededor de un eje vertical; el radio es la distancia
-          // del eje al borde izquierdo. La base es la franja de abajo, ensanchada por el margen
-          // (también en el ángulo, para que sobresalga en las puntas).
-          const L = g(S.translate([p.curvaRadio - b.min[0], 0]))
-          const partes3d = [g(L.revolve(p.curvaSeg, p.curvaAngulo))]
+          // La palabra arranca acostada sobre la base y se barre hacia arriba alrededor de un
+          // eje horizontal, paralelo a la línea del texto y detrás de ella: cada trazo vertical
+          // queda como una aleta curva y todas las letras siguen el mismo arco (no se pisan).
+          // Coordenadas de mesa: X a lo largo del texto, -Y hacia el frente, Z arriba; el eje
+          // está en Y = Z = 0 y el pie de la letra a `curvaRadio` de él.
+          const R0 = p.curvaRadio, a = p.curvaAngulo, rad = (a * Math.PI) / 180
+          // En el plano de revolve (x = radio, y = eje): radio = R0 + alto en la letra,
+          // eje = −X del texto
+          const L = g(g(S.rotate(-90)).translate([R0, 0]))
+          // Revolve da (r·cosθ, r·sinθ, eje); en la vista (Y arriba, frente hacia +Z) eso es
+          // (−eje, r·sinθ, r·cosθ): un giro de −90° en Y
+          const arco = g(g(L.revolve(p.curvaSeg, a)).rotate([0, -90, 0]))
+          const partes3d = [arco]
+          // Huella sobre la mesa: del pie al punto más atrás que alcanza el arco
+          const frenteY = -(R0 + h)
+          const atrasY = -Math.min(R0 * Math.cos(rad), (R0 + h) * Math.cos(rad))
+          const alto3d = (a >= 90 ? R0 + h : (R0 + h) * Math.sin(rad)) + p.curvaBase
+          let ancho3d = w, fondo3d = atrasY - frenteY
           if (p.curvaBase > 0) {
-            const r0 = Math.max(0.01, p.curvaRadio - p.curvaMargen)
-            const r1 = p.curvaRadio + w + p.curvaMargen
-            const franja = g(g(CrossSection.square([r1 - r0, p.curvaBase])).translate([r0, -p.curvaBase]))
-            const extra = Math.min(30, ((p.curvaMargen / (p.curvaRadio + w / 2 || 1)) * 180) / Math.PI)
-            const ang = Math.min(360, p.curvaAngulo + 2 * extra)
-            partes3d.push(g(g(franja.revolve(p.curvaSeg, ang)).rotate([0, 0, ang === 360 ? 0 : -extra])))
+            const m = p.curvaMargen
+            const x0 = b.min[0] - m, x1 = b.max[0] + m
+            const y0 = frenteY - m - p.curvaAvance, y1 = atrasY + m
+            const rr = Math.max(0, Math.min(p.curvaRedondeo, (x1 - x0) / 2 - 0.1, (y1 - y0) / 2 - 0.1))
+            let placa = g(g(CrossSection.square([x1 - x0 - 2 * rr, y1 - y0 - 2 * rr])).translate([x0 + rr, y0 + rr]))
+            if (rr > 0) placa = g(placa.offset(rr, 'Round', 2, 48))
+            // Base en Z ∈ [−espesor, 0] (se mete 0,02 mm en la letra para que se unan) y a la vista
+            partes3d.push(g(g(g(placa.extrude(p.curvaBase + 0.02)).translate([0, 0, -p.curvaBase])).rotate([-90, 0, 0])))
+            ancho3d = x1 - x0
+            fondo3d = y1 - y0
           }
-          // Revolve deja la altura en Z: se para en Y para la vista (y se vuelve a acostar al exportar)
-          const pieza = g(g(Manifold.union(partes3d)).rotate([-90, 0, 0]))
+          estado.curvaDims = [ancho3d, fondo3d, alto3d]
+          // La cara interna del arco se inclina hacia el eje tanto como el ángulo barrido
+          if (a > 50) warns.push(`El arco termina a ${a}° de la vertical: la parte de arriba necesita soportes al imprimir.`)
+          if (Math.max(ancho3d, fondo3d, alto3d) > CAMA)
+            warns.push(`La pieza mide ${Math.round(ancho3d)} × ${Math.round(fondo3d)} × ${Math.round(alto3d)} mm: no entra en una cama de ${CAMA} mm.`)
+          // Se dibuja parada (altura en Y) y se vuelve a acostar al exportar
+          const pieza = g(Manifold.union(partes3d))
           return [{ nombre: 'letra curva', mat: 1, exportar: pieza, visual: [{ m: pieza, mat: 1 }], voltear: false, parada: true, mueve: 0 }]
         }
 
@@ -626,18 +671,18 @@
           const cara = g(g(cara2d.extrude(p.tapa)).translate([0, 0, p.prof - p.tapa]))
           const paredes = g(Manifold.union([
             g(pared.extrude(p.prof - p.tapa + 0.01)),
-            g(g(paredInt.extrude(p.prof - p.tapa - p.acr + 0.01)).translate([0, 0, p.acr])),
+            g(g(paredInt.extrude(p.prof - p.tapa - p.baseEsp + 0.01)).translate([0, 0, p.baseEsp])),
           ]))
           // Placa de fondo en el rebaje, con los agujeros de cable y tornillo (también en el DXF)
           let placa2d = g(hueco.offset(-p.holguraAcr, 'Round'))
           const circulos = agujeros2d(S, p, p.pared + p.paredInt, warns, n)
           if (circulos) placa2d = g(placa2d.subtract(circulos))
-          const placa = g(placa2d.extrude(p.acr))
+          const placa = g(placa2d.extrude(p.baseEsp))
           // Cámara de luz detrás del frente: solo para ver el calado encendido
           extrasLetra.push({ tipo: 'luz', m: g(g(luz.extrude(0.2)).translate([0, 0, p.prof - p.tapa - 2])) })
           return [
             { nombre: 'frente calado', mat: 1, exportar: g(cara.add(paredes)), visual: [{ m: cara, mat: 1 }, { m: paredes, mat: 0 }], voltear: true, mueve: 0 },
-            { nombre: 'fondo', mat: 0, exportar: placa, visual: [{ m: placa, mat: 2 }], voltear: false, mueve: -1, cortable: true, contorno: placa2d.toPolygons() },
+            { nombre: 'base', mat: 0, exportar: placa, visual: [{ m: placa, mat: 3 }], voltear: false, mueve: -1, cortable: 'base', contorno: placa2d.toPolygons() },
           ]
         }
 
@@ -666,7 +711,7 @@
           const frente = g(g(contorno.extrude(p.acr)).translate([0, 0, p.prof - p.acr]))
           return [
             { nombre: 'cuerpo', mat: 0, exportar: cuerpo, visual: [{ m: cuerpo, mat: 0 }], voltear: false, mueve: 0 },
-            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: 1, cortable: true, contorno: contorno.toPolygons() },
+            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: 1, cortable: 'frente', contorno: contorno.toPolygons() },
           ]
         }
 
@@ -690,8 +735,64 @@
           trasera = conAgujeros(trasera, S, p, p.pared + p.holguraLabio + p.labioAncho, warns, n)
           return [
             { nombre: 'marco', mat: 0, exportar: marco, visual: [{ m: marco, mat: 0 }], voltear: true, mueve: 0 },
-            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: -0.5, cortable: true, contorno: contorno.toPolygons() },
+            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: -0.5, cortable: 'frente', contorno: contorno.toPolygons() },
             { nombre: 'tapa trasera', mat: 0, exportar: trasera, visual: [{ m: trasera, mat: 0 }], voltear: false, mueve: -1 },
+          ]
+        }
+
+        if (p.modo === 'tresRebaje' || p.modo === 'apoyoDoble' || p.modo === 'ajusteTrasero') {
+          // Tres piezas: contorno (paredes), frente y base. Frente y base son placas: se
+          // imprimen en 3D o se cortan (acrílico / PVC) con el DXF.
+          const placa = g(hueco.offset(-p.holguraAcr, 'Round'))
+          let contorno3d, frente2d, zFrente, voltear = false
+          const margenAg = p.modo === 'apoyoDoble' ? p.pared + p.apoyoAncho : p.pared + p.paredInt
+          if (p.modo === 'tresRebaje') {
+            // Pared interior más corta en las dos puntas: un rebaje adelante para el frente
+            // y otro atrás para la base, las dos al ras
+            const luz = g(hueco.offset(-p.paredInt, 'Round'))
+            if (luz.isEmpty()) warns.push(`Letra ${n}: con pared ${p.pared} + ${p.paredInt} mm no queda hueco para el LED.`)
+            contorno3d = g(Manifold.union([
+              g(pared.extrude(p.prof)),
+              g(g(g(hueco.subtract(luz)).extrude(p.prof - p.acr - p.baseEsp)).translate([0, 0, p.baseEsp])),
+            ]))
+            frente2d = placa
+            zFrente = p.prof - p.acr
+          } else if (p.modo === 'apoyoDoble') {
+            // Solo la pared exterior, con dos apoyos inclinados: uno sostiene el frente desde
+            // atrás y el otro la base desde adelante
+            const macizos = [g(pared.extrude(p.prof))]
+            const delFrente = apoyoInclinado(hueco, p.apoyoAncho, p.apoyoAngulo, p.prof - p.acr, 'abajo')
+            const deLaBase = apoyoInclinado(hueco, p.apoyoAncho, p.apoyoAngulo, p.baseEsp, 'arriba')
+            if (delFrente && deLaBase) macizos.push(delFrente, deLaBase)
+            else warns.push(`Letra ${n}: no entran los apoyos de ${p.apoyoAncho} mm.`)
+            contorno3d = g(Manifold.union(macizos))
+            frente2d = placa
+            zFrente = p.prof - p.acr
+          } else {
+            // Ajuste trasero: reborde al frente; el frente entra por atrás, dentro de la pared
+            // interior, y apoya en el reborde. Atrás, la base cierra en un rebaje.
+            const luz = g(hueco.offset(-p.paredInt, 'Round'))
+            const ventana = g(luz.offset(-p.bordeAncho, 'Round'))
+            if (ventana.isEmpty()) warns.push(`Letra ${n}: el reborde frontal tapa toda la letra; bajá su ancho.`)
+            zFrente = p.prof - p.bordeEsp - p.acr
+            contorno3d = g(Manifold.union([
+              g(pared.extrude(p.prof)),
+              g(g(g(hueco.subtract(luz)).extrude(p.prof - p.bordeEsp - p.baseEsp)).translate([0, 0, p.baseEsp])),
+              g(g(g(S.subtract(ventana)).extrude(p.bordeEsp)).translate([0, 0, p.prof - p.bordeEsp])),
+            ]))
+            frente2d = g(luz.offset(-p.holguraAcr, 'Round'))
+            // Se imprime con el reborde sobre la cama
+            voltear = true
+          }
+          const frente = g(g(frente2d.extrude(p.acr)).translate([0, 0, zFrente]))
+          let base2d = placa
+          const circulos = agujeros2d(S, p, margenAg, warns, n)
+          if (circulos) base2d = g(base2d.subtract(circulos))
+          const base = g(base2d.extrude(p.baseEsp))
+          return [
+            { nombre: 'contorno', mat: 0, exportar: contorno3d, visual: [{ m: contorno3d, mat: 0 }], voltear, mueve: 0 },
+            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: 1, cortable: 'frente', contorno: frente2d.toPolygons() },
+            { nombre: 'base', mat: 0, exportar: base, visual: [{ m: base, mat: 3 }], voltear: false, mueve: -1, cortable: 'base', contorno: base2d.toPolygons() },
           ]
         }
 
@@ -863,7 +964,7 @@
       let extrasLetra = []
 
       // ---------- Estado y armado ----------
-      const estado = { origen: 'texto', svg: null, modo: 'trasera', frente: 'impreso', piezas: [], medidas: null }
+      const estado = { origen: 'texto', svg: null, modo: 'trasera', frente: 'impreso', base: 'impresa', piezas: [], medidas: null }
 
       async function contornoActual() {
         if (estado.origen === 'svg') return estado.svg ? contornoDeSvg(estado.svg) : null
@@ -880,7 +981,7 @@
         trabaPos: num('trabaPos'), trabaProf: num('trabaProf'), trabaAlto: num('trabaAlto'),
         orgPerfil: $('orgPerfil').value, orgAmp: num('orgAmp'), orgPeriodo: num('orgPeriodo'), orgMax: num('orgMax'),
         curvaAngulo: num('curvaAngulo'), curvaRadio: num('curvaRadio'), curvaSeg: num('curvaSeg'),
-        curvaBase: num('curvaBase'), curvaMargen: num('curvaMargen'),
+        curvaBase: num('curvaBase'), curvaMargen: num('curvaMargen'), curvaAvance: num('curvaAvance'), curvaRedondeo: num('curvaRedondeo'),
         tapa: num('tapa'), labioAlto: num('labioAlto'), labioAncho: num('labioAncho'),
         holguraLabio: num('holguraLabio'), holguraBorde: num('holguraBorde'), holguraAgujeros: num('holguraAgujeros'),
         // La halo está abierta atrás (el cable sale por ahí) y la curva no lleva LED
@@ -893,7 +994,7 @@
         tornillos: $('tornillos').checked && estado.modo !== 'curva', tornillo: num('tornillo'), modo: estado.modo,
         apoyoAncho: num('apoyoAncho'), apoyoAngulo: num('apoyoAngulo'),
         acr: num('acr'), paredInt: num('paredInt'), bordeAncho: num('bordeAncho'), bordeEsp: num('bordeEsp'),
-        holguraAcr: num('holguraAcr'),
+        holguraAcr: num('holguraAcr'), baseEsp: num('baseEsp'),
       })
 
       let version = 0
@@ -920,7 +1021,7 @@
             ;(p.modo === 'curva' ? [S] : S.decompose().map(g)).forEach((comp, i) => {
               const partes = piezasDeLetra(comp, p, warns, i + 1).map((pt) => ({
                 nombre: pt.nombre, mat: pt.mat, voltear: pt.voltear, mueve: pt.mueve,
-                cortable: !!pt.cortable, contorno: pt.contorno, parada: !!pt.parada,
+                cortable: pt.cortable ?? null, contorno: pt.contorno, parada: !!pt.parada,
                 exp: malla(pt.exportar),
                 vis: pt.visual.map((v) => ({ malla: malla(v.m), mat: v.mat })),
               }))
@@ -971,7 +1072,12 @@
         for (const pz of estado.piezas)
           for (const parte of pz.partes)
             for (const v of parte.vis) {
-              const mat = v.mat === 0 ? matCuerpo : v.mat === 2 && estado.frente === 'acrilico' ? matAcr : matTapa
+              // 0 cuerpo · 1 frente · 2 frente en placa (acrílico o impreso) · 3 base en placa (PVC o impresa)
+              const mat =
+                v.mat === 0 ? matCuerpo
+                : v.mat === 2 ? (estado.frente === 'acrilico' ? matAcr : matTapa)
+                : v.mat === 3 ? (estado.base === 'pvc' ? matPvc : matCuerpo)
+                : matTapa
               const mesh = new THREE.Mesh(geometria(v.malla), mat)
               mesh.userData.mueve = parte.mueve
               grupo.add(mesh)
@@ -1004,8 +1110,8 @@
         for (const m of grupo.children) m.position.z = ex * m.userData.mueve
         const corte = $('corte').checked && estado.medidas
         planoCorte.constant = corte ? estado.medidas.h / 2 : 0
-        matCuerpo.clippingPlanes = matTapa.clippingPlanes = matAcr.clippingPlanes = corte ? [planoCorte] : []
-        matCuerpo.needsUpdate = matTapa.needsUpdate = matAcr.needsUpdate = true
+        matCuerpo.clippingPlanes = matTapa.clippingPlanes = matAcr.clippingPlanes = matPvc.clippingPlanes = corte ? [planoCorte] : []
+        matCuerpo.needsUpdate = matTapa.needsUpdate = matAcr.needsUpdate = matPvc.needsUpdate = true
         const on = $('encendido').checked
         // En el halo y el calado el frente es opaco: la luz sale por atrás o por los agujeros
         const haciaPared = estado.modo === 'halo' || estado.modo === 'calado'
@@ -1023,7 +1129,9 @@
         : p.modo === 'organica' ? p.prof - p.acr - p.fondo
         : p.modo === 'halo' ? p.prof - p.tapa
         : p.modo === 'acrFondo' || p.modo === 'ledDoble' ? p.prof - p.acr - p.fondo
-        : p.modo === 'calado' ? p.prof - p.tapa - p.acr
+        : p.modo === 'calado' ? p.prof - p.tapa - p.baseEsp
+        : p.modo === 'tresRebaje' || p.modo === 'apoyoDoble' ? p.prof - p.acr - p.baseEsp
+        : p.modo === 'ajusteTrasero' ? p.prof - p.bordeEsp - p.acr - p.baseEsp
         : p.modo === 'acrEncastre' ? p.prof - p.bordeEsp - p.acr - p.fondo
         : p.prof - p.tapa - p.fondo
 
@@ -1044,10 +1152,13 @@
           organica: `pared en ${p.orgPerfil} de ${p.orgAmp} mm cada ${p.orgPeriodo} mm`,
           acrEncastre: `la pollera aprieta el frente contra el reborde`,
           halo: `abierta atrás, a ${p.separacion} mm de la pared`,
+          tresRebaje: 'contorno, frente y base por separado',
+          apoyoDoble: `apoyos de ${p.apoyoAncho} mm a ${p.apoyoAngulo}° para frente y base`,
+          ajusteTrasero: `reborde frontal de ${p.bordeAncho} mm`,
         }[p.modo] ?? `${(libreLed(p) - p.labioAlto).toFixed(1)} mm bajo el labio`
         const linea2 =
           p.modo === 'curva'
-            ? `Arco de <b>${p.curvaAngulo}°</b> a ${p.curvaRadio} mm del eje · decorativa, sin LED`
+            ? `Pieza de <b>${estado.curvaDims.map(Math.round).join(' × ')} mm</b> (ancho × fondo × alto) · arco de ${p.curvaAngulo}° a ${p.curvaRadio} mm del eje · decorativa, sin LED`
             : `Espacio interno para LED: <b>${libreLed(p).toFixed(1)} mm</b> (${detalle})`
         $('info').innerHTML =
           `<b>${Math.round(m.w)} × ${Math.round(m.h)}${p.modo === 'curva' ? '' : ` × ${p.prof}`} mm</b> · ${estado.piezas.length} letra(s), ${nPiezas} piezas<br>` +
@@ -1063,7 +1174,7 @@
         for (const pz of estado.piezas)
           pz.partes.forEach((parte, orden) => {
             // Un frente de acrílico se corta (DXF), no se imprime
-            if (parte.cortable && estado.frente === 'acrilico') return
+            if ((parte.cortable === 'frente' && estado.frente === 'acrilico') || (parte.cortable === 'base' && estado.base === 'pvc')) return
             const { pos: src, idx } = parte.exp
             const pos = new Float32Array(src.length)
             for (let i = 0; i < pos.length; i += 3) {
@@ -1091,11 +1202,11 @@
       // DXF (R12, mm) de los frentes de acrílico, en la posición del diseño: un contorno
       // cerrado por polígono (los huecos de letras como la O salen como contornos propios).
       // La holgura ya está aplicada; el compensado del láser lo hace el cortador.
-      function dxfAcrilico() {
+      function dxfPlaca(tipo) {
         const L = ['0', 'SECTION', '2', 'HEADER', '9', '$ACADVER', '1', 'AC1009', '9', '$INSUNITS', '70', '4', '0', 'ENDSEC', '0', 'SECTION', '2', 'ENTITIES']
         for (const pz of estado.piezas)
           for (const parte of pz.partes) {
-            if (!parte.contorno) continue
+            if (!parte.contorno || parte.cortable !== tipo) continue
             const capa = `LETRA_${pz.n}`
             for (const poly of parte.contorno) {
               L.push('0', 'POLYLINE', '8', capa, '66', '1', '70', '1', '10', '0', '20', '0', '30', '0')
@@ -1175,9 +1286,16 @@
           )
           cont.appendChild(b)
         }
-        $('bajarDxf').hidden = !estado.piezas.some((pz) => pz.partes.some((pt) => pt.contorno))
+        const tipos = new Set(estado.piezas.flatMap((pz) => pz.partes.filter((pt) => pt.contorno).map((pt) => pt.cortable)))
+        for (const tipo of ['frente', 'base']) {
+          if (!tipos.has(tipo)) continue
+          const b = document.createElement('button')
+          b.className = 'btn'
+          b.textContent = tipo === 'frente' ? 'DXF del frente (corte en acrílico)' : 'DXF de la base (corte en PVC)'
+          b.addEventListener('click', () => descargar(`${nombreBase()}-${tipo}.dxf`, dxfPlaca(tipo)))
+          cont.appendChild(b)
+        }
       }
-      $('bajarDxf').addEventListener('click', () => descargar(`${nombreBase()}-acrilico.dxf`, dxfAcrilico()))
 
       // ---------- Controles ----------
       const UNIDADES = {
@@ -1186,16 +1304,18 @@
         apoyoAncho: 'mm', apoyoAngulo: '°', acr: 'mm', paredInt: 'mm', bordeAncho: 'mm', bordeEsp: 'mm', holguraAcr: 'mm',
         separacion: 'mm', separadorD: 'mm', ledDist: 'mm', ledEsp: 'mm',
         neonAncho: 'mm', neonAlto: 'mm', trabaPos: 'mm', trabaProf: 'mm', trabaAlto: 'mm',
-        orgAmp: 'mm', orgPeriodo: 'mm', orgMax: '°', curvaAngulo: '°', curvaRadio: 'mm', curvaSeg: '', curvaBase: 'mm', curvaMargen: 'mm',
-        caladoD: 'mm', caladoEsp: 'mm', caladoRot: '°', caladoMargen: 'mm',
+        orgAmp: 'mm', orgPeriodo: 'mm', orgMax: '°', curvaAngulo: '°', curvaRadio: 'mm', curvaSeg: '', curvaBase: 'mm', curvaMargen: 'mm', curvaAvance: 'mm', curvaRedondeo: 'mm',
+        caladoD: 'mm', caladoEsp: 'mm', caladoRot: '°', caladoMargen: 'mm', baseEsp: 'mm',
       }
       const etiquetas = () => {
         for (const [id, u] of Object.entries(UNIDADES)) $(id + 'V').textContent = `${$(id).value} ${u}`
         const m = estado.modo
         const calado = m === 'calado'
-        // Estilos con una placa que se puede cortar (frente, o el fondo en el calado)
-        const acrilico = m === 'acrFondo' || m === 'acrEncastre' || m === 'ledDoble' || m === 'organica' || calado
-        const rebaje = m === 'acrFondo' || m === 'ledDoble' || calado
+        const tres = m === 'tresRebaje' || m === 'apoyoDoble' || m === 'ajusteTrasero'
+        // Estilos con un frente en placa (impreso o acrílico) y con una base en placa (impresa o PVC)
+        const conFrente = m === 'acrFondo' || m === 'acrEncastre' || m === 'ledDoble' || m === 'organica' || tres
+        const conBase = calado || tres
+        const rebaje = m === 'acrFondo' || m === 'ledDoble' || calado || m === 'tresRebaje' || m === 'ajusteTrasero'
         const conPollera = m === 'trasera' || m === 'acrEncastre'
         const halo = m === 'halo'
         const neon = m === 'neon', organica = m === 'organica', curva = m === 'curva'
@@ -1213,28 +1333,32 @@
         $('seccionCuerpo').hidden = curva
         $('seccionLed').hidden = curva
         $('seccionTol').hidden = curva
-        $('placaNombre').textContent = calado ? 'Fondo' : 'Frente'
-        $('frenteAcrilico').textContent = calado ? 'PVC o acrílico (DXF)' : 'Acrílico (DXF)'
         // Cada control aparece solo cuando su pieza o su contacto existe
         $('checkCable').hidden = halo
         $('grupoCable').hidden = !$('conCable').checked || halo
         $('grupoTornillo').hidden = !$('tornillos').checked
         $('grupoAgujeros').hidden = (!$('conCable').checked || halo) && !$('tornillos').checked
         $('grupoHalo').hidden = !halo
-        $('grupoFondo').hidden = halo || calado
+        $('grupoFondo').hidden = halo || conBase
         $('tornillosNombre').textContent = halo ? 'Espárragos de montaje (2 por letra)' : 'Agujeros para tornillo (2 por letra)'
         $('tornilloNombre').textContent = halo ? 'Varilla roscada Ø' : 'Tornillo Ø'
         $('grupoBorde').hidden = m !== 'ras'
-        $('grupoApoyo').hidden = m !== 'ras' && !organica
-        $('grupoTapa').hidden = (acrilico && !calado) || neon || curva
-        $('grupoAcrilico').hidden = !acrilico
+        $('grupoApoyo').hidden = m !== 'ras' && !organica && m !== 'apoyoDoble'
+        $('grupoTapa').hidden = conFrente || neon || curva
+        $('grupoAcrilico').hidden = !conFrente && !rebaje
+        $('grupoPlacaFrente').hidden = !conFrente
         $('grupoParedInt').hidden = !rebaje
-        $('grupoMarco').hidden = m !== 'acrEncastre'
-        $('grupoLabio').hidden = rebaje || halo || neon || organica || curva
-        $('grupoHolguraLabio').hidden = rebaje || halo || neon || organica || curva
-        $('grupoHolguraAcr').hidden = !acrilico
+        $('grupoMarco').hidden = m !== 'acrEncastre' && m !== 'ajusteTrasero'
+        $('grupoBase').hidden = !conBase
+        $('grupoLabio').hidden = rebaje || halo || neon || organica || curva || tres
+        $('grupoHolguraLabio').hidden = rebaje || halo || neon || organica || curva || tres
+        $('grupoHolguraAcr').hidden = !conFrente && !conBase
         $('holguraAcr').previousElementSibling.firstChild.textContent =
-          m === 'acrEncastre' ? 'Frente ↔ pared y pollera ' : calado ? 'Fondo ↔ pared exterior ' : 'Frente ↔ pared exterior '
+          m === 'acrEncastre' ? 'Frente ↔ pared y pollera '
+          : calado ? 'Base ↔ pared exterior '
+          : m === 'ajusteTrasero' ? 'Frente ↔ pared int. · base ↔ pared ext. '
+          : tres ? 'Frente y base ↔ pared '
+          : 'Frente ↔ pared exterior '
         $('holguraLabioDonde').textContent = m === 'ras' ? 'borde del apoyo' : 'pared interior'
         $('holguraLabio').previousElementSibling.firstChild.textContent = conPollera ? 'Pollera ↔ ' : 'Labio ↔ '
         $('fondoNombre').textContent = conPollera ? 'Espesor de tapa trasera' : 'Espesor de fondo'
@@ -1242,17 +1366,18 @@
         $('labioAltoNombre').textContent = conPollera ? 'Alto de la pollera' : 'Alto del labio'
         $('labioAnchoNombre').textContent = conPollera ? 'Espesor de la pollera' : 'Ancho del labio'
         $('colorCuerpoNombre').textContent = m === 'trasera' ? 'Paredes y tapa' : halo ? 'Paredes' : neon ? 'Canal' : 'Cuerpo'
-        $('colorTapaNombre').textContent = neon ? 'Neón' : curva ? 'Letra' : m === 'trasera' || acrilico || halo ? 'Frente' : 'Tapa'
+        $('colorTapaNombre').textContent = neon ? 'Neón' : curva ? 'Letra' : m === 'trasera' || conFrente || halo ? 'Frente' : 'Tapa'
         $('frenteImpreso').setAttribute('aria-pressed', estado.frente === 'impreso')
         $('frenteAcrilico').setAttribute('aria-pressed', estado.frente === 'acrilico')
-        $('acrNombre').textContent = calado
-          ? 'Espesor del fondo'
-          : estado.frente === 'acrilico' ? 'Espesor del acrílico' : 'Espesor del frente'
-        $('frenteHint').textContent = calado
-          ? estado.frente === 'acrilico'
-            ? 'El fondo se corta en PVC o acrílico: bajá el DXF (con los agujeros de cable y tornillo). No entra en el 3MF.'
-            : 'El fondo se imprime en 3D y entra en el 3MF. El DXF sigue disponible.'
-          : estado.frente === 'acrilico'
+        $('baseImpresa').setAttribute('aria-pressed', estado.base === 'impresa')
+        $('basePvc').setAttribute('aria-pressed', estado.base === 'pvc')
+        $('baseHint').textContent =
+          estado.base === 'pvc'
+            ? 'La base se corta en PVC o acrílico: bajá el DXF de la base (con los agujeros de cable y tornillo). No entra en el 3MF.'
+            : 'La base se imprime en 3D (con los agujeros) y entra en el 3MF. El DXF sigue disponible.'
+        $('acrNombre').textContent = estado.frente === 'acrilico' ? 'Espesor del acrílico' : 'Espesor del frente'
+        $('frenteHint').textContent =
+          estado.frente === 'acrilico'
             ? 'El frente se corta en acrílico: bajá el DXF (en mm, con la holgura aplicada). No entra en el 3MF.'
             : 'El mismo frente se imprime en 3D (difusor: PLA blanco o natural) y entra en el 3MF. El DXF sigue disponible.'
         $('modoHint').textContent = {
@@ -1263,7 +1388,10 @@
           acrEncastre: 'Marco con reborde frontal (se imprime con el reborde en la cama). El frente entra por atrás y la pollera de la tapa trasera lo aprieta contra el reborde.',
           halo: 'Frente cerrado y atrás abierta: el LED ilumina la pared y la letra queda recortada contra el halo. Se monta con espárragos en torres internas y separadores impresos.',
           ledDoble: 'Como el fondo impreso, con una 2ª pared interior paralela al contorno: dos canales de tira LED para que las letras anchas se iluminen parejo.',
-          calado: 'Frente fino perforado con un patrón (la luz sale por los agujeros), impreso junto con las paredes. Atrás cierra una placa de fondo en un rebaje.',
+          calado: 'Frente fino perforado con un patrón (la luz sale por los agujeros), impreso junto con las paredes. Atrás cierra una base en un rebaje.',
+          tresRebaje: 'Tres piezas: contorno de pared doble, frente y base. La pared interior es más corta en las dos puntas y forma un rebaje adelante y otro atrás: frente y base entran al ras.',
+          apoyoDoble: 'Tres piezas: contorno (pared exterior sola), frente y base. Dos apoyos inclinados por dentro sostienen el frente desde atrás y la base desde adelante.',
+          ajusteTrasero: 'Tres piezas: contorno con reborde frontal (se imprime con el reborde en la cama), frente y base. El frente entra por atrás dentro de la pared interior hasta el reborde; la base cierra atrás en un rebaje.',
         }[m]
         // El frente y las paredes son una sola pieza: dos colores solo con cambio de filamento por capa
         $('notaColor').textContent =
@@ -1301,12 +1429,16 @@
         acrFondo: { pared: 2, fondo: 2 },
         ledDoble: { pared: 2, fondo: 2 },
         // Calado: frente fino (se perfora) y fondo del espesor de una chapa de PVC
-        calado: { pared: 2, tapa: 1, acr: 3.1 },
+        calado: { pared: 2, tapa: 1, baseEsp: 3.1 },
         // Neón: perfil bajo y paredes finas, como un canal de aluminio
         neon: { pared: 1.2, fondo: 1.2 },
         organica: { pared: 2, fondo: 2, acr: 3, apoyoAncho: 1, apoyoAngulo: 45 },
         curva: {},
         acrEncastre: { pared: 2, labioAlto: 60, labioAncho: 2, fondo: 1.2 },
+        // Tres piezas: frente y base del espesor de chapa (acrílico 3 mm, PVC 3 mm)
+        tresRebaje: { pared: 2, paredInt: 2, acr: 3.1, baseEsp: 3.1 },
+        apoyoDoble: { pared: 2, acr: 3.1, baseEsp: 3.1, apoyoAncho: 1, apoyoAngulo: 30 },
+        ajusteTrasero: { pared: 2, paredInt: 2, acr: 3.1, baseEsp: 3.1, bordeAncho: 0.5, bordeEsp: 1 },
         // Halo: frente opaco y pared más gruesa (no debe transparentar ni flexionar)
         halo: { pared: 3, tapa: 2.4 },
       }
@@ -1326,6 +1458,14 @@
       }
       $('frenteImpreso').addEventListener('click', () => setFrente('impreso'))
       $('frenteAcrilico').addEventListener('click', () => setFrente('acrilico'))
+      const setBase = (b) => {
+        estado.base = b
+        etiquetas()
+        dibujar()
+        botonesStl()
+      }
+      $('baseImpresa').addEventListener('click', () => setBase('impresa'))
+      $('basePvc').addEventListener('click', () => setBase('pvc'))
 
       for (const id of ['explotar', 'corte', 'encendido']) $(id).addEventListener('input', aplicarVista)
       $('colorCuerpo').addEventListener('input', (e) => matCuerpo.color.set(e.target.value))
