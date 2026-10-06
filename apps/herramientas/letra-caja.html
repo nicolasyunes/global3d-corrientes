@@ -69,7 +69,7 @@
       </div>
       <aside>
         <h1>Letra caja</h1>
-        <p class="lead">Frente impreso con encastre y LED interno. Cada letra sale en dos piezas que encastran.</p>
+        <p class="lead">Letras con LED interno, frente impreso o de acrílico. Cada letra sale en piezas que encastran.</p>
 
         <h2>Contenido</h2>
         <div class="seg" role="group" aria-label="Origen">
@@ -108,19 +108,49 @@
         <label for="fondo"><span id="fondoNombre">Espesor de fondo</span> <span id="fondoV"></span></label>
         <input type="range" id="fondo" min="0.8" max="4" step="0.2" value="1.2" />
 
-        <h2>Tapa y encastre</h2>
-        <div class="seg" role="group" aria-label="Tipo de tapa">
-          <button type="button" id="modoTrasera" aria-pressed="true">Tapa trasera</button>
-          <button type="button" id="modoTapa" aria-pressed="false">Tapa al frente</button>
-          <button type="button" id="modoRas" aria-pressed="false">Al ras</button>
-        </div>
+        <h2>Estilo</h2>
+        <select id="estilo" aria-label="Estilo de letra caja">
+          <optgroup label="Frente impreso">
+            <option value="trasera">Frente impreso · tapa trasera</option>
+            <option value="tapa">Frente impreso · tapa al frente</option>
+            <option value="ras">Frente impreso · al ras</option>
+          </optgroup>
+          <optgroup label="Frente acrílico">
+            <option value="acrFondo">Frente acrílico · fondo impreso</option>
+            <option value="acrEncastre">Frente acrílico · encastre</option>
+          </optgroup>
+        </select>
         <p class="hint" id="modoHint"></p>
-        <label for="tapa"><span id="tapaNombre">Espesor de tapa</span> <span id="tapaV"></span></label>
-        <input type="range" id="tapa" min="0.8" max="4" step="0.2" value="1.6" />
-        <label for="labioAlto"><span id="labioAltoNombre">Alto del labio</span> <span id="labioAltoV"></span></label>
-        <input type="range" id="labioAlto" min="2" max="40" step="0.5" value="15" />
-        <label for="labioAncho"><span id="labioAnchoNombre">Ancho del labio</span> <span id="labioAnchoV"></span></label>
-        <input type="range" id="labioAncho" min="0.8" max="3" step="0.2" value="2" />
+        <div id="grupoTapa">
+          <label for="tapa"><span id="tapaNombre">Espesor de tapa</span> <span id="tapaV"></span></label>
+          <input type="range" id="tapa" min="0.8" max="4" step="0.2" value="1.6" />
+        </div>
+        <div id="grupoAcrilico">
+          <label>Frente</label>
+          <div class="seg" role="group" aria-label="Material del frente">
+            <button type="button" id="frenteImpreso" aria-pressed="true">Impreso en 3D</button>
+            <button type="button" id="frenteAcrilico" aria-pressed="false">Acrílico (DXF)</button>
+          </div>
+          <p class="hint" id="frenteHint"></p>
+          <label for="acr"><span id="acrNombre">Espesor del frente</span> <span id="acrV"></span></label>
+          <input type="range" id="acr" min="1" max="10" step="0.1" value="3.1" />
+          <div id="grupoParedInt">
+            <label for="paredInt">Pared interior (rebaje) <span id="paredIntV"></span></label>
+            <input type="range" id="paredInt" min="1" max="5" step="0.2" value="2" />
+          </div>
+          <div id="grupoMarco">
+            <label for="bordeAncho">Ancho del reborde frontal <span id="bordeAnchoV"></span></label>
+            <input type="range" id="bordeAncho" min="0.5" max="10" step="0.5" value="2" />
+            <label for="bordeEsp">Espesor del reborde frontal <span id="bordeEspV"></span></label>
+            <input type="range" id="bordeEsp" min="0.6" max="4" step="0.2" value="1" />
+          </div>
+        </div>
+        <div id="grupoLabio">
+          <label for="labioAlto"><span id="labioAltoNombre">Alto del labio</span> <span id="labioAltoV"></span></label>
+          <input type="range" id="labioAlto" min="2" max="60" step="0.5" value="15" />
+          <label for="labioAncho"><span id="labioAnchoNombre">Ancho del labio</span> <span id="labioAnchoV"></span></label>
+          <input type="range" id="labioAncho" min="0.8" max="3" step="0.2" value="2" />
+        </div>
         <div id="grupoApoyo">
           <label for="apoyoAncho">Ancho del apoyo <span id="apoyoAnchoV"></span></label>
           <input type="range" id="apoyoAncho" min="0.5" max="5" step="0.1" value="1.5" />
@@ -143,8 +173,14 @@
 
         <h2>Tolerancias de contacto</h2>
         <p class="hint">Juego que se deja en cada lugar donde una pieza toca a otra. Calibralas con una letra de prueba para tu impresora y filamento.</p>
-        <label for="holguraLabio">Labio ↔ <span id="holguraLabioDonde">pared interior</span> <span id="holguraLabioV"></span></label>
-        <input type="range" id="holguraLabio" min="0" max="0.8" step="0.05" value="0.2" />
+        <div id="grupoHolguraLabio">
+          <label for="holguraLabio">Labio ↔ <span id="holguraLabioDonde">pared interior</span> <span id="holguraLabioV"></span></label>
+          <input type="range" id="holguraLabio" min="0" max="0.8" step="0.05" value="0.2" />
+        </div>
+        <div id="grupoHolguraAcr">
+          <label for="holguraAcr">Frente ↔ pared interior <span id="holguraAcrV"></span></label>
+          <input type="range" id="holguraAcr" min="0" max="0.8" step="0.05" value="0.2" />
+        </div>
         <div id="grupoBorde">
           <label for="holguraBorde">Borde de la tapa ↔ pared interior <span id="holguraBordeV"></span></label>
           <input type="range" id="holguraBorde" min="0" max="0.8" step="0.05" value="0.2" />
@@ -163,9 +199,9 @@
         <div class="info" id="info"></div>
 
         <div class="actions">
-          <button class="btn primary" id="bajar3mf">Descargar 3MF (todas las piezas)</button>
-          <button class="btn" id="bajarCuerpos">STL cuerpos</button>
-          <button class="btn" id="bajarTapas">STL tapas</button>
+          <button class="btn primary" id="bajar3mf">Descargar 3MF (piezas impresas)</button>
+          <div id="stlBotones" style="display: grid; gap: 8px"></div>
+          <button class="btn" id="bajarDxf" hidden>DXF del acrílico (corte)</button>
           <p class="hint" id="notaColor"></p>
         </div>
         <p class="hint">Las piezas salen orientadas para imprimir sin soportes: cada una apoya en la cama su cara plana (el frente, el fondo o la tapa) con el encastre hacia arriba.</p>
@@ -218,6 +254,8 @@
       const planoCorte = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)
       const matCuerpo = new THREE.MeshStandardMaterial({ color: $('colorCuerpo').value, roughness: 0.55, side: THREE.DoubleSide })
       const matTapa = new THREE.MeshStandardMaterial({ color: $('colorTapa').value, roughness: 0.45, side: THREE.DoubleSide })
+      // Frente de acrílico: mismo color que el frente, translúcido
+      const matAcr = new THREE.MeshStandardMaterial({ color: $('colorTapa').value, roughness: 0.15, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
       const grupo = new THREE.Group()
       scene.add(grupo)
 
@@ -317,6 +355,51 @@
           trasera = conAgujeros(trasera, S, p, p.pared + p.holguraLabio + p.labioAncho, warns, n)
           return [
             { nombre: 'frente', mat: 1, exportar: g(frente.add(paredes)), visual: [{ m: frente, mat: 1 }, { m: paredes, mat: 0 }], voltear: true, mueve: 0 },
+            { nombre: 'tapa trasera', mat: 0, exportar: trasera, visual: [{ m: trasera, mat: 0 }], voltear: false, mueve: -1 },
+          ]
+        }
+
+        if (p.modo === 'acrFondo') {
+          // La pared interior termina un espesor de frente antes del borde: ese rebaje
+          // recibe el frente al ras, apoyado sobre ella
+          const luz = g(hueco.offset(-p.paredInt, 'Round'))
+          const paredInt = g(hueco.subtract(luz))
+          if (luz.isEmpty()) warns.push(`Letra ${n}: con pared ${p.pared} + ${p.paredInt} mm no queda hueco para el LED.`)
+          let cuerpo = g(Manifold.union([
+            g(S.extrude(p.fondo)),
+            g(g(pared.extrude(p.prof - p.fondo)).translate([0, 0, p.fondo])),
+            g(g(paredInt.extrude(p.prof - p.acr - p.fondo)).translate([0, 0, p.fondo])),
+          ]))
+          cuerpo = conAgujeros(cuerpo, S, p, p.pared + p.paredInt, warns, n)
+          const contorno = g(hueco.offset(-p.holguraAcr, 'Round'))
+          const frente = g(g(contorno.extrude(p.acr)).translate([0, 0, p.prof - p.acr]))
+          return [
+            { nombre: 'cuerpo', mat: 0, exportar: cuerpo, visual: [{ m: cuerpo, mat: 0 }], voltear: false, mueve: 0 },
+            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: 1, esFrente: true, contorno: contorno.toPolygons() },
+          ]
+        }
+
+        if (p.modo === 'acrEncastre') {
+          // Marco: pared exterior y un reborde frontal que sostiene el frente desde adelante
+          const ventana = g(S.offset(-(p.pared + p.bordeAncho), 'Round'))
+          if (ventana.isEmpty()) warns.push(`Letra ${n}: el reborde frontal tapa toda la letra; bajá su ancho.`)
+          const reborde = g(S.subtract(ventana))
+          const marco = g(Manifold.union([g(pared.extrude(p.prof)), g(g(reborde.extrude(p.bordeEsp)).translate([0, 0, p.prof - p.bordeEsp]))]))
+          const contorno = g(hueco.offset(-p.holguraAcr, 'Round'))
+          const zFrente = p.prof - p.bordeEsp - p.acr
+          const frente = g(g(contorno.extrude(p.acr)).translate([0, 0, zFrente]))
+          // Tapa trasera: la pollera llega hasta el frente (menos la holgura) y lo deja
+          // apretado contra el reborde, sin pegamento
+          const exterior = g(S.offset(-(p.pared + p.holguraLabio), 'Round'))
+          const pollera = g(exterior.subtract(g(exterior.offset(-p.labioAncho, 'Round'))))
+          const polleraAlto = Math.min(p.labioAlto, zFrente - p.fondo - p.holguraAcr)
+          let trasera = g(exterior.extrude(p.fondo))
+          if (!pollera.isEmpty() && polleraAlto > 0.5) trasera = g(trasera.add(g(g(pollera.extrude(polleraAlto)).translate([0, 0, p.fondo]))))
+          else warns.push(`Letra ${n}: no entra la pollera; el frente queda sin sujeción trasera.`)
+          trasera = conAgujeros(trasera, S, p, p.pared + p.holguraLabio + p.labioAncho, warns, n)
+          return [
+            { nombre: 'marco', mat: 0, exportar: marco, visual: [{ m: marco, mat: 0 }], voltear: true, mueve: 0 },
+            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: -0.5, esFrente: true, contorno: contorno.toPolygons() },
             { nombre: 'tapa trasera', mat: 0, exportar: trasera, visual: [{ m: trasera, mat: 0 }], voltear: false, mueve: -1 },
           ]
         }
@@ -421,7 +504,7 @@
       }
 
       // ---------- Estado y armado ----------
-      const estado = { origen: 'texto', svg: null, modo: 'trasera', piezas: [], medidas: null }
+      const estado = { origen: 'texto', svg: null, modo: 'trasera', frente: 'impreso', piezas: [], medidas: null }
 
       async function contornoActual() {
         if (estado.origen === 'svg') return estado.svg ? contornoDeSvg(estado.svg) : null
@@ -437,6 +520,8 @@
         conCable: $('conCable').checked, cable: num('cable'),
         tornillos: $('tornillos').checked, tornillo: num('tornillo'), modo: estado.modo,
         apoyoAncho: num('apoyoAncho'), apoyoAngulo: num('apoyoAngulo'),
+        acr: num('acr'), paredInt: num('paredInt'), bordeAncho: num('bordeAncho'), bordeEsp: num('bordeEsp'),
+        holguraAcr: num('holguraAcr'),
       })
 
       let version = 0
@@ -459,13 +544,14 @@
             S.decompose().map(g).forEach((comp, i) => {
               const partes = piezasDeLetra(comp, p, warns, i + 1).map((pt) => ({
                 nombre: pt.nombre, mat: pt.mat, voltear: pt.voltear, mueve: pt.mueve,
+                esFrente: !!pt.esFrente, contorno: pt.contorno,
                 exp: malla(pt.exportar),
                 vis: pt.visual.map((v) => ({ malla: malla(v.m), mat: v.mat })),
               }))
               piezas.push({ n: i + 1, partes })
             })
-            // En tapa trasera la pollera va por los costados: el LED usa todo el fondo
-            if (p.modo !== 'trasera' && libreLed(p) - p.labioAlto < 15)
+            // Con pollera trasera o sin labio, el LED usa todo el fondo
+            if ((p.modo === 'tapa' || p.modo === 'ras') && libreLed(p) - p.labioAlto < 15)
               warns.push(`Quedan ${(libreLed(p) - p.labioAlto).toFixed(0)} mm libres bajo el labio: con menos de 15–20 mm el LED se ve en puntos.`)
             if (libreLed(p) < 15) warns.push(`Quedan ${libreLed(p).toFixed(0)} mm entre fondo y frente: con menos de 15–20 mm el LED se ve en puntos.`)
           }
@@ -473,6 +559,7 @@
           estado.medidas = medidas
           dibujar()
           informar(warns)
+          botonesStl()
         } catch (e) {
           console.error(e)
           $('info').innerHTML = `<div class="warn">No se pudo generar: ${e.message}</div>`
@@ -498,7 +585,8 @@
         for (const pz of estado.piezas)
           for (const parte of pz.partes)
             for (const v of parte.vis) {
-              const mesh = new THREE.Mesh(geometria(v.malla), v.mat === 1 ? matTapa : matCuerpo)
+              const mat = v.mat === 0 ? matCuerpo : v.mat === 2 && estado.frente === 'acrilico' ? matAcr : matTapa
+              const mesh = new THREE.Mesh(geometria(v.malla), mat)
               mesh.userData.mueve = parte.mueve
               grupo.add(mesh)
             }
@@ -519,15 +607,18 @@
         for (const m of grupo.children) m.position.z = ex * m.userData.mueve
         const corte = $('corte').checked && estado.medidas
         planoCorte.constant = corte ? estado.medidas.h / 2 : 0
-        matCuerpo.clippingPlanes = matTapa.clippingPlanes = corte ? [planoCorte] : []
-        matCuerpo.needsUpdate = matTapa.needsUpdate = true
+        matCuerpo.clippingPlanes = matTapa.clippingPlanes = matAcr.clippingPlanes = corte ? [planoCorte] : []
+        matCuerpo.needsUpdate = matTapa.needsUpdate = matAcr.needsUpdate = true
         const on = $('encendido').checked
         matTapa.emissive.set(on ? '#fff3d6' : '#000000')
         matTapa.emissiveIntensity = on ? 0.9 : 0
       }
 
-      // Entre el fondo y la cara interna de la tapa; en los dos modos la tapa ocupa su espesor
-      const libreLed = (p) => p.prof - p.tapa - p.fondo
+      // Entre el fondo y la cara interna del frente
+      const libreLed = (p) =>
+        p.modo === 'acrFondo' ? p.prof - p.acr - p.fondo
+        : p.modo === 'acrEncastre' ? p.prof - p.bordeEsp - p.acr - p.fondo
+        : p.prof - p.tapa - p.fondo
 
       function informar(warns) {
         const m = estado.medidas
@@ -537,10 +628,11 @@
         }
         const p = m.p
         const nPiezas = estado.piezas.reduce((s, pz) => s + pz.partes.length, 0)
-        const detalle =
-          p.modo === 'trasera'
-            ? `pollera de ${Math.min(p.labioAlto, libreLed(p) - 1).toFixed(1)} mm por los costados`
-            : `${(libreLed(p) - p.labioAlto).toFixed(1)} mm bajo el labio`
+        const detalle = {
+          trasera: `pollera de ${Math.min(p.labioAlto, libreLed(p) - 1).toFixed(1)} mm por los costados`,
+          acrFondo: `frente de ${p.acr} mm al ras, sobre la pared interior`,
+          acrEncastre: `la pollera aprieta el frente contra el reborde`,
+        }[p.modo] ?? `${(libreLed(p) - p.labioAlto).toFixed(1)} mm bajo el labio`
         $('info').innerHTML =
           `<b>${Math.round(m.w)} × ${Math.round(m.h)} × ${p.prof} mm</b> · ${estado.piezas.length} letra(s), ${nPiezas} piezas<br>` +
           `Espacio interno para LED: <b>${libreLed(p).toFixed(1)} mm</b> (${detalle})` +
@@ -554,21 +646,43 @@
         const objs = []
         for (const pz of estado.piezas)
           pz.partes.forEach((parte, orden) => {
+            // Un frente de acrílico se corta (DXF), no se imprime
+            if (parte.esFrente && estado.frente === 'acrilico') return
             const { pos: src, idx } = parte.exp
-            let pos = src
-            if (parte.voltear) {
-              // Girada 180° en X (lo que da al frente queda sobre la cama) y corrida
+            const pos = new Float32Array(src.length)
+            for (let i = 0; i < pos.length; i += 3) {
+              pos[i] = src[i]
+              // Volteada 180° en X (lo que da al frente queda sobre la cama) y corrida
               // debajo de las demás piezas para que no se pisen
-              pos = new Float32Array(src.length)
-              for (let i = 0; i < pos.length; i += 3) {
-                pos[i] = src[i]
-                pos[i + 1] = -src[i + 1] - 15
-                pos[i + 2] = p.prof - src[i + 2]
-              }
+              pos[i + 1] = parte.voltear ? -src[i + 1] - 15 : src[i + 1]
+              pos[i + 2] = parte.voltear ? p.prof - src[i + 2] : src[i + 2]
             }
-            objs.push({ nombre: `Letra ${pz.n} - ${parte.nombre}`, mat: parte.mat, orden, pos, idx })
+            // Cada pieza apoyada en la cama
+            let zMin = Infinity
+            for (let i = 2; i < pos.length; i += 3) zMin = Math.min(zMin, pos[i])
+            for (let i = 2; i < pos.length; i += 3) pos[i] -= zMin
+            objs.push({ nombre: `Letra ${pz.n} - ${parte.nombre}`, pieza: parte.nombre, mat: parte.mat, orden, pos, idx })
           })
         return objs
+      }
+
+      // DXF (R12, mm) de los frentes de acrílico, en la posición del diseño: un contorno
+      // cerrado por polígono (los huecos de letras como la O salen como contornos propios).
+      // La holgura ya está aplicada; el compensado del láser lo hace el cortador.
+      function dxfAcrilico() {
+        const L = ['0', 'SECTION', '2', 'HEADER', '9', '$ACADVER', '1', 'AC1009', '9', '$INSUNITS', '70', '4', '0', 'ENDSEC', '0', 'SECTION', '2', 'ENTITIES']
+        for (const pz of estado.piezas)
+          for (const parte of pz.partes) {
+            if (!parte.contorno) continue
+            const capa = `LETRA_${pz.n}`
+            for (const poly of parte.contorno) {
+              L.push('0', 'POLYLINE', '8', capa, '66', '1', '70', '1', '10', '0', '20', '0', '30', '0')
+              for (const [x, y] of poly) L.push('0', 'VERTEX', '8', capa, '10', x.toFixed(4), '20', y.toFixed(4), '30', '0')
+              L.push('0', 'SEQEND', '8', capa)
+            }
+          }
+        L.push('0', 'ENDSEC', '0', 'EOF')
+        return new Blob([L.join('\r\n') + '\r\n'], { type: 'application/dxf' })
       }
 
       function stl(objs) {
@@ -625,46 +739,77 @@
       const nombreBase = () => (estado.origen === 'svg' ? 'logo' : $('texto').value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'letra') + '-caja'
 
       $('bajar3mf').addEventListener('click', () => descargar(`${nombreBase()}.3mf`, tresMF(paraImprimir())))
-      // Pieza 1 y pieza 2 de cada letra (cuerpo/tapa o frente/tapa trasera, según el modo)
-      const nombresStl = () => (estado.modo === 'trasera' ? ['frentes', 'tapas-traseras'] : ['cuerpos', 'tapas'])
-      $('bajarCuerpos').addEventListener('click', () => descargar(`${nombreBase()}-${nombresStl()[0]}.stl`, stl(paraImprimir().filter((o) => o.orden === 0))))
-      $('bajarTapas').addEventListener('click', () => descargar(`${nombreBase()}-${nombresStl()[1]}.stl`, stl(paraImprimir().filter((o) => o.orden === 1))))
+      // Un STL por tipo de pieza (todas las letras juntas), según lo que tenga el estilo
+      function botonesStl() {
+        const cont = $('stlBotones')
+        cont.innerHTML = ''
+        const piezas = [...new Set(paraImprimir().map((o) => o.pieza))]
+        for (const pieza of piezas) {
+          const b = document.createElement('button')
+          b.className = 'btn'
+          b.textContent = `STL ${pieza}`
+          b.addEventListener('click', () =>
+            descargar(`${nombreBase()}-${pieza.replace(/\s+/g, '-')}.stl`, stl(paraImprimir().filter((o) => o.pieza === pieza))),
+          )
+          cont.appendChild(b)
+        }
+        $('bajarDxf').hidden = !estado.piezas.some((pz) => pz.partes.some((pt) => pt.contorno))
+      }
+      $('bajarDxf').addEventListener('click', () => descargar(`${nombreBase()}-acrilico.dxf`, dxfAcrilico()))
 
       // ---------- Controles ----------
       const UNIDADES = {
         alto: 'mm', prof: 'mm', pared: 'mm', fondo: 'mm', tapa: 'mm', labioAlto: 'mm', labioAncho: 'mm',
         cable: 'mm', tornillo: 'mm', espaciado: '%', holguraLabio: 'mm', holguraBorde: 'mm', holguraAgujeros: 'mm',
-        apoyoAncho: 'mm', apoyoAngulo: '°',
+        apoyoAncho: 'mm', apoyoAngulo: '°', acr: 'mm', paredInt: 'mm', bordeAncho: 'mm', bordeEsp: 'mm', holguraAcr: 'mm',
       }
       const etiquetas = () => {
         for (const [id, u] of Object.entries(UNIDADES)) $(id + 'V').textContent = `${$(id).value} ${u}`
-        // Cada control aparece solo cuando su contacto existe
+        const m = estado.modo
+        const acrilico = m === 'acrFondo' || m === 'acrEncastre'
+        const conPollera = m === 'trasera' || m === 'acrEncastre'
+        // Cada control aparece solo cuando su pieza o su contacto existe
         $('grupoCable').hidden = !$('conCable').checked
         $('grupoTornillo').hidden = !$('tornillos').checked
         $('grupoAgujeros').hidden = !$('conCable').checked && !$('tornillos').checked
-        $('grupoBorde').hidden = estado.modo !== 'ras'
-        $('grupoApoyo').hidden = estado.modo !== 'ras'
-        const trasera = estado.modo === 'trasera'
-        $('holguraLabioDonde').textContent = estado.modo === 'ras' ? 'borde del apoyo' : 'pared interior'
-        $('holguraLabio').previousElementSibling.firstChild.textContent = trasera ? 'Pollera ↔ ' : 'Labio ↔ '
-        $('fondoNombre').textContent = trasera ? 'Espesor de tapa trasera' : 'Espesor de fondo'
-        $('tapaNombre').textContent = trasera ? 'Espesor del frente' : 'Espesor de tapa'
-        $('labioAltoNombre').textContent = trasera ? 'Alto de la pollera' : 'Alto del labio'
-        $('labioAnchoNombre').textContent = trasera ? 'Espesor de la pollera' : 'Ancho del labio'
-        $('colorCuerpoNombre').textContent = trasera ? 'Paredes y tapa' : 'Cuerpo'
-        $('colorTapaNombre').textContent = trasera ? 'Frente' : 'Tapa'
-        const [a, b] = nombresStl()
-        $('bajarCuerpos').textContent = `STL ${a.replace('-', ' ')}`
-        $('bajarTapas').textContent = `STL ${b.replace('-', ' ')}`
+        $('grupoBorde').hidden = m !== 'ras'
+        $('grupoApoyo').hidden = m !== 'ras'
+        $('grupoTapa').hidden = acrilico
+        $('grupoAcrilico').hidden = !acrilico
+        $('grupoParedInt').hidden = m !== 'acrFondo'
+        $('grupoMarco').hidden = m !== 'acrEncastre'
+        $('grupoLabio').hidden = m === 'acrFondo'
+        $('grupoHolguraLabio').hidden = m === 'acrFondo'
+        $('grupoHolguraAcr').hidden = !acrilico
+        $('holguraAcr').previousElementSibling.firstChild.textContent =
+          m === 'acrEncastre' ? 'Frente ↔ pared y pollera ' : 'Frente ↔ pared exterior '
+        $('holguraLabioDonde').textContent = m === 'ras' ? 'borde del apoyo' : 'pared interior'
+        $('holguraLabio').previousElementSibling.firstChild.textContent = conPollera ? 'Pollera ↔ ' : 'Labio ↔ '
+        $('fondoNombre').textContent = conPollera ? 'Espesor de tapa trasera' : 'Espesor de fondo'
+        $('tapaNombre').textContent = m === 'trasera' ? 'Espesor del frente' : 'Espesor de tapa'
+        $('labioAltoNombre').textContent = conPollera ? 'Alto de la pollera' : 'Alto del labio'
+        $('labioAnchoNombre').textContent = conPollera ? 'Espesor de la pollera' : 'Ancho del labio'
+        $('colorCuerpoNombre').textContent = m === 'trasera' ? 'Paredes y tapa' : 'Cuerpo'
+        $('colorTapaNombre').textContent = m === 'trasera' || acrilico ? 'Frente' : 'Tapa'
+        $('frenteImpreso').setAttribute('aria-pressed', estado.frente === 'impreso')
+        $('frenteAcrilico').setAttribute('aria-pressed', estado.frente === 'acrilico')
+        $('acrNombre').textContent = estado.frente === 'acrilico' ? 'Espesor del acrílico' : 'Espesor del frente'
+        $('frenteHint').textContent =
+          estado.frente === 'acrilico'
+            ? 'El frente se corta en acrílico: bajá el DXF (en mm, con la holgura aplicada). No entra en el 3MF.'
+            : 'El mismo frente se imprime en 3D (difusor: PLA blanco o natural) y entra en el 3MF. El DXF sigue disponible.'
         $('modoHint').textContent = {
           trasera: 'Frente y paredes en una pieza, impresa con el frente sobre la cama (cara lisa). Atrás cierra una tapa con pollera: el LED se instala desde atrás.',
           tapa: 'La tapa cubre el canto de la pared y el labio entra por dentro.',
-          ras: 'La tapa queda dentro de la pared, apoyada en un escalón interno.',
-        }[estado.modo]
+          ras: 'La tapa queda dentro de la pared, sobre un apoyo inclinado.',
+          acrFondo: 'Cuerpo con fondo impreso. Una pared interior más corta forma el rebaje donde el frente entra al ras.',
+          acrEncastre: 'Marco con reborde frontal (se imprime con el reborde en la cama). El frente entra por atrás y la pollera de la tapa trasera lo aprieta contra el reborde.',
+        }[m]
         // El frente y las paredes son una sola pieza: dos colores solo con cambio de filamento por capa
-        $('notaColor').textContent = trasera
-          ? `Para frente y paredes de distinto color: cambio de filamento en Bambu Studio al terminar los primeros ${$('tapa').value} mm (el frente).`
-          : ''
+        $('notaColor').textContent =
+          m === 'trasera'
+            ? `Para frente y paredes de distinto color: cambio de filamento en Bambu Studio al terminar los primeros ${$('tapa').value} mm (el frente).`
+            : ''
       }
       let espera = 0
       const pedir = () => {
@@ -688,22 +833,35 @@
       $('usarSvg').addEventListener('click', () => setOrigen('svg'))
       // Valores de arranque de cada modo: la pollera trasera es alta y gruesa (guía y rigidez),
       // el labio de las tapas frontales es corto
-      const ARRANQUE = { trasera: { labioAlto: 15, labioAncho: 2, fondo: 1.2 }, tapa: { labioAlto: 4, labioAncho: 1.6, fondo: 2 }, ras: { labioAlto: 4, labioAncho: 1.6, fondo: 2 } }
+      // En encastre acrílico la pollera arranca alta: se recorta sola hasta tocar el frente
+      const ARRANQUE = {
+        trasera: { labioAlto: 15, labioAncho: 2, fondo: 1.2 },
+        tapa: { labioAlto: 4, labioAncho: 1.6, fondo: 2 },
+        ras: { labioAlto: 4, labioAncho: 1.6, fondo: 2 },
+        acrFondo: { fondo: 2 },
+        acrEncastre: { labioAlto: 60, labioAncho: 2, fondo: 1.2 },
+      }
       const setModo = (m) => {
         estado.modo = m
         for (const [id, v] of Object.entries(ARRANQUE[m])) $(id).value = v
-        $('modoTrasera').setAttribute('aria-pressed', m === 'trasera')
-        $('modoTapa').setAttribute('aria-pressed', m === 'tapa')
-        $('modoRas').setAttribute('aria-pressed', m === 'ras')
         pedir()
       }
-      $('modoTrasera').addEventListener('click', () => setModo('trasera'))
-      $('modoTapa').addEventListener('click', () => setModo('tapa'))
-      $('modoRas').addEventListener('click', () => setModo('ras'))
+      $('estilo').addEventListener('change', (e) => setModo(e.target.value))
+      const setFrente = (f) => {
+        estado.frente = f
+        etiquetas()
+        dibujar()
+        botonesStl()
+      }
+      $('frenteImpreso').addEventListener('click', () => setFrente('impreso'))
+      $('frenteAcrilico').addEventListener('click', () => setFrente('acrilico'))
 
       for (const id of ['explotar', 'corte', 'encendido']) $(id).addEventListener('input', aplicarVista)
       $('colorCuerpo').addEventListener('input', (e) => matCuerpo.color.set(e.target.value))
-      $('colorTapa').addEventListener('input', (e) => matTapa.color.set(e.target.value))
+      $('colorTapa').addEventListener('input', (e) => {
+        matTapa.color.set(e.target.value)
+        matAcr.color.set(e.target.value)
+      })
 
       const drop = $('drop')
       const leer = async (f) => {
