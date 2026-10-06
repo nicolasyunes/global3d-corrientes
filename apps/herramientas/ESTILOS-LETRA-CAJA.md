@@ -94,11 +94,13 @@ Perfil = corte de la pared, desde el frente (z = 0) hacia atrás.
 4. **Agujeros opcionales** de cable y de tornillo, con su tolerancia.
 5. **3MF** con nombres de pieza y color.
 
-## Orden propuesto de implementación
+## Orden de implementación (hecho)
 
-1. Rehacer *frente impreso · encastre* al modo medido: frente en la cama y tapa trasera con pollera. Mantener nuestra variante "tapa al frente" como opción.
-2. Apoyos inclinados (ancho + ángulo) como pieza común: sirven para los estilos 3, 4 y 13.
-3. *Frente acrílico · fondo impreso* (1) y *encastre* (7): suman el DXF del acrílico con su holgura.
-4. *Retroiluminada* (6) con separadores.
-5. *LED doble* (9) y *calado* (11).
-6. *Neón* (12), *orgánica* (13) y *curva* (10).
+1. ✅ *Frente impreso · tapa trasera*, como el medido: frente en la cama y tapa trasera con pollera. Se mantienen "tapa al frente" y "al ras".
+2. ✅ Apoyos inclinados (ancho + ángulo) como pieza común: "al ras", orgánica y traba del neón.
+3. ✅ *Frente acrílico · fondo impreso* (1) y *encastre* (7), con el DXF del acrílico y la holgura aplicada. En encastre, la pollera llega al frente y lo aprieta (mejora sobre el medido).
+4. ✅ *Retroiluminada* (6), con torres ciegas para espárrago y separadores impresos.
+5. ✅ *LED doble* (9) y *calado* (11). Calado con fondo impreso o PVC (DXF con agujeros).
+6. ✅ *Neón* (12), con traba plana abajo e inclinada arriba; *orgánica* (13), con zigzag, ondas o serrucho y aviso de voladizo; y *curva* (10), extrusión en arco con base.
+
+Pendientes que quedaron fuera de este alcance: estilos 3 y 4 (apoyo doble/único con PVC, que ya tienen la pieza común), corte automático de letras que pasan la cama, plantilla de perforación para la halo y acentos unidos a su letra.
