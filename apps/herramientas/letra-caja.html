@@ -105,8 +105,10 @@
         <h2>Cuerpo</h2>
         <label for="pared">Espesor de pared <span id="paredV"></span></label>
         <input type="range" id="pared" min="1.2" max="4" step="0.2" value="2" />
-        <label for="fondo"><span id="fondoNombre">Espesor de fondo</span> <span id="fondoV"></span></label>
-        <input type="range" id="fondo" min="0.8" max="4" step="0.2" value="1.2" />
+        <div id="grupoFondo">
+          <label for="fondo"><span id="fondoNombre">Espesor de fondo</span> <span id="fondoV"></span></label>
+          <input type="range" id="fondo" min="0.8" max="4" step="0.2" value="1.2" />
+        </div>
 
         <h2>Estilo</h2>
         <select id="estilo" aria-label="Estilo de letra caja">
@@ -118,6 +120,9 @@
           <optgroup label="Frente acrílico">
             <option value="acrFondo">Frente acrílico · fondo impreso</option>
             <option value="acrEncastre">Frente acrílico · encastre</option>
+          </optgroup>
+          <optgroup label="Luz hacia la pared">
+            <option value="halo">Retroiluminada (halo)</option>
           </optgroup>
         </select>
         <p class="hint" id="modoHint"></p>
@@ -158,16 +163,23 @@
           <input type="range" id="apoyoAngulo" min="25" max="60" step="1" value="30" />
           <p class="hint">Menos grados = apoyo más vertical: imprime más limpio pero ocupa más alto.</p>
         </div>
+        <div id="grupoHalo">
+          <label for="separacion">Distancia a la pared <span id="separacionV"></span></label>
+          <input type="range" id="separacion" min="10" max="60" step="1" value="25" />
+          <p class="hint">Más distancia = halo más ancho y suave. Con 20–40 mm el halo se ve parejo.</p>
+          <label for="separadorD">Diámetro del separador <span id="separadorDV"></span></label>
+          <input type="range" id="separadorD" min="6" max="20" step="0.5" value="10" />
+        </div>
 
         <h2>LED y montaje</h2>
-        <label class="check"><input type="checkbox" id="conCable" checked /> Agujero para cable (1 por letra)</label>
+        <label class="check" id="checkCable"><input type="checkbox" id="conCable" checked /> Agujero para cable (1 por letra)</label>
         <div id="grupoCable">
           <label for="cable">Cable Ø <span id="cableV"></span></label>
           <input type="range" id="cable" min="3" max="12" step="0.5" value="6" />
         </div>
-        <label class="check"><input type="checkbox" id="tornillos" checked /> Agujeros para tornillo (2 por letra)</label>
+        <label class="check"><input type="checkbox" id="tornillos" checked /> <span id="tornillosNombre">Agujeros para tornillo (2 por letra)</span></label>
         <div id="grupoTornillo">
-          <label for="tornillo">Tornillo Ø <span id="tornilloV"></span></label>
+          <label for="tornillo"><span id="tornilloNombre">Tornillo Ø</span> <span id="tornilloV"></span></label>
           <input type="range" id="tornillo" min="3" max="6" step="0.5" value="4" />
         </div>
 
@@ -254,6 +266,9 @@
       const planoCorte = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)
       const matCuerpo = new THREE.MeshStandardMaterial({ color: $('colorCuerpo').value, roughness: 0.55, side: THREE.DoubleSide })
       const matTapa = new THREE.MeshStandardMaterial({ color: $('colorTapa').value, roughness: 0.45, side: THREE.DoubleSide })
+      // Solo vista del halo: pared del local y la luz que se proyecta sobre ella
+      const matPared = new THREE.MeshStandardMaterial({ color: '#d8d3c9', roughness: 0.9, side: THREE.DoubleSide })
+      const matBrillo = new THREE.MeshBasicMaterial({ color: '#ffe7b0', transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false })
       // Frente de acrílico: mismo color que el frente, translúcido
       const matAcr = new THREE.MeshStandardMaterial({ color: $('colorTapa').value, roughness: 0.15, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
       const grupo = new THREE.Group()
@@ -357,6 +372,45 @@
             { nombre: 'frente', mat: 1, exportar: g(frente.add(paredes)), visual: [{ m: frente, mat: 1 }, { m: paredes, mat: 0 }], voltear: true, mueve: 0 },
             { nombre: 'tapa trasera', mat: 0, exportar: trasera, visual: [{ m: trasera, mat: 0 }], voltear: false, mueve: -1 },
           ]
+        }
+
+        if (p.modo === 'halo') {
+          // Caja con el frente cerrado y la parte de atrás abierta: el LED ilumina la pared.
+          // Adentro, torres pegadas al frente con un agujero ciego para el espárrago
+          // (varilla roscada): el frente nunca se perfora.
+          const frente = g(g(S.extrude(p.tapa)).translate([0, 0, p.prof - p.tapa]))
+          const rVarilla = (p.tornillo + p.holguraAgujeros) / 2
+          const rTorre = Math.max(p.separadorD / 2, rVarilla + 2)
+          const alturaTorre = p.prof - p.tapa - 1 // queda 1 mm metida respecto del borde trasero
+          const macizos = [g(pared.extrude(p.prof - p.tapa + 0.01))]
+          const agujeros = []
+          const tubos = []
+          if (p.tornillos) {
+            const zona = puntosInteriores(hueco, rTorre + 0.5)
+            if (zona.length) {
+              const izq = zona.reduce((m, q) => (q[0] < m[0] ? q : m))
+              const der = zona.reduce((m, q) => (q[0] > m[0] ? q : m))
+              const pares = Math.hypot(izq[0] - der[0], izq[1] - der[1]) > rTorre * 2 + 10 ? [izq, der] : [izq]
+              for (const q of pares) {
+                macizos.push(g(g(g(g(CrossSection.circle(rTorre, 48)).translate(q)).extrude(alturaTorre)).translate([0, 0, 1])))
+                // Ciego: deja 1 mm de torre antes del frente
+                agujeros.push(g(g(g(g(CrossSection.circle(rVarilla, 32)).translate(q)).extrude(alturaTorre)).translate([0, 0, -0.01])))
+                const anillo = g(g(CrossSection.circle(p.separadorD / 2, 48)).subtract(g(CrossSection.circle(rVarilla, 32))))
+                tubos.push(g(g(g(anillo.translate(q)).extrude(p.separacion)).translate([0, 0, -p.separacion])))
+              }
+            } else warns.push(`Letra ${n}: no entran las torres de montaje de Ø${(rTorre * 2).toFixed(1)} mm.`)
+          }
+          let resto = g(Manifold.union(macizos))
+          if (agujeros.length) resto = g(resto.subtract(g(Manifold.union(agujeros))))
+          const letra = g(frente.add(resto))
+          const partes = [
+            { nombre: 'letra', mat: 1, exportar: letra, visual: [{ m: frente, mat: 1 }, { m: resto, mat: 0 }], voltear: true, mueve: 1 },
+          ]
+          if (tubos.length) {
+            const sep = g(Manifold.union(tubos))
+            partes.push({ nombre: 'separador', mat: 0, exportar: sep, visual: [{ m: sep, mat: 0 }], voltear: false, mueve: 0 })
+          }
+          return partes
         }
 
         if (p.modo === 'acrFondo') {
@@ -517,7 +571,9 @@
         alto: num('alto'), prof: num('prof'), pared: num('pared'), fondo: num('fondo'),
         tapa: num('tapa'), labioAlto: num('labioAlto'), labioAncho: num('labioAncho'),
         holguraLabio: num('holguraLabio'), holguraBorde: num('holguraBorde'), holguraAgujeros: num('holguraAgujeros'),
-        conCable: $('conCable').checked, cable: num('cable'),
+        // La halo está abierta atrás: el cable sale por ahí, no hace falta agujero
+        conCable: $('conCable').checked && estado.modo !== 'halo', cable: num('cable'),
+        separacion: num('separacion'), separadorD: num('separadorD'),
         tornillos: $('tornillos').checked, tornillo: num('tornillo'), modo: estado.modo,
         apoyoAncho: num('apoyoAncho'), apoyoAngulo: num('apoyoAngulo'),
         acr: num('acr'), paredInt: num('paredInt'), bordeAncho: num('bordeAncho'), bordeEsp: num('bordeEsp'),
@@ -535,6 +591,7 @@
           if (v !== version) return
           const warns = []
           const piezas = []
+          const extras = []
           let medidas = null
           if (base) {
             const p = params()
@@ -550,12 +607,21 @@
               }))
               piezas.push({ n: i + 1, partes })
             })
+            // Solo para la vista: la pared del local y el halo que proyecta el LED
+            if (p.modo === 'halo') {
+              const margen = 80
+              const fondoLocal = g(g(g(CrossSection.square([medidas.w + 2 * margen, medidas.h + 2 * margen])).translate([b.min[0] - margen, b.min[1] - margen])).extrude(2))
+              const brillo = g(g(S.offset(p.separacion * 0.6 + 4, 'Round')).extrude(0.2))
+              extras.push({ tipo: 'pared', malla: malla(g(fondoLocal.translate([0, 0, -p.separacion - 2]))) })
+              extras.push({ tipo: 'brillo', malla: malla(g(brillo.translate([0, 0, -p.separacion + 0.05]))) })
+            }
             // Con pollera trasera o sin labio, el LED usa todo el fondo
             if ((p.modo === 'tapa' || p.modo === 'ras') && libreLed(p) - p.labioAlto < 15)
               warns.push(`Quedan ${(libreLed(p) - p.labioAlto).toFixed(0)} mm libres bajo el labio: con menos de 15–20 mm el LED se ve en puntos.`)
             if (libreLed(p) < 15) warns.push(`Quedan ${libreLed(p).toFixed(0)} mm entre fondo y frente: con menos de 15–20 mm el LED se ve en puntos.`)
           }
           estado.piezas = piezas
+          estado.extras = extras
           estado.medidas = medidas
           dibujar()
           informar(warns)
@@ -590,6 +656,12 @@
               mesh.userData.mueve = parte.mueve
               grupo.add(mesh)
             }
+        for (const ex of estado.extras ?? []) {
+          const mesh = new THREE.Mesh(geometria(ex.malla), ex.tipo === 'pared' ? matPared : matBrillo)
+          mesh.userData.mueve = 0
+          mesh.userData.brillo = ex.tipo === 'brillo'
+          grupo.add(mesh)
+        }
         aplicarVista()
         if (estado.medidas && !encuadrado) {
           const { w, h, p } = estado.medidas
@@ -610,13 +682,17 @@
         matCuerpo.clippingPlanes = matTapa.clippingPlanes = matAcr.clippingPlanes = corte ? [planoCorte] : []
         matCuerpo.needsUpdate = matTapa.needsUpdate = matAcr.needsUpdate = true
         const on = $('encendido').checked
-        matTapa.emissive.set(on ? '#fff3d6' : '#000000')
-        matTapa.emissiveIntensity = on ? 0.9 : 0
+        // En el halo el frente no brilla: la luz sale por atrás, hacia la pared
+        const haciaPared = estado.modo === 'halo'
+        matTapa.emissive.set(on && !haciaPared ? '#fff3d6' : '#000000')
+        matTapa.emissiveIntensity = on && !haciaPared ? 0.9 : 0
+        for (const m of grupo.children) if (m.userData.brillo) m.visible = on
       }
 
       // Entre el fondo y la cara interna del frente
       const libreLed = (p) =>
-        p.modo === 'acrFondo' ? p.prof - p.acr - p.fondo
+        p.modo === 'halo' ? p.prof - p.tapa
+        : p.modo === 'acrFondo' ? p.prof - p.acr - p.fondo
         : p.modo === 'acrEncastre' ? p.prof - p.bordeEsp - p.acr - p.fondo
         : p.prof - p.tapa - p.fondo
 
@@ -632,6 +708,7 @@
           trasera: `pollera de ${Math.min(p.labioAlto, libreLed(p) - 1).toFixed(1)} mm por los costados`,
           acrFondo: `frente de ${p.acr} mm al ras, sobre la pared interior`,
           acrEncastre: `la pollera aprieta el frente contra el reborde`,
+          halo: `abierta atrás, a ${p.separacion} mm de la pared`,
         }[p.modo] ?? `${(libreLed(p) - p.labioAlto).toFixed(1)} mm bajo el labio`
         $('info').innerHTML =
           `<b>${Math.round(m.w)} × ${Math.round(m.h)} × ${p.prof} mm</b> · ${estado.piezas.length} letra(s), ${nPiezas} piezas<br>` +
@@ -762,35 +839,42 @@
         alto: 'mm', prof: 'mm', pared: 'mm', fondo: 'mm', tapa: 'mm', labioAlto: 'mm', labioAncho: 'mm',
         cable: 'mm', tornillo: 'mm', espaciado: '%', holguraLabio: 'mm', holguraBorde: 'mm', holguraAgujeros: 'mm',
         apoyoAncho: 'mm', apoyoAngulo: '°', acr: 'mm', paredInt: 'mm', bordeAncho: 'mm', bordeEsp: 'mm', holguraAcr: 'mm',
+        separacion: 'mm', separadorD: 'mm',
       }
       const etiquetas = () => {
         for (const [id, u] of Object.entries(UNIDADES)) $(id + 'V').textContent = `${$(id).value} ${u}`
         const m = estado.modo
         const acrilico = m === 'acrFondo' || m === 'acrEncastre'
         const conPollera = m === 'trasera' || m === 'acrEncastre'
+        const halo = m === 'halo'
         // Cada control aparece solo cuando su pieza o su contacto existe
-        $('grupoCable').hidden = !$('conCable').checked
+        $('checkCable').hidden = halo
+        $('grupoCable').hidden = !$('conCable').checked || halo
         $('grupoTornillo').hidden = !$('tornillos').checked
-        $('grupoAgujeros').hidden = !$('conCable').checked && !$('tornillos').checked
+        $('grupoAgujeros').hidden = (!$('conCable').checked || halo) && !$('tornillos').checked
+        $('grupoHalo').hidden = !halo
+        $('grupoFondo').hidden = halo
+        $('tornillosNombre').textContent = halo ? 'Espárragos de montaje (2 por letra)' : 'Agujeros para tornillo (2 por letra)'
+        $('tornilloNombre').textContent = halo ? 'Varilla roscada Ø' : 'Tornillo Ø'
         $('grupoBorde').hidden = m !== 'ras'
         $('grupoApoyo').hidden = m !== 'ras'
         $('grupoTapa').hidden = acrilico
         $('grupoAcrilico').hidden = !acrilico
         $('grupoParedInt').hidden = m !== 'acrFondo'
         $('grupoMarco').hidden = m !== 'acrEncastre'
-        $('grupoLabio').hidden = m === 'acrFondo'
-        $('grupoHolguraLabio').hidden = m === 'acrFondo'
+        $('grupoLabio').hidden = m === 'acrFondo' || halo
+        $('grupoHolguraLabio').hidden = m === 'acrFondo' || halo
         $('grupoHolguraAcr').hidden = !acrilico
         $('holguraAcr').previousElementSibling.firstChild.textContent =
           m === 'acrEncastre' ? 'Frente ↔ pared y pollera ' : 'Frente ↔ pared exterior '
         $('holguraLabioDonde').textContent = m === 'ras' ? 'borde del apoyo' : 'pared interior'
         $('holguraLabio').previousElementSibling.firstChild.textContent = conPollera ? 'Pollera ↔ ' : 'Labio ↔ '
         $('fondoNombre').textContent = conPollera ? 'Espesor de tapa trasera' : 'Espesor de fondo'
-        $('tapaNombre').textContent = m === 'trasera' ? 'Espesor del frente' : 'Espesor de tapa'
+        $('tapaNombre').textContent = m === 'trasera' || halo ? 'Espesor del frente' : 'Espesor de tapa'
         $('labioAltoNombre').textContent = conPollera ? 'Alto de la pollera' : 'Alto del labio'
         $('labioAnchoNombre').textContent = conPollera ? 'Espesor de la pollera' : 'Ancho del labio'
-        $('colorCuerpoNombre').textContent = m === 'trasera' ? 'Paredes y tapa' : 'Cuerpo'
-        $('colorTapaNombre').textContent = m === 'trasera' || acrilico ? 'Frente' : 'Tapa'
+        $('colorCuerpoNombre').textContent = m === 'trasera' ? 'Paredes y tapa' : halo ? 'Paredes' : 'Cuerpo'
+        $('colorTapaNombre').textContent = m === 'trasera' || acrilico || halo ? 'Frente' : 'Tapa'
         $('frenteImpreso').setAttribute('aria-pressed', estado.frente === 'impreso')
         $('frenteAcrilico').setAttribute('aria-pressed', estado.frente === 'acrilico')
         $('acrNombre').textContent = estado.frente === 'acrilico' ? 'Espesor del acrílico' : 'Espesor del frente'
@@ -804,6 +888,7 @@
           ras: 'La tapa queda dentro de la pared, sobre un apoyo inclinado.',
           acrFondo: 'Cuerpo con fondo impreso. Una pared interior más corta forma el rebaje donde el frente entra al ras.',
           acrEncastre: 'Marco con reborde frontal (se imprime con el reborde en la cama). El frente entra por atrás y la pollera de la tapa trasera lo aprieta contra el reborde.',
+          halo: 'Frente cerrado y atrás abierta: el LED ilumina la pared y la letra queda recortada contra el halo. Se monta con espárragos en torres internas y separadores impresos.',
         }[m]
         // El frente y las paredes son una sola pieza: dos colores solo con cambio de filamento por capa
         $('notaColor').textContent =
@@ -835,11 +920,13 @@
       // el labio de las tapas frontales es corto
       // En encastre acrílico la pollera arranca alta: se recorta sola hasta tocar el frente
       const ARRANQUE = {
-        trasera: { labioAlto: 15, labioAncho: 2, fondo: 1.2 },
-        tapa: { labioAlto: 4, labioAncho: 1.6, fondo: 2 },
-        ras: { labioAlto: 4, labioAncho: 1.6, fondo: 2 },
-        acrFondo: { fondo: 2 },
-        acrEncastre: { labioAlto: 60, labioAncho: 2, fondo: 1.2 },
+        trasera: { pared: 2, tapa: 1.6, labioAlto: 15, labioAncho: 2, fondo: 1.2 },
+        tapa: { pared: 2, tapa: 1.6, labioAlto: 4, labioAncho: 1.6, fondo: 2 },
+        ras: { pared: 2, tapa: 1.6, labioAlto: 4, labioAncho: 1.6, fondo: 2 },
+        acrFondo: { pared: 2, fondo: 2 },
+        acrEncastre: { pared: 2, labioAlto: 60, labioAncho: 2, fondo: 1.2 },
+        // Halo: frente opaco y pared más gruesa (no debe transparentar ni flexionar)
+        halo: { pared: 3, tapa: 2.4 },
       }
       const setModo = (m) => {
         estado.modo = m
