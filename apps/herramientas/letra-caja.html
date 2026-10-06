@@ -63,6 +63,15 @@
       .fila-ag label { display: flex; gap: 4px; align-items: center; margin: 0; font-size: 12px; }
       .fila-ag input { width: 64px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
       .fila-ag .btn { flex: 1; padding: 6px 8px; font-size: 12px; }
+      .disenos { border: 1px solid var(--line); border-radius: 10px; padding: 4px 12px 10px; margin: 12px 0; background: #faf9f6; }
+      .disenos h2 { margin-top: 8px; }
+      .disenos label { display: block; }
+      .disenos input[type=search] { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; font: inherit; margin: 4px 0; }
+      .disenos-lista { margin-top: 8px; max-height: 260px; overflow: auto; font-size: 13px; }
+      .disenos-fila { display: flex; gap: 4px; border-top: 1px solid var(--line); }
+      .disenos-abrir { flex: 1; text-align: left; border: 0; background: none; padding: 7px 2px; font: inherit; cursor: pointer; display: flex; flex-direction: column; }
+      .disenos-abrir span { color: var(--muted); font-size: 12px; }
+      .disenos-borrar { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 8px; }
     </style>
   </head>
   <body>
@@ -78,6 +87,7 @@
       <aside>
         <h1>Letra caja</h1>
         <p class="lead">Letras con LED interno, frente impreso o de acrílico. Cada letra sale en piezas que encastran.</p>
+        <section id="panelDisenos" class="disenos"></section>
 
         <h2>Contenido</h2>
         <div class="seg" role="group" aria-label="Origen">
@@ -1799,6 +1809,73 @@
       drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over') })
       drop.addEventListener('dragleave', () => drop.classList.remove('over'))
       drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); leer(e.dataTransfer.files[0]) })
+
+      // ---------- Diseños guardados (Supabase) ----------
+      // Lo que no se guarda: la vista (separar, corte, LED) y el archivo elegido
+      const NO_GUARDAR = new Set(['explotar', 'corte', 'encendido', 'file', 'agX', 'agY'])
+      const leerEstado = () => {
+        const campos = {}
+        for (const el of document.querySelectorAll('aside input[id], aside select[id]')) {
+          if (NO_GUARDAR.has(el.id) || el.type === 'file' || el.closest('#panelDisenos')) continue
+          campos[el.id] = el.type === 'checkbox' ? el.checked : el.value
+        }
+        return {
+          version: 1, campos, origen: estado.origen, svg: estado.svg, modo: estado.modo,
+          frente: estado.frente, base: estado.base, agujerosModo: estado.agujerosModo, agujeros: estado.agujeros,
+        }
+      }
+      const aplicarEstado = (d) => {
+        for (const [id, v] of Object.entries(d?.campos ?? {})) {
+          const el = $(id)
+          if (!el) continue
+          if (el.type === 'checkbox') el.checked = !!v
+          else el.value = v
+        }
+        estado.svg = d?.svg ?? null
+        $('svgNombre').textContent = estado.svg ? 'SVG guardado con el diseño' : 'formas rellenas, un color'
+        estado.modo = d?.modo ?? 'trasera'
+        $('estilo').value = estado.modo
+        estado.frente = d?.frente ?? 'impreso'
+        estado.base = d?.base ?? 'impresa'
+        estado.agujerosModo = d?.agujerosModo ?? 'auto'
+        estado.agujeros = d?.agujeros ?? []
+        estado.agSel = -1
+        for (const id of ['colorCuerpo', 'colorTapa']) $(id).dispatchEvent(new Event('input'))
+        encuadrado = false
+        setOrigen(d?.origen === 'svg' && estado.svg ? 'svg' : 'texto')
+      }
+      // Captura del visor tal como se ve (toBlob toma la imagen en el momento)
+      const miniatura = () =>
+        new Promise((r) => {
+          renderer.render(scene, camera)
+          renderer.domElement.toBlob((b) => r(b), 'image/png')
+        })
+      const archivosDiseno = async () => {
+        const base = nombreBase()
+        const lista = [{ name: `${base}.3mf`, kind: '3mf', blob: tresMF(paraImprimir()) }]
+        for (const tipo of ['frente', 'base'])
+          if (estado.piezas.some((pz) => pz.partes.some((pt) => pt.contorno && pt.cortable === tipo)))
+            lista.push({ name: `${base}-${tipo}.dxf`, kind: 'dxf', blob: dxfPlaca(tipo) })
+        if (estado.origen === 'svg' && estado.svg)
+          lista.push({ name: 'original.svg', kind: 'svg', blob: new Blob([estado.svg], { type: 'image/svg+xml' }) })
+        return lista
+      }
+      // Se carga aparte: si la base no está disponible, el generador sigue andando
+      import('./src/disenos.ts')
+        .then(({ montarDisenos }) =>
+          montarDisenos($('panelDisenos'), {
+            kind: 'letra_caja',
+            leer: leerEstado,
+            aplicar: aplicarEstado,
+            archivos: archivosDiseno,
+            miniatura,
+            nombreSugerido: () => (estado.origen === 'svg' ? 'Logo' : $('texto').value.trim() || 'Letra caja'),
+          }),
+        )
+        .catch((e) => {
+          console.error(e)
+          $('panelDisenos').innerHTML = '<h2>Diseño</h2><p class="hint">No se pudo conectar con la base: el generador funciona, pero no se pueden guardar diseños.</p>'
+        })
 
       etiquetas()
       reconstruir()

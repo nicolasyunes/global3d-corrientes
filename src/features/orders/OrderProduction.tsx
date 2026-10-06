@@ -20,6 +20,7 @@ import {
 import { logOrderEvent } from '@/features/production/workshop.api'
 import { formatDueDate, formatMoney } from './format'
 import OrderImages from './OrderImages'
+import OrderDesigns from '@/features/designs/OrderDesigns'
 import { useOrderModal } from './order-modal-context'
 import { DEFAULT_WAITING_REASON, followUpFrom, isWaiting } from './orderFlow'
 import {
@@ -650,6 +651,8 @@ export default function OrderProduction() {
             </div>
             <OrderImages orderId={order.id} />
           </section>
+
+          <OrderDesigns orderId={order.id} />
 
           <ActivityFeed orderId={order.id} refreshKey={activityKey} />
         </div>

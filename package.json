@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --config apps/herramientas/vite.config.ts",
     "preview": "vite preview",
     "dev:herramientas": "vite --config apps/herramientas/vite.config.ts",
     "build:herramientas": "vite build --config apps/herramientas/vite.config.ts",
