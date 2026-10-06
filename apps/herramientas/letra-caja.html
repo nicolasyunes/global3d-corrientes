@@ -115,7 +115,7 @@
 
         <div id="seccionCuerpo">
           <h2>Cuerpo</h2>
-          <label for="pared">Espesor de pared <span id="paredV"></span></label>
+          <label for="pared"><span id="paredNombre">Espesor de pared</span> <span id="paredV"></span></label>
           <input type="range" id="pared" min="1" max="12" step="0.1" value="2" />
           <div id="grupoFondo">
             <label for="fondo"><span id="fondoNombre">Espesor de fondo</span> <span id="fondoV"></span></label>
@@ -168,8 +168,9 @@
             <input type="range" id="acr" min="1" max="10" step="0.1" value="3.1" />
           </div>
           <div id="grupoParedInt">
-            <label for="paredInt">Pared interior (rebaje) <span id="paredIntV"></span></label>
+            <label for="paredInt">Pared interior (forma el rebaje) <span id="paredIntV"></span></label>
             <input type="range" id="paredInt" min="1" max="5" step="0.2" value="2" />
+            <p class="hint" id="paredTotal"></p>
           </div>
           <div id="grupoMarco">
             <label for="bordeAncho">Ancho del reborde frontal <span id="bordeAnchoV"></span></label>
@@ -293,12 +294,12 @@
 
         <div id="seccionLed">
         <h2>LED y montaje</h2>
-        <label class="check" id="checkCable"><input type="checkbox" id="conCable" checked /> Agujero para cable (1 por letra)</label>
+        <label class="check" id="checkCable"><input type="checkbox" id="conCable" /> Agujero para cable (1 por letra)</label>
         <div id="grupoCable">
           <label for="cable">Cable Ø <span id="cableV"></span></label>
           <input type="range" id="cable" min="3" max="12" step="0.5" value="6" />
         </div>
-        <label class="check" id="tornillosLabel"><input type="checkbox" id="tornillos" checked /> <span id="tornillosNombre">Agujeros para tornillo (2 por letra)</span></label>
+        <label class="check" id="tornillosLabel"><input type="checkbox" id="tornillos" /> <span id="tornillosNombre">Agujeros para tornillo (2 por letra)</span></label>
         <div id="grupoTornillo">
           <label for="tornillo"><span id="tornilloNombre">Tornillo Ø</span> <span id="tornilloV"></span></label>
           <input type="range" id="tornillo" min="3" max="6" step="0.5" value="4" />
@@ -1505,6 +1506,9 @@
         $('grupoAcrilico').hidden = !conFrente && !rebaje
         $('grupoPlacaFrente').hidden = !conFrente
         $('grupoParedInt').hidden = !rebaje
+        // "Espesor de pared" es siempre la pared exterior; la interior (la del rebaje) va aparte
+        $('paredNombre').textContent = rebaje ? 'Pared exterior' : 'Espesor de pared'
+        $('paredTotal').textContent = `Pared total en el tramo doble: ${(num('pared') + num('paredInt')).toFixed(1)} mm (${$('pared').value} exterior + ${$('paredInt').value} interior). En el rebaje queda solo la exterior.`
         $('grupoMarco').hidden = m !== 'acrEncastre' && m !== 'ajusteTrasero'
         $('grupoBase').hidden = !conBase
         $('grupoLabio').hidden = rebaje || halo || neon || organica || curva || tres || m === 'apoyoUnico'
