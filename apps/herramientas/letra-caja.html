@@ -99,6 +99,7 @@
         <h2>Tamaño</h2>
         <label for="alto">Alto de la letra <span id="altoV"></span></label>
         <input type="range" id="alto" min="40" max="400" step="5" value="150" />
+        <label class="check"><input type="checkbox" id="espejo" /> Espejar (invertir izquierda y derecha)</label>
         <div id="grupoProf">
           <label for="prof">Profundidad total <span id="profV"></span></label>
           <input type="range" id="prof" min="20" max="100" step="1" value="40" />
@@ -107,7 +108,7 @@
         <div id="seccionCuerpo">
           <h2>Cuerpo</h2>
           <label for="pared">Espesor de pared <span id="paredV"></span></label>
-          <input type="range" id="pared" min="1" max="4" step="0.1" value="2" />
+          <input type="range" id="pared" min="1" max="12" step="0.1" value="2" />
           <div id="grupoFondo">
             <label for="fondo"><span id="fondoNombre">Espesor de fondo</span> <span id="fondoV"></span></label>
             <input type="range" id="fondo" min="0.8" max="4" step="0.2" value="1.2" />
@@ -124,6 +125,7 @@
           <optgroup label="Frente acrílico">
             <option value="acrFondo">Frente acrílico · fondo impreso</option>
             <option value="acrEncastre">Frente acrílico · encastre</option>
+            <option value="apoyoUnico">Frente acrílico · apoyo único</option>
           </optgroup>
           <optgroup label="Tres piezas (contorno · frente · base)">
             <option value="tresRebaje">Frente y base al ras (rebajes)</option>
@@ -176,7 +178,7 @@
           </div>
           <p class="hint" id="baseHint"></p>
           <label for="baseEsp">Espesor de la base <span id="baseEspV"></span></label>
-          <input type="range" id="baseEsp" min="1" max="12" step="0.1" value="3.1" />
+          <input type="range" id="baseEsp" min="1" max="50" step="0.1" value="3.1" />
         </div>
         <div id="grupoLabio">
           <label for="labioAlto"><span id="labioAltoNombre">Alto del labio</span> <span id="labioAltoV"></span></label>
@@ -267,14 +269,16 @@
           <label for="curvaSeg">Segmentos <span id="curvaSegV"></span></label>
           <input type="range" id="curvaSeg" min="20" max="128" step="4" value="96" />
           <label for="curvaBase">Espesor de la base (0 = sin base) <span id="curvaBaseV"></span></label>
-          <input type="range" id="curvaBase" min="0" max="20" step="0.5" value="8" />
-          <label for="curvaMargen">Margen de la base (costados y atrás) <span id="curvaMargenV"></span></label>
-          <input type="range" id="curvaMargen" min="0" max="40" step="1" value="15" />
-          <label for="curvaAvance">Avance de la base al frente <span id="curvaAvanceV"></span></label>
+          <input type="range" id="curvaBase" min="0" max="30" step="0.5" value="10" />
+          <label for="curvaMargen">Margen de la base a los costados <span id="curvaMargenV"></span></label>
+          <input type="range" id="curvaMargen" min="0" max="100" step="1" value="20" />
+          <label for="curvaFondo">Margen de la base detrás del pie <span id="curvaFondoV"></span></label>
+          <input type="range" id="curvaFondo" min="0" max="100" step="1" value="15" />
+          <label for="curvaAvance">Avance de la base bajo la punta del arco <span id="curvaAvanceV"></span></label>
           <input type="range" id="curvaAvance" min="0" max="150" step="1" value="0" />
           <label for="curvaRedondeo">Redondeo de esquinas <span id="curvaRedondeoV"></span></label>
           <input type="range" id="curvaRedondeo" min="0" max="40" step="1" value="5" />
-          <p class="hint">Pieza decorativa de escritorio, sin LED: la palabra arranca acostada sobre la base y sube en arco hacia atrás, girando alrededor de un eje paralelo al texto. Se imprime en una pieza, apoyada en la base.</p>
+          <p class="hint">Pieza decorativa de escritorio, sin LED: la palabra arranca acostada sobre la base y sube en arco hacia el frente, girando alrededor de un eje paralelo al texto; la cara de la letra queda en la punta del arco, mirando al frente. Se imprime en una pieza, apoyada en la base.</p>
         </div>
 
         <div id="seccionLed">
@@ -586,7 +590,9 @@
           const R0 = p.curvaRadio, a = p.curvaAngulo, rad = (a * Math.PI) / 180
           // En el plano de revolve (x = radio, y = eje): radio = R0 + alto en la letra,
           // eje = −X del texto
-          const L = g(g(S.rotate(-90)).translate([R0, 0]))
+          // Espejada en X: la cara que se lee se mira desde el lado opuesto al del barrido; sin
+          // espejo el texto queda al revés
+          const L = g(g(g(S.mirror([1, 0])).rotate(-90)).translate([R0, 0]))
           // Revolve da (r·cosθ, r·sinθ, eje); en la vista (Y arriba, frente hacia +Z) eso es
           // (−eje, r·sinθ, r·cosθ): un giro de −90° en Y
           const arco = g(g(L.revolve(p.curvaSeg, a)).rotate([0, -90, 0]))
@@ -599,7 +605,8 @@
           if (p.curvaBase > 0) {
             const m = p.curvaMargen
             const x0 = b.min[0] - m, x1 = b.max[0] + m
-            const y0 = frenteY - m - p.curvaAvance, y1 = atrasY + m
+            // El avance agranda la base bajo la punta del arco (que en la vista final queda al frente)
+            const y0 = frenteY - p.curvaFondo, y1 = atrasY + p.curvaAvance
             const rr = Math.max(0, Math.min(p.curvaRedondeo, (x1 - x0) / 2 - 0.1, (y1 - y0) / 2 - 0.1))
             let placa = g(g(CrossSection.square([x1 - x0 - 2 * rr, y1 - y0 - 2 * rr])).translate([x0 + rr, y0 + rr]))
             if (rr > 0) placa = g(placa.offset(rr, 'Round', 2, 48))
@@ -613,8 +620,10 @@
           if (a > 50) warns.push(`El arco termina a ${a}° de la vertical: la parte de arriba necesita soportes al imprimir.`)
           if (Math.max(ancho3d, fondo3d, alto3d) > CAMA)
             warns.push(`La pieza mide ${Math.round(ancho3d)} × ${Math.round(fondo3d)} × ${Math.round(alto3d)} mm: no entra en una cama de ${CAMA} mm.`)
-          // Se dibuja parada (altura en Y) y se vuelve a acostar al exportar
-          const pieza = g(Manifold.union(partes3d))
+          // La cara que se lee es la punta del arco, que así queda mirando hacia atrás (y el texto
+          // espejado desde el frente): media vuelta en el eje vertical la pone de frente y derecha.
+          // Se dibuja parada (altura en Y) y se vuelve a acostar al exportar.
+          const pieza = g(g(Manifold.union(partes3d)).rotate([0, 180, 0]))
           return [{ nombre: 'letra curva', mat: 1, exportar: pieza, visual: [{ m: pieza, mat: 1 }], voltear: false, parada: true, mueve: 0 }]
         }
 
@@ -737,6 +746,22 @@
             { nombre: 'marco', mat: 0, exportar: marco, visual: [{ m: marco, mat: 0 }], voltear: true, mueve: 0 },
             { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: -0.5, cortable: 'frente', contorno: contorno.toPolygons() },
             { nombre: 'tapa trasera', mat: 0, exportar: trasera, visual: [{ m: trasera, mat: 0 }], voltear: false, mueve: -1 },
+          ]
+        }
+
+        if (p.modo === 'apoyoUnico') {
+          // Fondo impreso y solo la pared exterior; el frente apoya en un apoyo inclinado
+          const macizos = [g(S.extrude(p.fondo)), g(g(pared.extrude(p.prof - p.fondo)).translate([0, 0, p.fondo]))]
+          const apoyo = apoyoInclinado(hueco, p.apoyoAncho, p.apoyoAngulo, p.prof - p.acr, 'abajo')
+          if (apoyo) macizos.push(apoyo)
+          else warns.push(`Letra ${n}: no entra el apoyo de ${p.apoyoAncho} mm.`)
+          let cuerpo = g(Manifold.union(macizos))
+          cuerpo = conAgujeros(cuerpo, S, p, p.pared + p.apoyoAncho, warns, n)
+          const contorno = g(hueco.offset(-p.holguraAcr, 'Round'))
+          const frente = g(g(contorno.extrude(p.acr)).translate([0, 0, p.prof - p.acr]))
+          return [
+            { nombre: 'cuerpo', mat: 0, exportar: cuerpo, visual: [{ m: cuerpo, mat: 0 }], voltear: false, mueve: 0 },
+            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: 1, cortable: 'frente', contorno: contorno.toPolygons() },
           ]
         }
 
@@ -981,7 +1006,7 @@
         trabaPos: num('trabaPos'), trabaProf: num('trabaProf'), trabaAlto: num('trabaAlto'),
         orgPerfil: $('orgPerfil').value, orgAmp: num('orgAmp'), orgPeriodo: num('orgPeriodo'), orgMax: num('orgMax'),
         curvaAngulo: num('curvaAngulo'), curvaRadio: num('curvaRadio'), curvaSeg: num('curvaSeg'),
-        curvaBase: num('curvaBase'), curvaMargen: num('curvaMargen'), curvaAvance: num('curvaAvance'), curvaRedondeo: num('curvaRedondeo'),
+        curvaBase: num('curvaBase'), curvaMargen: num('curvaMargen'), curvaAvance: num('curvaAvance'), curvaFondo: num('curvaFondo'), curvaRedondeo: num('curvaRedondeo'),
         tapa: num('tapa'), labioAlto: num('labioAlto'), labioAncho: num('labioAncho'),
         holguraLabio: num('holguraLabio'), holguraBorde: num('holguraBorde'), holguraAgujeros: num('holguraAgujeros'),
         // La halo está abierta atrás (el cable sale por ahí) y la curva no lleva LED
@@ -1014,7 +1039,7 @@
           let medidas = null
           if (base) {
             const p = params()
-            const S = normalizar(base, p.alto)
+            const S = $('espejo').checked ? g(normalizar(base, p.alto).mirror([1, 0])) : normalizar(base, p.alto)
             const b = S.bounds()
             medidas = { w: b.max[0] - b.min[0], h: b.max[1] - b.min[1], p }
             // La curva barre la palabra entera (con una sola base); el resto, letra por letra
@@ -1128,7 +1153,7 @@
         : p.modo === 'neon' ? p.neonAlto
         : p.modo === 'organica' ? p.prof - p.acr - p.fondo
         : p.modo === 'halo' ? p.prof - p.tapa
-        : p.modo === 'acrFondo' || p.modo === 'ledDoble' ? p.prof - p.acr - p.fondo
+        : p.modo === 'acrFondo' || p.modo === 'ledDoble' || p.modo === 'apoyoUnico' ? p.prof - p.acr - p.fondo
         : p.modo === 'calado' ? p.prof - p.tapa - p.baseEsp
         : p.modo === 'tresRebaje' || p.modo === 'apoyoDoble' ? p.prof - p.acr - p.baseEsp
         : p.modo === 'ajusteTrasero' ? p.prof - p.bordeEsp - p.acr - p.baseEsp
@@ -1153,6 +1178,7 @@
           acrEncastre: `la pollera aprieta el frente contra el reborde`,
           halo: `abierta atrás, a ${p.separacion} mm de la pared`,
           tresRebaje: 'contorno, frente y base por separado',
+          apoyoUnico: `frente sobre un apoyo de ${p.apoyoAncho} mm a ${p.apoyoAngulo}°`,
           apoyoDoble: `apoyos de ${p.apoyoAncho} mm a ${p.apoyoAngulo}° para frente y base`,
           ajusteTrasero: `reborde frontal de ${p.bordeAncho} mm`,
         }[p.modo] ?? `${(libreLed(p) - p.labioAlto).toFixed(1)} mm bajo el labio`
@@ -1304,7 +1330,7 @@
         apoyoAncho: 'mm', apoyoAngulo: '°', acr: 'mm', paredInt: 'mm', bordeAncho: 'mm', bordeEsp: 'mm', holguraAcr: 'mm',
         separacion: 'mm', separadorD: 'mm', ledDist: 'mm', ledEsp: 'mm',
         neonAncho: 'mm', neonAlto: 'mm', trabaPos: 'mm', trabaProf: 'mm', trabaAlto: 'mm',
-        orgAmp: 'mm', orgPeriodo: 'mm', orgMax: '°', curvaAngulo: '°', curvaRadio: 'mm', curvaSeg: '', curvaBase: 'mm', curvaMargen: 'mm', curvaAvance: 'mm', curvaRedondeo: 'mm',
+        orgAmp: 'mm', orgPeriodo: 'mm', orgMax: '°', curvaAngulo: '°', curvaRadio: 'mm', curvaSeg: '', curvaBase: 'mm', curvaMargen: 'mm', curvaAvance: 'mm', curvaFondo: 'mm', curvaRedondeo: 'mm',
         caladoD: 'mm', caladoEsp: 'mm', caladoRot: '°', caladoMargen: 'mm', baseEsp: 'mm',
       }
       const etiquetas = () => {
@@ -1313,7 +1339,7 @@
         const calado = m === 'calado'
         const tres = m === 'tresRebaje' || m === 'apoyoDoble' || m === 'ajusteTrasero'
         // Estilos con un frente en placa (impreso o acrílico) y con una base en placa (impresa o PVC)
-        const conFrente = m === 'acrFondo' || m === 'acrEncastre' || m === 'ledDoble' || m === 'organica' || tres
+        const conFrente = m === 'acrFondo' || m === 'apoyoUnico' || m === 'acrEncastre' || m === 'ledDoble' || m === 'organica' || tres
         const conBase = calado || tres
         const rebaje = m === 'acrFondo' || m === 'ledDoble' || calado || m === 'tresRebaje' || m === 'ajusteTrasero'
         const conPollera = m === 'trasera' || m === 'acrEncastre'
@@ -1343,15 +1369,15 @@
         $('tornillosNombre').textContent = halo ? 'Espárragos de montaje (2 por letra)' : 'Agujeros para tornillo (2 por letra)'
         $('tornilloNombre').textContent = halo ? 'Varilla roscada Ø' : 'Tornillo Ø'
         $('grupoBorde').hidden = m !== 'ras'
-        $('grupoApoyo').hidden = m !== 'ras' && !organica && m !== 'apoyoDoble'
+        $('grupoApoyo').hidden = m !== 'ras' && !organica && m !== 'apoyoDoble' && m !== 'apoyoUnico'
         $('grupoTapa').hidden = conFrente || neon || curva
         $('grupoAcrilico').hidden = !conFrente && !rebaje
         $('grupoPlacaFrente').hidden = !conFrente
         $('grupoParedInt').hidden = !rebaje
         $('grupoMarco').hidden = m !== 'acrEncastre' && m !== 'ajusteTrasero'
         $('grupoBase').hidden = !conBase
-        $('grupoLabio').hidden = rebaje || halo || neon || organica || curva || tres
-        $('grupoHolguraLabio').hidden = rebaje || halo || neon || organica || curva || tres
+        $('grupoLabio').hidden = rebaje || halo || neon || organica || curva || tres || m === 'apoyoUnico'
+        $('grupoHolguraLabio').hidden = rebaje || halo || neon || organica || curva || tres || m === 'apoyoUnico'
         $('grupoHolguraAcr').hidden = !conFrente && !conBase
         $('holguraAcr').previousElementSibling.firstChild.textContent =
           m === 'acrEncastre' ? 'Frente ↔ pared y pollera '
@@ -1389,6 +1415,7 @@
           halo: 'Frente cerrado y atrás abierta: el LED ilumina la pared y la letra queda recortada contra el halo. Se monta con espárragos en torres internas y separadores impresos.',
           ledDoble: 'Como el fondo impreso, con una 2ª pared interior paralela al contorno: dos canales de tira LED para que las letras anchas se iluminen parejo.',
           calado: 'Frente fino perforado con un patrón (la luz sale por los agujeros), impreso junto con las paredes. Atrás cierra una base en un rebaje.',
+          apoyoUnico: 'Cuerpo con fondo impreso y solo la pared exterior. El frente entra desde adelante y apoya en un apoyo inclinado por dentro (sin pared interior).',
           tresRebaje: 'Tres piezas: contorno de pared doble, frente y base. La pared interior es más corta en las dos puntas y forma un rebaje adelante y otro atrás: frente y base entran al ras.',
           apoyoDoble: 'Tres piezas: contorno (pared exterior sola), frente y base. Dos apoyos inclinados por dentro sostienen el frente desde atrás y la base desde adelante.',
           ajusteTrasero: 'Tres piezas: contorno con reborde frontal (se imprime con el reborde en la cama), frente y base. El frente entra por atrás dentro de la pared interior hasta el reborde; la base cierra atrás en un rebaje.',
@@ -1406,7 +1433,7 @@
         espera = setTimeout(reconstruir, 220)
       }
       for (const id of Object.keys(UNIDADES)) $(id).addEventListener('input', pedir)
-      for (const id of ['texto', 'fuente', 'tornillos', 'conCable', 'caladoForma', 'caladoDisp', 'caladoDegradado', 'neonContorno', 'orgPerfil']) $(id).addEventListener('input', pedir)
+      for (const id of ['texto', 'fuente', 'tornillos', 'conCable', 'caladoForma', 'caladoDisp', 'caladoDegradado', 'neonContorno', 'orgPerfil', 'espejo']) $(id).addEventListener('input', pedir)
 
       const setOrigen = (o) => {
         estado.origen = o
@@ -1437,10 +1464,11 @@
         acrEncastre: { pared: 2, labioAlto: 60, labioAncho: 2, fondo: 1.2 },
         // Tres piezas: frente y base del espesor de chapa (acrílico 3 mm, PVC 3 mm)
         tresRebaje: { pared: 2, paredInt: 2, acr: 3.1, baseEsp: 3.1 },
+        apoyoUnico: { pared: 2, fondo: 2, acr: 3, apoyoAncho: 1, apoyoAngulo: 30 },
         apoyoDoble: { pared: 2, acr: 3.1, baseEsp: 3.1, apoyoAncho: 1, apoyoAngulo: 30 },
         ajusteTrasero: { pared: 2, paredInt: 2, acr: 3.1, baseEsp: 3.1, bordeAncho: 0.5, bordeEsp: 1 },
         // Halo: frente opaco y pared más gruesa (no debe transparentar ni flexionar)
-        halo: { pared: 3, tapa: 2.4 },
+        halo: { pared: 4, tapa: 2 },
       }
       const setModo = (m) => {
         // La curva y el neón cambian mucho el tamaño: reencuadrar al entrar o salir

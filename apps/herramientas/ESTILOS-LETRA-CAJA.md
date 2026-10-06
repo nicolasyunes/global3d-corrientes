@@ -113,4 +113,43 @@ Perfil = corte de la pared, desde el frente (z = 0) hacia atrás.
    - Hay un DXF por placa (frente → acrílico, base → PVC), con una capa por letra.
 8. ✅ *Curva* rehecha: el eje pasa a ser horizontal (antes era vertical y las letras se pisaban). Se agregan el avance frontal y el redondeo de la base, y avisos de soportes (arco > 50°) y de tamaño de cama.
 
-Pendientes: estilo 4 (apoyo único con fondo impreso), plantilla de perforación para la halo y acentos unidos a su letra. El corte automático de letras grandes queda descartado: alcanza con separar en piezas.
+9. ✅ Revisión contra LetraMaker (06/10/2026):
+   - Se agregó el estilo 4, *apoyo único*.
+   - Se agregó *espejar* como opción general.
+   - La base de la curva tiene ahora margen de costados y margen detrás del pie por separado, con sus valores (10 / 20 / 15).
+   - La curva sale espejada y girada media vuelta: la cara de la letra queda en la punta del arco, mirando al frente y legible.
+   - Retroiluminada con pared 4 y frente 2. Rangos ampliados: pared hasta 12 y base hasta 50.
+
+## Comparación de medidas con LetraMaker
+
+Con sus valores por defecto. Ellos usaron un texto de 260,3 × 100 mm y nosotros "LETRA" en Bebas Neue de 300,3 × 100 mm, así que se compara cuánto agrega cada estilo al tamaño de la letra.
+
+| Estilo | LetraMaker (ΔX · ΔY · Z) | Nuestro | |
+|---|---|---|---|
+| Frente acrílico · fondo impreso | 0 · 0 · 37 | 0 · 0 · 37 | ✓ |
+| Al ras con rebajes (fondo hueco) | 0 · 0 · 35 | 0 · 0 · 35 | ✓ |
+| Apoyo doble | 0 · 0 · 45 | 0 · 0 · 45 | ✓ |
+| Apoyo único | 0 · 0 · 45 | 0 · 0 · 45 | ✓ |
+| Ajuste trasero | 0 · 0 · 35 | 0 · 0 · 35 | ✓ |
+| Retroiluminada | 0 · 0 · 52 | 0 · 0 · 52 | ✓ |
+| Encastre acrílico / impreso | 0 · 0 · 45 | 0 · 0 · 45 | ✓ |
+| LED doble | 0 · +1,7 · 37 | 0 · 0 · 37 | su +1,7 en Y no tiene explicación geométrica |
+| Calado | 0 · 0 · 36 | 0 · 0 · 36 | ✓ |
+| Neón | +2,4 · +2,4 · 8,2 | +2,4 · +2,4 · 8,2 | ✓ |
+| Orgánica | +6,5 · +6 · 38 | +5,7 · +5,8 · 38 | ✓ (amplitud 3 por lado; la diferencia está en los picos) |
+| Curva | +40 · 205 · 252,5 | +40 · 205 · 252,5 | ✓ |
+
+Diferencias a propósito:
+- **Holgura:** la nuestra es por contacto y arranca en 0,2 (la de ellos es 0,1 en todos lados).
+- **Altura:** en LetraMaker "altura de pared" no incluye el fondo; en el nuestro, "profundidad total" sí.
+- **Retroiluminada:** con trazos angostos (Bebas a 100 mm) no entran las torres de montaje y aparece un aviso. Ellos no llevan torres.
+
+Opciones de ellos que no copiamos, a evaluar:
+- "Pestaña externa" (beta).
+- "Rebaje de pared externa" en los encastres.
+- "Inclinación" del relieve de la orgánica (rayas en diagonal).
+- Frente de acrílico en la curva.
+- Más plantillas de relieve (perlas…).
+- Vistas de "camas" y preajustes guardados.
+
+Pendientes: plantilla de perforación para la halo y acentos unidos a su letra. El corte automático de letras grandes queda descartado: alcanza con separar en piezas.
