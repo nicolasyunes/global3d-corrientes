@@ -121,7 +121,9 @@
             <option value="acrFondo">Frente acrílico · fondo impreso</option>
             <option value="acrEncastre">Frente acrílico · encastre</option>
           </optgroup>
-          <optgroup label="Luz hacia la pared">
+          <optgroup label="Luz especial">
+            <option value="ledDoble">LED doble · fondo impreso</option>
+            <option value="calado">Calado paramétrico</option>
             <option value="halo">Retroiluminada (halo)</option>
           </optgroup>
         </select>
@@ -131,8 +133,8 @@
           <input type="range" id="tapa" min="0.8" max="4" step="0.2" value="1.6" />
         </div>
         <div id="grupoAcrilico">
-          <label>Frente</label>
-          <div class="seg" role="group" aria-label="Material del frente">
+          <label id="placaNombre">Frente</label>
+          <div class="seg" role="group" aria-label="Material de la placa">
             <button type="button" id="frenteImpreso" aria-pressed="true">Impreso en 3D</button>
             <button type="button" id="frenteAcrilico" aria-pressed="false">Acrílico (DXF)</button>
           </div>
@@ -162,6 +164,36 @@
           <label for="apoyoAngulo">Ángulo de voladizo (desde la pared) <span id="apoyoAnguloV"></span></label>
           <input type="range" id="apoyoAngulo" min="25" max="60" step="1" value="30" />
           <p class="hint">Menos grados = apoyo más vertical: imprime más limpio pero ocupa más alto.</p>
+        </div>
+        <div id="grupoLedDoble">
+          <label for="ledDist">Distancia de la 2ª pared <span id="ledDistV"></span></label>
+          <input type="range" id="ledDist" min="1" max="30" step="0.5" value="10" />
+          <label for="ledEsp">Espesor de la 2ª pared <span id="ledEspV"></span></label>
+          <input type="range" id="ledEsp" min="0.5" max="5" step="0.1" value="2" />
+          <p class="hint">Dos canales para tira LED: uno junto a la pared y otro hacia el centro. Para letras de trazo ancho.</p>
+        </div>
+        <div id="grupoCalado">
+          <label for="caladoForma">Forma del agujero</label>
+          <select id="caladoForma">
+            <option value="circulo">Círculo</option>
+            <option value="hexagono">Hexágono</option>
+            <option value="cuadrado">Cuadrado</option>
+          </select>
+          <label for="caladoDisp">Disposición</label>
+          <select id="caladoDisp">
+            <option value="triangular">Rejilla triangular (panal)</option>
+            <option value="cuadrada">Rejilla cuadrada</option>
+          </select>
+          <label for="caladoD">Diámetro <span id="caladoDV"></span></label>
+          <input type="range" id="caladoD" min="1" max="8" step="0.1" value="3" />
+          <label for="caladoEsp">Puente entre agujeros <span id="caladoEspV"></span></label>
+          <input type="range" id="caladoEsp" min="0.5" max="5" step="0.1" value="1.5" />
+          <label for="caladoRot">Rotación <span id="caladoRotV"></span></label>
+          <input type="range" id="caladoRot" min="0" max="90" step="5" value="0" />
+          <label for="caladoMargen">Margen a las paredes <span id="caladoMargenV"></span></label>
+          <input type="range" id="caladoMargen" min="0" max="5" step="0.1" value="1" />
+          <label class="check"><input type="checkbox" id="caladoDegradado" /> Degradado (más grandes arriba)</label>
+          <p class="hint">El puente mínimo imprimible con boquilla 0,4 es ~0,8 mm. Los agujeros que tocarían una pared se descartan.</p>
         </div>
         <div id="grupoHalo">
           <label for="separacion">Distancia a la pared <span id="separacionV"></span></label>
@@ -213,7 +245,7 @@
         <div class="actions">
           <button class="btn primary" id="bajar3mf">Descargar 3MF (piezas impresas)</button>
           <div id="stlBotones" style="display: grid; gap: 8px"></div>
-          <button class="btn" id="bajarDxf" hidden>DXF del acrílico (corte)</button>
+          <button class="btn" id="bajarDxf" hidden>DXF de la placa (corte)</button>
           <p class="hint" id="notaColor"></p>
         </div>
         <p class="hint">Las piezas salen orientadas para imprimir sin soportes: cada una apoya en la cama su cara plana (el frente, el fondo o la tapa) con el encastre hacia arriba.</p>
@@ -269,6 +301,8 @@
       // Solo vista del halo: pared del local y la luz que se proyecta sobre ella
       const matPared = new THREE.MeshStandardMaterial({ color: '#d8d3c9', roughness: 0.9, side: THREE.DoubleSide })
       const matBrillo = new THREE.MeshBasicMaterial({ color: '#ffe7b0', transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false })
+      // Calado encendido: la luz que se ve a través de los agujeros
+      const matLuz = new THREE.MeshBasicMaterial({ color: '#fff4d8', side: THREE.DoubleSide })
       // Frente de acrílico: mismo color que el frente, translúcido
       const matAcr = new THREE.MeshStandardMaterial({ color: $('colorTapa').value, roughness: 0.15, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
       const grupo = new THREE.Group()
@@ -413,23 +447,61 @@
           return partes
         }
 
-        if (p.modo === 'acrFondo') {
+        if (p.modo === 'calado') {
+          // Frente fino perforado con un patrón, impreso junto con las paredes (frente en la
+          // cama). Atrás, una pared interior más corta deja un rebaje para la placa de fondo.
+          const luz = g(hueco.offset(-p.paredInt, 'Round'))
+          const paredInt = g(hueco.subtract(luz))
+          if (luz.isEmpty()) warns.push(`Letra ${n}: con pared ${p.pared} + ${p.paredInt} mm no queda hueco para el LED.`)
+          // Los agujeros solo sobre la cámara de luz, lejos de las paredes
+          const patron = patronCalado(g(luz.offset(-p.caladoMargen, 'Round')), p)
+          estado.conteoCalado += patron.n
+          if (!patron.n) warns.push(`Letra ${n}: no entra ningún agujero del calado; bajá el diámetro o el margen.`)
+          const cara2d = patron.cs ? g(S.subtract(patron.cs)) : S
+          const cara = g(g(cara2d.extrude(p.tapa)).translate([0, 0, p.prof - p.tapa]))
+          const paredes = g(Manifold.union([
+            g(pared.extrude(p.prof - p.tapa + 0.01)),
+            g(g(paredInt.extrude(p.prof - p.tapa - p.acr + 0.01)).translate([0, 0, p.acr])),
+          ]))
+          // Placa de fondo en el rebaje, con los agujeros de cable y tornillo (también en el DXF)
+          let placa2d = g(hueco.offset(-p.holguraAcr, 'Round'))
+          const circulos = agujeros2d(S, p, p.pared + p.paredInt, warns, n)
+          if (circulos) placa2d = g(placa2d.subtract(circulos))
+          const placa = g(placa2d.extrude(p.acr))
+          // Cámara de luz detrás del frente: solo para ver el calado encendido
+          extrasLetra.push({ tipo: 'luz', m: g(g(luz.extrude(0.2)).translate([0, 0, p.prof - p.tapa - 2])) })
+          return [
+            { nombre: 'frente calado', mat: 1, exportar: g(cara.add(paredes)), visual: [{ m: cara, mat: 1 }, { m: paredes, mat: 0 }], voltear: true, mueve: 0 },
+            { nombre: 'fondo', mat: 0, exportar: placa, visual: [{ m: placa, mat: 2 }], voltear: false, mueve: -1, cortable: true, contorno: placa2d.toPolygons() },
+          ]
+        }
+
+        if (p.modo === 'acrFondo' || p.modo === 'ledDoble') {
           // La pared interior termina un espesor de frente antes del borde: ese rebaje
           // recibe el frente al ras, apoyado sobre ella
           const luz = g(hueco.offset(-p.paredInt, 'Round'))
           const paredInt = g(hueco.subtract(luz))
           if (luz.isEmpty()) warns.push(`Letra ${n}: con pared ${p.pared} + ${p.paredInt} mm no queda hueco para el LED.`)
-          let cuerpo = g(Manifold.union([
+          const macizos = [
             g(S.extrude(p.fondo)),
             g(g(pared.extrude(p.prof - p.fondo)).translate([0, 0, p.fondo])),
             g(g(paredInt.extrude(p.prof - p.acr - p.fondo)).translate([0, 0, p.fondo])),
-          ]))
+          ]
+          if (p.modo === 'ledDoble') {
+            // Segunda pared paralela al contorno: arma dos canales para tira LED y reparte
+            // la luz en letras anchas. Llega a la misma altura que la pared interior.
+            const adentro = g(luz.offset(-p.ledDist, 'Round'))
+            const pared2 = g(adentro.subtract(g(adentro.offset(-p.ledEsp, 'Round'))))
+            if (pared2.isEmpty()) warns.push(`Letra ${n}: trazo angosto, no entra la 2ª pared a ${p.ledDist} mm.`)
+            else macizos.push(g(g(pared2.extrude(p.prof - p.acr - p.fondo)).translate([0, 0, p.fondo])))
+          }
+          let cuerpo = g(Manifold.union(macizos))
           cuerpo = conAgujeros(cuerpo, S, p, p.pared + p.paredInt, warns, n)
           const contorno = g(hueco.offset(-p.holguraAcr, 'Round'))
           const frente = g(g(contorno.extrude(p.acr)).translate([0, 0, p.prof - p.acr]))
           return [
             { nombre: 'cuerpo', mat: 0, exportar: cuerpo, visual: [{ m: cuerpo, mat: 0 }], voltear: false, mueve: 0 },
-            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: 1, esFrente: true, contorno: contorno.toPolygons() },
+            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: 1, cortable: true, contorno: contorno.toPolygons() },
           ]
         }
 
@@ -453,7 +525,7 @@
           trasera = conAgujeros(trasera, S, p, p.pared + p.holguraLabio + p.labioAncho, warns, n)
           return [
             { nombre: 'marco', mat: 0, exportar: marco, visual: [{ m: marco, mat: 0 }], voltear: true, mueve: 0 },
-            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: -0.5, esFrente: true, contorno: contorno.toPolygons() },
+            { nombre: 'frente', mat: 1, exportar: frente, visual: [{ m: frente, mat: 2 }], voltear: false, mueve: -0.5, cortable: true, contorno: contorno.toPolygons() },
             { nombre: 'tapa trasera', mat: 0, exportar: trasera, visual: [{ m: trasera, mat: 0 }], voltear: false, mueve: -1 },
           ]
         }
@@ -493,6 +565,61 @@
         ]
       }
 
+      // Patrón de agujeros del calado dentro de `zona`. Solo agujeros enteros: un agujero que
+      // tocaría el borde se descarta (no queda cortado). Con degradado, los de arriba son
+      // más grandes y los de abajo hasta un 35 % del diámetro.
+      function patronCalado(zona, p) {
+        if (zona.isEmpty()) return { cs: null, n: 0 }
+        const contornos = zona.toPolygons()
+        const b = zona.bounds()
+        const dentro = (x, y) => {
+          let c = false
+          for (const poly of contornos)
+            for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+              const [xi, yi] = poly[i], [xj, yj] = poly[j]
+              if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c
+            }
+          return c
+        }
+        const distBorde = (x, y) => {
+          let d = Infinity
+          for (const poly of contornos)
+            for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+              const [ax, ay] = poly[j], [bx, by] = poly[i]
+              const dx = bx - ax, dy = by - ay
+              const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)))
+              d = Math.min(d, Math.hypot(x - ax - t * dx, y - ay - t * dy))
+            }
+          return d
+        }
+        const lados = { circulo: 24, hexagono: 6, cuadrado: 4 }[p.caladoForma]
+        const paso = p.caladoD + p.caladoEsp
+        const triangular = p.caladoDisp === 'triangular'
+        const dy = triangular ? (paso * Math.sqrt(3)) / 2 : paso
+        const rot = (p.caladoRot * Math.PI) / 180
+        const cx = (b.min[0] + b.max[0]) / 2, cy = (b.min[1] + b.max[1]) / 2
+        const alcance = Math.hypot(b.max[0] - b.min[0], b.max[1] - b.min[1]) / 2 + paso
+        const polys = []
+        for (let j = -Math.ceil(alcance / dy); j <= Math.ceil(alcance / dy); j++)
+          for (let i = -Math.ceil(alcance / paso); i <= Math.ceil(alcance / paso); i++) {
+            // Rejilla en un marco rotado alrededor del centro de la letra
+            const u = i * paso + (triangular && j % 2 ? paso / 2 : 0)
+            const v = j * dy
+            const x = cx + u * Math.cos(rot) - v * Math.sin(rot)
+            const y = cy + u * Math.sin(rot) + v * Math.cos(rot)
+            if (x < b.min[0] || x > b.max[0] || y < b.min[1] || y > b.max[1] || !dentro(x, y)) continue
+            const k = p.caladoDegradado ? 0.35 + (0.65 * (y - b.min[1])) / (b.max[1] - b.min[1] || 1) : 1
+            // r: radio inscrito (el "diámetro" es de lado plano a lado plano); rv: hasta las puntas
+            const r = (p.caladoD * k) / 2
+            const rv = lados === 4 ? r * Math.SQRT2 : lados === 6 ? r / Math.cos(Math.PI / 6) : r
+            if (distBorde(x, y) < rv) continue
+            // Polígonos regulares: hexágono y cuadrado con un lado plano abajo, girados con la rejilla
+            const giro = rot + (lados === 4 ? Math.PI / 4 : lados === 6 ? Math.PI / 6 : 0)
+            polys.push(Array.from({ length: lados }, (_v, q) => [x + rv * Math.cos(giro + (2 * Math.PI * q) / lados), y + rv * Math.sin(giro + (2 * Math.PI * q) / lados)]))
+          }
+        return { cs: polys.length ? g(new CrossSection(polys, 'NonZero')) : null, n: polys.length }
+      }
+
       // Alto que ocupa un apoyo inclinado: el ángulo se mide desde la pared (vertical)
       const altoApoyo = (p) => p.apoyoAncho / Math.tan((p.apoyoAngulo * Math.PI) / 180)
 
@@ -518,6 +645,20 @@
       // Agujeros de cable y tornillo en la pieza que apoya contra la pared del local.
       // margen: distancia del borde de la letra a la zona libre (pared, pollera…).
       function conAgujeros(pieza, S, p, margen, warns, n) {
+        const circulos = agujeros2d(S, p, margen, warns, n)
+        if (!circulos) return pieza
+        const cil = g(g(circulos.extrude(p.fondo + 2)).translate([0, 0, -1]))
+        return g(pieza.subtract(cil))
+      }
+
+      // Los mismos agujeros como contorno 2D (para restarlos de una placa que va al DXF)
+      function agujeros2d(S, p, margen, warns, n) {
+        const lista = ubicarAgujeros(S, p, margen, warns, n)
+        if (!lista.length) return null
+        return g(CrossSection.union(lista.map((a) => g(g(CrossSection.circle(a.r, 40)).translate(a.pos)))))
+      }
+
+      function ubicarAgujeros(S, p, margen, warns, n) {
         // Agujero de cable: lo más cerca del centro de la letra, lejos de la pared
         const b = S.bounds()
         const centro = [(b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2]
@@ -542,11 +683,7 @@
             for (const q of dist(izq, der) > 15 ? [izq, der] : [izq]) if (lejos(q)) agujeros.push({ pos: q, r: rTornillo })
           } else warns.push(`Letra ${n}: no entran los agujeros de tornillo.`)
         }
-        for (const a of agujeros) {
-          const cil = g(g(g(CrossSection.circle(a.r, 40)).translate(a.pos)).extrude(p.fondo + 2))
-          pieza = g(pieza.subtract(g(cil.translate([0, 0, -1]))))
-        }
-        return pieza
+        return agujeros
       }
 
       function malla(m) {
@@ -556,6 +693,9 @@
         for (let i = 0; i < n; i++) for (let j = 0; j < 3; j++) pos[i * 3 + j] = mesh.vertProperties[i * mesh.numProp + j]
         return { pos, idx: new Uint32Array(mesh.triVerts) }
       }
+
+      // Elementos solo de vista que arma cada letra (p. ej. la cámara de luz del calado)
+      let extrasLetra = []
 
       // ---------- Estado y armado ----------
       const estado = { origen: 'texto', svg: null, modo: 'trasera', frente: 'impreso', piezas: [], medidas: null }
@@ -574,6 +714,10 @@
         // La halo está abierta atrás: el cable sale por ahí, no hace falta agujero
         conCable: $('conCable').checked && estado.modo !== 'halo', cable: num('cable'),
         separacion: num('separacion'), separadorD: num('separadorD'),
+        ledDist: num('ledDist'), ledEsp: num('ledEsp'),
+        caladoForma: $('caladoForma').value, caladoDisp: $('caladoDisp').value, caladoD: num('caladoD'),
+        caladoEsp: num('caladoEsp'), caladoRot: num('caladoRot'), caladoMargen: num('caladoMargen'),
+        caladoDegradado: $('caladoDegradado').checked,
         tornillos: $('tornillos').checked, tornillo: num('tornillo'), modo: estado.modo,
         apoyoAncho: num('apoyoAncho'), apoyoAngulo: num('apoyoAngulo'),
         acr: num('acr'), paredInt: num('paredInt'), bordeAncho: num('bordeAncho'), bordeEsp: num('bordeEsp'),
@@ -592,6 +736,8 @@
           const warns = []
           const piezas = []
           const extras = []
+          extrasLetra = []
+          estado.conteoCalado = 0
           let medidas = null
           if (base) {
             const p = params()
@@ -601,12 +747,13 @@
             S.decompose().map(g).forEach((comp, i) => {
               const partes = piezasDeLetra(comp, p, warns, i + 1).map((pt) => ({
                 nombre: pt.nombre, mat: pt.mat, voltear: pt.voltear, mueve: pt.mueve,
-                esFrente: !!pt.esFrente, contorno: pt.contorno,
+                cortable: !!pt.cortable, contorno: pt.contorno,
                 exp: malla(pt.exportar),
                 vis: pt.visual.map((v) => ({ malla: malla(v.m), mat: v.mat })),
               }))
               piezas.push({ n: i + 1, partes })
             })
+            for (const ex of extrasLetra) extras.push({ tipo: ex.tipo, malla: malla(ex.m) })
             // Solo para la vista: la pared del local y el halo que proyecta el LED
             if (p.modo === 'halo') {
               const margen = 80
@@ -657,9 +804,9 @@
               grupo.add(mesh)
             }
         for (const ex of estado.extras ?? []) {
-          const mesh = new THREE.Mesh(geometria(ex.malla), ex.tipo === 'pared' ? matPared : matBrillo)
+          const mesh = new THREE.Mesh(geometria(ex.malla), { pared: matPared, brillo: matBrillo, luz: matLuz }[ex.tipo])
           mesh.userData.mueve = 0
-          mesh.userData.brillo = ex.tipo === 'brillo'
+          mesh.userData.brillo = ex.tipo !== 'pared'
           grupo.add(mesh)
         }
         aplicarVista()
@@ -682,8 +829,8 @@
         matCuerpo.clippingPlanes = matTapa.clippingPlanes = matAcr.clippingPlanes = corte ? [planoCorte] : []
         matCuerpo.needsUpdate = matTapa.needsUpdate = matAcr.needsUpdate = true
         const on = $('encendido').checked
-        // En el halo el frente no brilla: la luz sale por atrás, hacia la pared
-        const haciaPared = estado.modo === 'halo'
+        // En el halo y el calado el frente es opaco: la luz sale por atrás o por los agujeros
+        const haciaPared = estado.modo === 'halo' || estado.modo === 'calado'
         matTapa.emissive.set(on && !haciaPared ? '#fff3d6' : '#000000')
         matTapa.emissiveIntensity = on && !haciaPared ? 0.9 : 0
         for (const m of grupo.children) if (m.userData.brillo) m.visible = on
@@ -692,7 +839,8 @@
       // Entre el fondo y la cara interna del frente
       const libreLed = (p) =>
         p.modo === 'halo' ? p.prof - p.tapa
-        : p.modo === 'acrFondo' ? p.prof - p.acr - p.fondo
+        : p.modo === 'acrFondo' || p.modo === 'ledDoble' ? p.prof - p.acr - p.fondo
+        : p.modo === 'calado' ? p.prof - p.tapa - p.acr
         : p.modo === 'acrEncastre' ? p.prof - p.bordeEsp - p.acr - p.fondo
         : p.prof - p.tapa - p.fondo
 
@@ -707,6 +855,8 @@
         const detalle = {
           trasera: `pollera de ${Math.min(p.labioAlto, libreLed(p) - 1).toFixed(1)} mm por los costados`,
           acrFondo: `frente de ${p.acr} mm al ras, sobre la pared interior`,
+          ledDoble: `2ª pared a ${p.ledDist} mm: dos canales para tira LED`,
+          calado: `${estado.conteoCalado} agujeros de calado en total`,
           acrEncastre: `la pollera aprieta el frente contra el reborde`,
           halo: `abierta atrás, a ${p.separacion} mm de la pared`,
         }[p.modo] ?? `${(libreLed(p) - p.labioAlto).toFixed(1)} mm bajo el labio`
@@ -724,7 +874,7 @@
         for (const pz of estado.piezas)
           pz.partes.forEach((parte, orden) => {
             // Un frente de acrílico se corta (DXF), no se imprime
-            if (parte.esFrente && estado.frente === 'acrilico') return
+            if (parte.cortable && estado.frente === 'acrilico') return
             const { pos: src, idx } = parte.exp
             const pos = new Float32Array(src.length)
             for (let i = 0; i < pos.length; i += 3) {
@@ -839,47 +989,60 @@
         alto: 'mm', prof: 'mm', pared: 'mm', fondo: 'mm', tapa: 'mm', labioAlto: 'mm', labioAncho: 'mm',
         cable: 'mm', tornillo: 'mm', espaciado: '%', holguraLabio: 'mm', holguraBorde: 'mm', holguraAgujeros: 'mm',
         apoyoAncho: 'mm', apoyoAngulo: '°', acr: 'mm', paredInt: 'mm', bordeAncho: 'mm', bordeEsp: 'mm', holguraAcr: 'mm',
-        separacion: 'mm', separadorD: 'mm',
+        separacion: 'mm', separadorD: 'mm', ledDist: 'mm', ledEsp: 'mm',
+        caladoD: 'mm', caladoEsp: 'mm', caladoRot: '°', caladoMargen: 'mm',
       }
       const etiquetas = () => {
         for (const [id, u] of Object.entries(UNIDADES)) $(id + 'V').textContent = `${$(id).value} ${u}`
         const m = estado.modo
-        const acrilico = m === 'acrFondo' || m === 'acrEncastre'
+        const calado = m === 'calado'
+        // Estilos con una placa que se puede cortar (frente, o el fondo en el calado)
+        const acrilico = m === 'acrFondo' || m === 'acrEncastre' || m === 'ledDoble' || calado
+        const rebaje = m === 'acrFondo' || m === 'ledDoble' || calado
         const conPollera = m === 'trasera' || m === 'acrEncastre'
         const halo = m === 'halo'
+        $('grupoLedDoble').hidden = m !== 'ledDoble'
+        $('grupoCalado').hidden = !calado
+        $('placaNombre').textContent = calado ? 'Fondo' : 'Frente'
+        $('frenteAcrilico').textContent = calado ? 'PVC o acrílico (DXF)' : 'Acrílico (DXF)'
         // Cada control aparece solo cuando su pieza o su contacto existe
         $('checkCable').hidden = halo
         $('grupoCable').hidden = !$('conCable').checked || halo
         $('grupoTornillo').hidden = !$('tornillos').checked
         $('grupoAgujeros').hidden = (!$('conCable').checked || halo) && !$('tornillos').checked
         $('grupoHalo').hidden = !halo
-        $('grupoFondo').hidden = halo
+        $('grupoFondo').hidden = halo || calado
         $('tornillosNombre').textContent = halo ? 'Espárragos de montaje (2 por letra)' : 'Agujeros para tornillo (2 por letra)'
         $('tornilloNombre').textContent = halo ? 'Varilla roscada Ø' : 'Tornillo Ø'
         $('grupoBorde').hidden = m !== 'ras'
         $('grupoApoyo').hidden = m !== 'ras'
-        $('grupoTapa').hidden = acrilico
+        $('grupoTapa').hidden = acrilico && !calado
         $('grupoAcrilico').hidden = !acrilico
-        $('grupoParedInt').hidden = m !== 'acrFondo'
+        $('grupoParedInt').hidden = !rebaje
         $('grupoMarco').hidden = m !== 'acrEncastre'
-        $('grupoLabio').hidden = m === 'acrFondo' || halo
-        $('grupoHolguraLabio').hidden = m === 'acrFondo' || halo
+        $('grupoLabio').hidden = rebaje || halo
+        $('grupoHolguraLabio').hidden = rebaje || halo
         $('grupoHolguraAcr').hidden = !acrilico
         $('holguraAcr').previousElementSibling.firstChild.textContent =
-          m === 'acrEncastre' ? 'Frente ↔ pared y pollera ' : 'Frente ↔ pared exterior '
+          m === 'acrEncastre' ? 'Frente ↔ pared y pollera ' : calado ? 'Fondo ↔ pared exterior ' : 'Frente ↔ pared exterior '
         $('holguraLabioDonde').textContent = m === 'ras' ? 'borde del apoyo' : 'pared interior'
         $('holguraLabio').previousElementSibling.firstChild.textContent = conPollera ? 'Pollera ↔ ' : 'Labio ↔ '
         $('fondoNombre').textContent = conPollera ? 'Espesor de tapa trasera' : 'Espesor de fondo'
-        $('tapaNombre').textContent = m === 'trasera' || halo ? 'Espesor del frente' : 'Espesor de tapa'
+        $('tapaNombre').textContent = calado ? 'Espesor del frente calado' : m === 'trasera' || halo ? 'Espesor del frente' : 'Espesor de tapa'
         $('labioAltoNombre').textContent = conPollera ? 'Alto de la pollera' : 'Alto del labio'
         $('labioAnchoNombre').textContent = conPollera ? 'Espesor de la pollera' : 'Ancho del labio'
         $('colorCuerpoNombre').textContent = m === 'trasera' ? 'Paredes y tapa' : halo ? 'Paredes' : 'Cuerpo'
         $('colorTapaNombre').textContent = m === 'trasera' || acrilico || halo ? 'Frente' : 'Tapa'
         $('frenteImpreso').setAttribute('aria-pressed', estado.frente === 'impreso')
         $('frenteAcrilico').setAttribute('aria-pressed', estado.frente === 'acrilico')
-        $('acrNombre').textContent = estado.frente === 'acrilico' ? 'Espesor del acrílico' : 'Espesor del frente'
-        $('frenteHint').textContent =
-          estado.frente === 'acrilico'
+        $('acrNombre').textContent = calado
+          ? 'Espesor del fondo'
+          : estado.frente === 'acrilico' ? 'Espesor del acrílico' : 'Espesor del frente'
+        $('frenteHint').textContent = calado
+          ? estado.frente === 'acrilico'
+            ? 'El fondo se corta en PVC o acrílico: bajá el DXF (con los agujeros de cable y tornillo). No entra en el 3MF.'
+            : 'El fondo se imprime en 3D y entra en el 3MF. El DXF sigue disponible.'
+          : estado.frente === 'acrilico'
             ? 'El frente se corta en acrílico: bajá el DXF (en mm, con la holgura aplicada). No entra en el 3MF.'
             : 'El mismo frente se imprime en 3D (difusor: PLA blanco o natural) y entra en el 3MF. El DXF sigue disponible.'
         $('modoHint').textContent = {
@@ -889,6 +1052,8 @@
           acrFondo: 'Cuerpo con fondo impreso. Una pared interior más corta forma el rebaje donde el frente entra al ras.',
           acrEncastre: 'Marco con reborde frontal (se imprime con el reborde en la cama). El frente entra por atrás y la pollera de la tapa trasera lo aprieta contra el reborde.',
           halo: 'Frente cerrado y atrás abierta: el LED ilumina la pared y la letra queda recortada contra el halo. Se monta con espárragos en torres internas y separadores impresos.',
+          ledDoble: 'Como el fondo impreso, con una 2ª pared interior paralela al contorno: dos canales de tira LED para que las letras anchas se iluminen parejo.',
+          calado: 'Frente fino perforado con un patrón (la luz sale por los agujeros), impreso junto con las paredes. Atrás cierra una placa de fondo en un rebaje.',
         }[m]
         // El frente y las paredes son una sola pieza: dos colores solo con cambio de filamento por capa
         $('notaColor').textContent =
@@ -903,7 +1068,7 @@
         espera = setTimeout(reconstruir, 220)
       }
       for (const id of Object.keys(UNIDADES)) $(id).addEventListener('input', pedir)
-      for (const id of ['texto', 'fuente', 'tornillos', 'conCable']) $(id).addEventListener('input', pedir)
+      for (const id of ['texto', 'fuente', 'tornillos', 'conCable', 'caladoForma', 'caladoDisp', 'caladoDegradado']) $(id).addEventListener('input', pedir)
 
       const setOrigen = (o) => {
         estado.origen = o
@@ -924,6 +1089,9 @@
         tapa: { pared: 2, tapa: 1.6, labioAlto: 4, labioAncho: 1.6, fondo: 2 },
         ras: { pared: 2, tapa: 1.6, labioAlto: 4, labioAncho: 1.6, fondo: 2 },
         acrFondo: { pared: 2, fondo: 2 },
+        ledDoble: { pared: 2, fondo: 2 },
+        // Calado: frente fino (se perfora) y fondo del espesor de una chapa de PVC
+        calado: { pared: 2, tapa: 1, acr: 3.1 },
         acrEncastre: { pared: 2, labioAlto: 60, labioAncho: 2, fondo: 1.2 },
         // Halo: frente opaco y pared más gruesa (no debe transparentar ni flexionar)
         halo: { pared: 3, tapa: 2.4 },
