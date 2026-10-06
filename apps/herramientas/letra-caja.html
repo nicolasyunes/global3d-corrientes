@@ -121,6 +121,13 @@
         <input type="range" id="labioAlto" min="2" max="40" step="0.5" value="15" />
         <label for="labioAncho"><span id="labioAnchoNombre">Ancho del labio</span> <span id="labioAnchoV"></span></label>
         <input type="range" id="labioAncho" min="0.8" max="3" step="0.2" value="2" />
+        <div id="grupoApoyo">
+          <label for="apoyoAncho">Ancho del apoyo <span id="apoyoAnchoV"></span></label>
+          <input type="range" id="apoyoAncho" min="0.5" max="5" step="0.1" value="1.5" />
+          <label for="apoyoAngulo">Ángulo de voladizo (desde la pared) <span id="apoyoAnguloV"></span></label>
+          <input type="range" id="apoyoAngulo" min="25" max="60" step="1" value="30" />
+          <p class="hint">Menos grados = apoyo más vertical: imprime más limpio pero ocupa más alto.</p>
+        </div>
 
         <h2>LED y montaje</h2>
         <label class="check"><input type="checkbox" id="conCable" checked /> Agujero para cable (1 por letra)</label>
@@ -318,7 +325,7 @@
         const hCuerpo = sobre ? p.prof - p.tapa : p.prof
         let cuerpo = g(g(S.extrude(p.fondo)).add(g(g(pared.extrude(hCuerpo - p.fondo)).translate([0, 0, p.fondo]))))
 
-        const interior = hCuerpo - p.fondo - (sobre ? 0 : 1.8)
+        const interior = hCuerpo - p.fondo - (sobre ? 0 : altoApoyo(p))
         const labioAlto = Math.min(p.labioAlto, interior - 2)
 
         let contornoTapa, labioExt
@@ -327,17 +334,13 @@
           contornoTapa = S
           labioExt = g(S.offset(-(p.pared + p.holguraLabio), 'Round'))
         } else {
-          // Apoyo escalonado (3 escalones de 0,6 mm ≈ 40°): se imprime sin soportes
-          const apoyo = 1.5
-          const zTop = p.prof - p.tapa
-          for (let k = 1; k <= 3; k++) {
-            const ancho = (apoyo * (4 - k)) / 3
-            const anillo = g(hueco.subtract(g(hueco.offset(-ancho, 'Round'))))
-            cuerpo = g(cuerpo.add(g(g(anillo.extrude(0.6)).translate([0, 0, zTop - 0.6 * k]))))
-          }
-          // Dos contactos: el borde de la tapa con la pared y el labio con el borde del escalón
+          // La tapa descansa sobre un apoyo inclinado justo debajo de su cara interna
+          const apoyo = apoyoInclinado(hueco, p.apoyoAncho, p.apoyoAngulo, p.prof - p.tapa, 'abajo')
+          if (apoyo) cuerpo = g(cuerpo.add(apoyo))
+          else warns.push(`Letra ${n}: no entra el apoyo; la tapa queda solo a presión.`)
+          // Dos contactos: el borde de la tapa con la pared y el labio con el borde del apoyo
           contornoTapa = g(hueco.offset(-p.holguraBorde, 'Round'))
-          labioExt = g(hueco.offset(-(apoyo + p.holguraLabio), 'Round'))
+          labioExt = g(hueco.offset(-(p.apoyoAncho + p.holguraLabio), 'Round'))
         }
         const labio = g(labioExt.subtract(g(labioExt.offset(-p.labioAncho, 'Round'))))
         let tapa = g(g(contornoTapa.extrude(p.tapa)).translate([0, 0, p.prof - p.tapa]))
@@ -351,6 +354,28 @@
           { nombre: 'cuerpo', mat: 0, exportar: cuerpo, visual: [{ m: cuerpo, mat: 0 }], voltear: false, mueve: 0 },
           { nombre: 'tapa', mat: 1, exportar: tapa, visual: [{ m: tapa, mat: 1 }], voltear: true, mueve: 1 },
         ]
+      }
+
+      // Alto que ocupa un apoyo inclinado: el ángulo se mide desde la pared (vertical)
+      const altoApoyo = (p) => p.apoyoAncho / Math.tan((p.apoyoAngulo * Math.PI) / 180)
+
+      // Apoyo inclinado: reborde hacia adentro del hueco, con una cara plana en zCara donde
+      // apoya el frente, el acrílico o el PVC, y la otra en voladizo para imprimir sin
+      // soportes. 'abajo': la cara plana mira hacia +Z y el voladizo crece desde abajo.
+      // 'arriba': al revés, para piezas que se imprimen dadas vuelta.
+      // Se arma con anillos de 0,2 mm (el alto de capa), cada uno más ancho que el anterior.
+      function apoyoInclinado(hueco, ancho, angulo, zCara, sentido) {
+        const alto = ancho / Math.tan((angulo * Math.PI) / 180)
+        const n = Math.max(1, Math.ceil(alto / 0.2))
+        const dz = alto / n
+        const anillos = []
+        for (let i = 1; i <= n; i++) {
+          const anillo = g(hueco.subtract(g(hueco.offset(-(ancho * i) / n, 'Round'))))
+          if (anillo.isEmpty()) continue
+          const z = sentido === 'abajo' ? zCara - alto + (i - 1) * dz : zCara + alto - i * dz
+          anillos.push(g(g(anillo.extrude(dz + 0.001)).translate([0, 0, z])))
+        }
+        return anillos.length ? g(Manifold.union(anillos)) : null
       }
 
       // Agujeros de cable y tornillo en la pieza que apoya contra la pared del local.
@@ -411,6 +436,7 @@
         holguraLabio: num('holguraLabio'), holguraBorde: num('holguraBorde'), holguraAgujeros: num('holguraAgujeros'),
         conCable: $('conCable').checked, cable: num('cable'),
         tornillos: $('tornillos').checked, tornillo: num('tornillo'), modo: estado.modo,
+        apoyoAncho: num('apoyoAncho'), apoyoAngulo: num('apoyoAngulo'),
       })
 
       let version = 0
@@ -608,6 +634,7 @@
       const UNIDADES = {
         alto: 'mm', prof: 'mm', pared: 'mm', fondo: 'mm', tapa: 'mm', labioAlto: 'mm', labioAncho: 'mm',
         cable: 'mm', tornillo: 'mm', espaciado: '%', holguraLabio: 'mm', holguraBorde: 'mm', holguraAgujeros: 'mm',
+        apoyoAncho: 'mm', apoyoAngulo: '°',
       }
       const etiquetas = () => {
         for (const [id, u] of Object.entries(UNIDADES)) $(id + 'V').textContent = `${$(id).value} ${u}`
@@ -616,8 +643,9 @@
         $('grupoTornillo').hidden = !$('tornillos').checked
         $('grupoAgujeros').hidden = !$('conCable').checked && !$('tornillos').checked
         $('grupoBorde').hidden = estado.modo !== 'ras'
+        $('grupoApoyo').hidden = estado.modo !== 'ras'
         const trasera = estado.modo === 'trasera'
-        $('holguraLabioDonde').textContent = estado.modo === 'ras' ? 'borde del escalón' : 'pared interior'
+        $('holguraLabioDonde').textContent = estado.modo === 'ras' ? 'borde del apoyo' : 'pared interior'
         $('holguraLabio').previousElementSibling.firstChild.textContent = trasera ? 'Pollera ↔ ' : 'Labio ↔ '
         $('fondoNombre').textContent = trasera ? 'Espesor de tapa trasera' : 'Espesor de fondo'
         $('tapaNombre').textContent = trasera ? 'Espesor del frente' : 'Espesor de tapa'
