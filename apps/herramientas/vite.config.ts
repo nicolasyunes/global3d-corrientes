@@ -11,6 +11,12 @@ const page = (name: string) =>
 export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   base: '/herramientas/',
+  // Caché propia: con la del admin (node_modules/.vite) los dos servidores de
+  // desarrollo se pisan las dependencias optimizadas y el admin falla al cargar
+  // módulos ("Failed to fetch dynamically imported module")
+  cacheDir: fileURLToPath(
+    new URL('../../node_modules/.vite-herramientas', import.meta.url),
+  ),
   // Las mismas VITE_SUPABASE_* del admin (.env en la raíz del repo)
   envDir: fileURLToPath(new URL('../..', import.meta.url)),
   resolve: {
