@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --config apps/herramientas/vite.config.ts",
     "preview": "vite preview",
+    "dev:herramientas": "vite --config apps/herramientas/vite.config.ts",
+    "build:herramientas": "vite build --config apps/herramientas/vite.config.ts",
+    "preview:herramientas": "vite preview --config apps/herramientas/vite.config.ts",
     "test": "vitest run",
     "test:integration": "vitest run --mode integration",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
@@ -18,7 +21,9 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",
+    "imagetracerjs": "^1.2.6",
     "jspdf": "^4.2.1",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.1"
@@ -28,6 +33,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^22.10.1",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",

@@ -52,6 +52,12 @@ const MAIN: NavItem[] = [
     sideOnly: true,
   },
   {
+    to: '/admin/herramientas',
+    label: 'Herramientas',
+    icon: 'wrench',
+    sideOnly: true,
+  },
+  {
     to: '/admin/filamentos',
     label: 'Filamentos',
     icon: 'spool',

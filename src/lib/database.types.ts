@@ -1017,6 +1017,60 @@ export type Database = {
           },
         ]
       }
+      designs: {
+        Row: {
+          id: string
+          kind: string
+          name: string
+          params: Json
+          order_id: string | null
+          files: Json
+          thumbnail_path: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          kind: string
+          name: string
+          params?: Json
+          order_id?: string | null
+          files?: Json
+          thumbnail_path?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          kind?: string
+          name?: string
+          params?: Json
+          order_id?: string | null
+          files?: Json
+          thumbnail_path?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'designs_order_id_fkey'
+            columns: ['order_id']
+            isOneToOne: false
+            referencedRelation: 'orders'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'designs_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       products: {
         Row: {
           id: string
