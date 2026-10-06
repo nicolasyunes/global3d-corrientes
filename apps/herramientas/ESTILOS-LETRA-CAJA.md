@@ -120,6 +120,14 @@ Perfil = corte de la pared, desde el frente (z = 0) hacia atrás.
    - La curva sale espejada y girada media vuelta: la cara de la letra queda en la punta del arco, mirando al frente y legible.
    - Retroiluminada con pared 4 y frente 2. Rangos ampliados: pared hasta 12 y base hasta 50.
 
+10. ✅ **Inclinación del relieve** (orgánica): el patrón sube N mm por cada período recorrido sobre el contorno, y las rayas quedan en diagonal. Para eso los lados rectos se parten en tramos de período/8 (máx. 1 mm), así el warp tiene vértices donde mover. La tasa se ajusta para que cada vuelta del contorno sume un número entero de períodos, así no queda costura.
+11. ✅ **Plano 2D de agujeros a medida**, en todos los estilos menos la halo (va con torres) y la curva:
+    - **Agregar y mover:** se toca el plano para agregar un agujero, se arrastra para moverlo y se borra con Supr. También se pueden escribir X, Y y Ø en mm, medidos desde la esquina inferior izquierda.
+    - **Zona libre:** la línea punteada muestra hasta dónde puede ir cada agujero en cada pieza, con el margen real de pared, pollera o apoyo. Un agujero que la toca se marca en rojo, con aviso, y no se corta.
+    - **Posición proporcional:** la posición se guarda en proporción al contorno, así sigue a la letra si cambia el tamaño. Al pasar a "a medida", arranca con los agujeros automáticos.
+    - **Dónde se cortan:** en la pieza trasera de cada estilo y en el DXF de la base.
+    - Las letras se numeran de izquierda a derecha.
+
 ## Comparación de medidas con LetraMaker
 
 Con sus valores por defecto. Ellos usaron un texto de 260,3 × 100 mm y nosotros "LETRA" en Bebas Neue de 300,3 × 100 mm, así que se compara cuánto agrega cada estilo al tamaño de la letra.
@@ -147,7 +155,6 @@ Diferencias a propósito:
 Opciones de ellos que no copiamos, a evaluar:
 - "Pestaña externa" (beta).
 - "Rebaje de pared externa" en los encastres.
-- "Inclinación" del relieve de la orgánica (rayas en diagonal).
 - Frente de acrílico en la curva.
 - Más plantillas de relieve (perlas…).
 - Vistas de "camas" y preajustes guardados.

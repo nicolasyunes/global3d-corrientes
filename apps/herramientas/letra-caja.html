@@ -39,6 +39,8 @@
       .seg { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: #efebe4; margin-top: 4px; }
       .seg button { border: 0; background: transparent; border-radius: 999px; padding: 6px 12px; font: inherit; font-weight: 700; font-size: 12px; color: var(--muted); cursor: pointer; }
       .seg button[aria-pressed=true] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+      /* hidden tiene que ganarle a los display de las clases (.check, .seg…) */
+      [hidden] { display: none !important; }
       .check { display: flex; gap: 8px; align-items: center; justify-content: flex-start; font-weight: 600; }
       .check input { accent-color: var(--accent); }
       .drop { border: 2px dashed var(--line); border-radius: 10px; padding: 12px; text-align: center; cursor: pointer; color: var(--muted); font-size: 13px; margin-top: 8px; }
@@ -55,6 +57,12 @@
       button.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
       button.btn:disabled { opacity: .5; cursor: wait; }
       .hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+      .plano { display: block; width: 100%; margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; background: #fff; touch-action: none; cursor: crosshair; }
+      .plano:focus-visible { outline: 2px solid var(--accent); }
+      .fila-ag { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+      .fila-ag label { display: flex; gap: 4px; align-items: center; margin: 0; font-size: 12px; }
+      .fila-ag input { width: 64px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+      .fila-ag .btn { flex: 1; padding: 6px 8px; font-size: 12px; }
     </style>
   </head>
   <body>
@@ -258,6 +266,8 @@
           <input type="range" id="orgAmp" min="0.5" max="15" step="0.5" value="3" />
           <label for="orgPeriodo">Período (alto de cada onda) <span id="orgPeriodoV"></span></label>
           <input type="range" id="orgPeriodo" min="2" max="40" step="0.5" value="10" />
+          <label for="orgIncl">Inclinación (sube por cada período recorrido) <span id="orgInclV"></span></label>
+          <input type="range" id="orgIncl" min="0" max="20" step="0.5" value="0" />
           <label for="orgMax">Ángulo máximo sin soporte <span id="orgMaxV"></span></label>
           <input type="range" id="orgMax" min="30" max="60" step="1" value="45" />
         </div>
@@ -288,10 +298,31 @@
           <label for="cable">Cable Ø <span id="cableV"></span></label>
           <input type="range" id="cable" min="3" max="12" step="0.5" value="6" />
         </div>
-        <label class="check"><input type="checkbox" id="tornillos" checked /> <span id="tornillosNombre">Agujeros para tornillo (2 por letra)</span></label>
+        <label class="check" id="tornillosLabel"><input type="checkbox" id="tornillos" checked /> <span id="tornillosNombre">Agujeros para tornillo (2 por letra)</span></label>
         <div id="grupoTornillo">
           <label for="tornillo"><span id="tornilloNombre">Tornillo Ø</span> <span id="tornilloV"></span></label>
           <input type="range" id="tornillo" min="3" max="6" step="0.5" value="4" />
+        </div>
+        <div id="grupoPlano">
+          <label>Ubicación de los agujeros</label>
+          <div class="seg" role="group" aria-label="Ubicación de los agujeros">
+            <button type="button" id="agAuto" aria-pressed="true">Automática</button>
+            <button type="button" id="agMedida" aria-pressed="false">A medida (plano 2D)</button>
+          </div>
+          <div id="panelPlano" hidden>
+            <canvas id="plano" class="plano" tabindex="0" aria-label="Plano 2D de agujeros"></canvas>
+            <p class="hint">Tocá el plano para agregar un agujero y arrastralo para moverlo (Supr lo borra). La línea punteada marca hasta dónde puede ir sin tocar las paredes. El plano se ve de frente, como se lee la letra; X e Y se miden desde la esquina inferior izquierda.</p>
+            <div class="fila-ag">
+              <label>X <input type="number" id="agX" step="0.5" /></label>
+              <label>Y <input type="number" id="agY" step="0.5" /></label>
+              <label>Ø <input type="number" id="agD" step="0.5" min="1" max="40" value="6" /></label>
+            </div>
+            <div class="fila-ag">
+              <button type="button" class="btn" id="agBorrar">Borrar</button>
+              <button type="button" class="btn" id="agCopiar">Partir de los automáticos</button>
+              <button type="button" class="btn" id="agVaciar">Vaciar</button>
+            </div>
+          </div>
         </div>
         </div>
 
@@ -536,8 +567,32 @@
           // perfil, siguiendo la normal del contorno (los de la cara interior no se tocan).
           const A = p.orgAmp
           const altoPared = p.prof - p.fondo
-          const exterior = g(g(S.offset(A, 'Round')).simplify(0.02))
+          let exterior = g(g(S.offset(A, 'Round')).simplify(0.02))
+          if (p.orgIncl > 0) {
+            // Con inclinación el relieve cambia también a lo largo del contorno: los lados rectos
+            // se parten en tramos cortos para que el warp tenga vértices donde mover. Cada punto
+            // nuevo se corre 0,002 mm de la recta (alternando) para que el booleano no lo
+            // descarte por colineal.
+            const paso = Math.min(1, p.orgPeriodo / 8)
+            const polys = exterior.toPolygons().map((poly) => {
+              const out = []
+              for (let i = 0; i < poly.length; i++) {
+                const [ax, ay] = poly[i], [bx, by] = poly[(i + 1) % poly.length]
+                const l = Math.hypot(bx - ax, by - ay)
+                const k = Math.max(1, Math.ceil(l / paso))
+                const nx = -(by - ay) / (l || 1), ny = (bx - ax) / (l || 1)
+                out.push([ax, ay])
+                for (let j = 1; j < k; j++) {
+                  const e = (j % 2 ? 1 : -1) * 0.002
+                  out.push([ax + ((bx - ax) * j) / k + nx * e, ay + ((by - ay) * j) / k + ny * e])
+                }
+              }
+              return out
+            })
+            exterior = g(new CrossSection(polys, 'NonZero'))
+          }
           const clave = (x, y) => `${x.toFixed(2)},${y.toFixed(2)}`
+          // Por vértice de la cara exterior: normal y corrimiento de fase por inclinación
           const normales = new Map()
           for (const poly of exterior.toPolygons()) {
             // Normal de cada lado hacia afuera del material: (dy, -dx) en contornos
@@ -548,11 +603,19 @@
               const l = Math.hypot(bx - ax, by - ay) || 1
               return [(by - ay) / l, -(bx - ax) / l]
             }
+            // Inclinación: el patrón sube orgIncl mm cada orgPeriodo mm de recorrido. Se ajusta
+            // para que una vuelta completa sume un número entero de períodos (sin costura).
+            let perim = 0
+            for (let i = 0; i < ln; i++) perim += Math.hypot(poly[(i + 1) % ln][0] - poly[i][0], poly[(i + 1) % ln][1] - poly[i][1])
+            const vueltas = Math.round((perim * p.orgIncl) / p.orgPeriodo / p.orgPeriodo)
+            const tasa = perim ? (vueltas * p.orgPeriodo) / perim : 0
+            let recorrido = 0
             for (let i = 0; i < ln; i++) {
               const a = lado((i - 1 + ln) % ln), b2 = lado(i)
               const nx = a[0] + b2[0], ny = a[1] + b2[1]
               const l = Math.hypot(nx, ny) || 1
-              normales.set(clave(poly[i][0], poly[i][1]), [nx / l, ny / l])
+              normales.set(clave(poly[i][0], poly[i][1]), [nx / l, ny / l, recorrido * tasa])
+              recorrido += Math.hypot(poly[(i + 1) % ln][0] - poly[i][0], poly[(i + 1) % ln][1] - poly[i][1])
             }
           }
           const niveles = Math.max(2, Math.ceil(altoPared / 0.4))
@@ -561,7 +624,8 @@
             pared3d.warp((v) => {
               const nrm = normales.get(clave(v[0], v[1]))
               if (!nrm) return
-              const t = ((((v[2] - p.fondo) % p.orgPeriodo) + p.orgPeriodo) % p.orgPeriodo) / p.orgPeriodo
+              const z = v[2] - p.fondo + nrm[2]
+              const t = (((z % p.orgPeriodo) + p.orgPeriodo) % p.orgPeriodo) / p.orgPeriodo
               const adentro = A * (1 - perfil(t))
               v[0] -= nrm[0] * adentro
               v[1] -= nrm[1] * adentro
@@ -949,7 +1013,56 @@
         return g(CrossSection.union(lista.map((a) => g(g(CrossSection.circle(a.r, 40)).translate(a.pos)))))
       }
 
+      // Punto dentro de un conjunto de polígonos (par-impar: los huecos de la O cuentan)
+      function dentroDe(polys, [x, y]) {
+        let c = false
+        for (const poly of polys)
+          for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            const [xi, yi] = poly[i], [xj, yj] = poly[j]
+            if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c
+          }
+        return c
+      }
+
+      // Fracción del contorno total ↔ mm
+      const aMm = (a) => {
+        const b = estado.plano.b
+        return [b.min[0] + a.u * (b.max[0] - b.min[0]), b.min[1] + a.v * (b.max[1] - b.min[1])]
+      }
+      const aFraccion = ([x, y]) => {
+        const b = estado.plano.b
+        return { u: (x - b.min[0]) / (b.max[0] - b.min[0] || 1), v: (y - b.min[1]) / (b.max[1] - b.min[1] || 1) }
+      }
+
       function ubicarAgujeros(S, p, margen, warns, n) {
+        // Zona libre de esta pieza (para dibujarla en el plano 2D)
+        const zonaLibre = g(S.offset(-margen, 'Round'))
+        estado.plano?.zonas.push(zonaLibre.toPolygons())
+        if (estado.agujerosModo === 'medida') {
+          const lista = []
+          const contorno = S.toPolygons()
+          estado.agujeros.forEach((a, i) => {
+            const pos = aMm(a)
+            if (!dentroDe(contorno, pos)) return
+            estado.plano.usados.add(i)
+            const r = (a.d + p.holguraAgujeros) / 2
+            // El agujero entero tiene que quedar dentro de la zona libre
+            const libre = g(zonaLibre.offset(-r, 'Round'))
+            if (libre.isEmpty() || !dentroDe(libre.toPolygons(), pos)) {
+              estado.plano.malos.add(i)
+              warns.push(`Agujero ${i + 1} (Ø${a.d} mm): toca la pared de la letra ${n}; movelo hacia adentro o achicalo.`)
+              return
+            }
+            lista.push({ pos, r })
+          })
+          return lista
+        }
+        const auto = ubicarAuto(S, p, margen, warns, n)
+        for (const a of auto) estado.plano?.auto.push({ pos: a.pos, d: a.d })
+        return auto
+      }
+
+      function ubicarAuto(S, p, margen, warns, n) {
         // Agujero de cable: lo más cerca del centro de la letra, lejos de la pared
         const b = S.bounds()
         const centro = [(b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2]
@@ -962,7 +1075,7 @@
           const libres = puntosInteriores(S, margen + rCable + 1)
           if (libres.length) {
             const pc = libres.reduce((m, q) => (dist(q, centro) < dist(m, centro) ? q : m))
-            agujeros.push({ pos: pc, r: rCable })
+            agujeros.push({ pos: pc, r: rCable, d: p.cable })
           } else warns.push(`Letra ${n}: no entra el agujero de Ø${p.cable} mm para el cable.`)
         }
         if (p.tornillos) {
@@ -971,7 +1084,7 @@
             const izq = zona.reduce((m, q) => (q[0] < m[0] ? q : m))
             const der = zona.reduce((m, q) => (q[0] > m[0] ? q : m))
             const lejos = (q) => agujeros.every((a) => dist(a.pos, q) > a.r + rTornillo + 4)
-            for (const q of dist(izq, der) > 15 ? [izq, der] : [izq]) if (lejos(q)) agujeros.push({ pos: q, r: rTornillo })
+            for (const q of dist(izq, der) > 15 ? [izq, der] : [izq]) if (lejos(q)) agujeros.push({ pos: q, r: rTornillo, d: p.tornillo })
           } else warns.push(`Letra ${n}: no entran los agujeros de tornillo.`)
         }
         return agujeros
@@ -989,7 +1102,10 @@
       let extrasLetra = []
 
       // ---------- Estado y armado ----------
-      const estado = { origen: 'texto', svg: null, modo: 'trasera', frente: 'impreso', base: 'impresa', piezas: [], medidas: null }
+      const estado = { origen: 'texto', svg: null, modo: 'trasera', frente: 'impreso', base: 'impresa',
+        // Agujeros a medida: posición como fracción del contorno total (siguen a la letra si
+        // cambia el tamaño) y diámetro nominal en mm
+        agujerosModo: 'auto', agujeros: [], agSel: -1, ultimoAuto: [], plano: null, piezas: [], medidas: null }
 
       async function contornoActual() {
         if (estado.origen === 'svg') return estado.svg ? contornoDeSvg(estado.svg) : null
@@ -1004,7 +1120,7 @@
         prof: estado.modo === 'neon' ? num('fondo') + num('neonAlto') : estado.modo === 'curva' ? 0 : num('prof'),
         neonContorno: $('neonContorno').checked, neonAncho: num('neonAncho'), neonAlto: num('neonAlto'),
         trabaPos: num('trabaPos'), trabaProf: num('trabaProf'), trabaAlto: num('trabaAlto'),
-        orgPerfil: $('orgPerfil').value, orgAmp: num('orgAmp'), orgPeriodo: num('orgPeriodo'), orgMax: num('orgMax'),
+        orgPerfil: $('orgPerfil').value, orgAmp: num('orgAmp'), orgPeriodo: num('orgPeriodo'), orgMax: num('orgMax'), orgIncl: num('orgIncl'),
         curvaAngulo: num('curvaAngulo'), curvaRadio: num('curvaRadio'), curvaSeg: num('curvaSeg'),
         curvaBase: num('curvaBase'), curvaMargen: num('curvaMargen'), curvaAvance: num('curvaAvance'), curvaFondo: num('curvaFondo'), curvaRedondeo: num('curvaRedondeo'),
         tapa: num('tapa'), labioAlto: num('labioAlto'), labioAncho: num('labioAncho'),
@@ -1042,8 +1158,10 @@
             const S = $('espejo').checked ? g(normalizar(base, p.alto).mirror([1, 0])) : normalizar(base, p.alto)
             const b = S.bounds()
             medidas = { w: b.max[0] - b.min[0], h: b.max[1] - b.min[1], p }
+            estado.plano = { polys: S.toPolygons(), b, zonas: [], auto: [], usados: new Set(), malos: new Set() }
             // La curva barre la palabra entera (con una sola base); el resto, letra por letra
-            ;(p.modo === 'curva' ? [S] : S.decompose().map(g)).forEach((comp, i) => {
+            // y numeradas de izquierda a derecha
+            ;(p.modo === 'curva' ? [S] : S.decompose().map(g).sort((a, c) => a.bounds().min[0] - c.bounds().min[0])).forEach((comp, i) => {
               const partes = piezasDeLetra(comp, p, warns, i + 1).map((pt) => ({
                 nombre: pt.nombre, mat: pt.mat, voltear: pt.voltear, mueve: pt.mueve,
                 cortable: pt.cortable ?? null, contorno: pt.contorno, parada: !!pt.parada,
@@ -1053,6 +1171,11 @@
               piezas.push({ n: i + 1, partes })
             })
             for (const ex of extrasLetra) extras.push({ tipo: ex.tipo, malla: malla(ex.m) })
+            if (estado.plano.auto.length) estado.ultimoAuto = estado.plano.auto.map((a) => ({ ...aFraccion(a.pos), d: a.d }))
+            if (estado.agujerosModo === 'medida' && p.modo !== 'halo' && p.modo !== 'curva')
+              estado.agujeros.forEach((a, i) => {
+                if (!estado.plano.usados.has(i)) warns.push(`Agujero ${i + 1} queda fuera de las letras.`)
+              })
             // Solo para la vista: la pared del local y el halo que proyecta el LED
             if (p.modo === 'halo') {
               const margen = 80
@@ -1072,6 +1195,7 @@
           dibujar()
           informar(warns)
           botonesStl()
+          dibujarPlano()
         } catch (e) {
           console.error(e)
           $('info').innerHTML = `<div class="warn">No se pudo generar: ${e.message}</div>`
@@ -1174,7 +1298,7 @@
           ledDoble: `2ª pared a ${p.ledDist} mm: dos canales para tira LED`,
           calado: `${estado.conteoCalado} agujeros de calado en total`,
           neon: `canal de ${p.neonAlto} mm con traba a ${p.trabaPos} mm del fondo`,
-          organica: `pared en ${p.orgPerfil} de ${p.orgAmp} mm cada ${p.orgPeriodo} mm`,
+          organica: `pared en ${p.orgPerfil} de ${p.orgAmp} mm cada ${p.orgPeriodo} mm${p.orgIncl ? `, inclinada ${p.orgIncl} mm` : ''}`,
           acrEncastre: `la pollera aprieta el frente contra el reborde`,
           halo: `abierta atrás, a ${p.separacion} mm de la pared`,
           tresRebaje: 'contorno, frente y base por separado',
@@ -1330,7 +1454,7 @@
         apoyoAncho: 'mm', apoyoAngulo: '°', acr: 'mm', paredInt: 'mm', bordeAncho: 'mm', bordeEsp: 'mm', holguraAcr: 'mm',
         separacion: 'mm', separadorD: 'mm', ledDist: 'mm', ledEsp: 'mm',
         neonAncho: 'mm', neonAlto: 'mm', trabaPos: 'mm', trabaProf: 'mm', trabaAlto: 'mm',
-        orgAmp: 'mm', orgPeriodo: 'mm', orgMax: '°', curvaAngulo: '°', curvaRadio: 'mm', curvaSeg: '', curvaBase: 'mm', curvaMargen: 'mm', curvaAvance: 'mm', curvaFondo: 'mm', curvaRedondeo: 'mm',
+        orgAmp: 'mm', orgPeriodo: 'mm', orgMax: '°', orgIncl: 'mm', curvaAngulo: '°', curvaRadio: 'mm', curvaSeg: '', curvaBase: 'mm', curvaMargen: 'mm', curvaAvance: 'mm', curvaFondo: 'mm', curvaRedondeo: 'mm',
         caladoD: 'mm', caladoEsp: 'mm', caladoRot: '°', caladoMargen: 'mm', baseEsp: 'mm',
       }
       const etiquetas = () => {
@@ -1360,10 +1484,17 @@
         $('seccionLed').hidden = curva
         $('seccionTol').hidden = curva
         // Cada control aparece solo cuando su pieza o su contacto existe
-        $('checkCable').hidden = halo
-        $('grupoCable').hidden = !$('conCable').checked || halo
-        $('grupoTornillo').hidden = !$('tornillos').checked
-        $('grupoAgujeros').hidden = (!$('conCable').checked || halo) && !$('tornillos').checked
+        // Agujeros a medida (no en la halo, que se monta con torres, ni en la curva)
+        const medida = estado.agujerosModo === 'medida' && !halo && !curva
+        $('grupoPlano').hidden = halo || curva
+        $('panelPlano').hidden = !medida
+        $('agAuto').setAttribute('aria-pressed', String(!medida))
+        $('agMedida').setAttribute('aria-pressed', String(medida))
+        $('checkCable').hidden = halo || medida
+        $('grupoCable').hidden = !$('conCable').checked || halo || medida
+        $('tornillosLabel').hidden = medida
+        $('grupoTornillo').hidden = !$('tornillos').checked || medida
+        $('grupoAgujeros').hidden = medida ? !estado.agujeros.length : (!$('conCable').checked || halo) && !$('tornillos').checked
         $('grupoHalo').hidden = !halo
         $('grupoFondo').hidden = halo || conBase
         $('tornillosNombre').textContent = halo ? 'Espárragos de montaje (2 por letra)' : 'Agujeros para tornillo (2 por letra)'
@@ -1493,6 +1624,152 @@
         botonesStl()
       }
       $('baseImpresa').addEventListener('click', () => setBase('impresa'))
+
+      // ---------- Plano 2D de agujeros a medida ----------
+      const plano = $('plano')
+      let vistaPlano = null
+      function dibujarPlano() {
+        const pl = estado.plano
+        if ($('panelPlano').hidden || !pl) return
+        const W = plano.clientWidth || 320
+        const w = pl.b.max[0] - pl.b.min[0], h = pl.b.max[1] - pl.b.min[1]
+        const H = Math.round(Math.max(140, Math.min(320, ((W - 24) * h) / (w || 1) + 24)))
+        const dpr = window.devicePixelRatio || 1
+        plano.width = W * dpr
+        plano.height = H * dpr
+        plano.style.height = H + 'px'
+        const sc = Math.min((W - 24) / w, (H - 24) / h)
+        const ox = (W - w * sc) / 2, oy = (H - h * sc) / 2
+        const aPx = ([x, y]) => [ox + (x - pl.b.min[0]) * sc, H - oy - (y - pl.b.min[1]) * sc]
+        vistaPlano = { sc, aPx, dePx: (px, py) => [pl.b.min[0] + (px - ox) / sc, pl.b.min[1] + (H - oy - py) / sc] }
+        const c = plano.getContext('2d')
+        c.setTransform(dpr, 0, 0, dpr, 0, 0)
+        c.clearRect(0, 0, W, H)
+        const camino = (polys) => {
+          c.beginPath()
+          for (const poly of polys) poly.forEach((q, i) => (i ? c.lineTo(...aPx(q)) : c.moveTo(...aPx(q))))
+          c.closePath()
+        }
+        camino(pl.polys)
+        c.fillStyle = '#efebe4'
+        c.fill('evenodd')
+        c.strokeStyle = '#1d1d1b'
+        c.lineWidth = 1
+        c.stroke()
+        c.setLineDash([4, 3])
+        c.strokeStyle = '#2e7d32'
+        for (const z of pl.zonas) {
+          for (const poly of z) {
+            c.beginPath()
+            poly.forEach((q, i) => (i ? c.lineTo(...aPx(q)) : c.moveTo(...aPx(q))))
+            c.closePath()
+            c.stroke()
+          }
+        }
+        c.setLineDash([])
+        c.font = '600 10px system-ui, sans-serif'
+        estado.agujeros.forEach((a, i) => {
+          const [px, py] = aPx(aMm(a))
+          const r = Math.max(3, (a.d / 2) * sc)
+          const malo = pl.malos.has(i) || !pl.usados.has(i)
+          c.beginPath()
+          c.arc(px, py, r, 0, Math.PI * 2)
+          c.fillStyle = malo ? 'rgba(200, 40, 40, .35)' : 'rgba(29, 29, 27, .75)'
+          c.fill()
+          c.lineWidth = i === estado.agSel ? 2.5 : 1
+          c.strokeStyle = i === estado.agSel ? '#e8590c' : malo ? '#c62828' : '#1d1d1b'
+          c.stroke()
+          c.fillStyle = '#1d1d1b'
+          c.fillText(String(i + 1), px + r + 2, py - r)
+        })
+        // Datos del seleccionado en mm desde la esquina inferior izquierda
+        const sel = estado.agujeros[estado.agSel]
+        for (const id of ['agX', 'agY']) $(id).disabled = !sel
+        $('agBorrar').disabled = !sel
+        if (sel && document.activeElement?.parentElement?.parentElement !== $('agX').closest('.fila-ag')) {
+          const [x, y] = aMm(sel)
+          $('agX').value = (x - pl.b.min[0]).toFixed(1)
+          $('agY').value = (y - pl.b.min[1]).toFixed(1)
+          $('agD').value = sel.d
+        }
+      }
+      let arrastre = -1
+      plano.addEventListener('pointerdown', (e) => {
+        if (!vistaPlano || !estado.plano) return
+        const rect = plano.getBoundingClientRect()
+        const px = e.clientX - rect.left, py = e.clientY - rect.top
+        // ¿Tocó un agujero? (el más cercano dentro de su radio, mínimo 8 px)
+        let hit = -1, mejor = Infinity
+        estado.agujeros.forEach((a, i) => {
+          const [ax, ay] = vistaPlano.aPx(aMm(a))
+          const d = Math.hypot(ax - px, ay - py)
+          if (d < Math.max(8, (a.d / 2) * vistaPlano.sc) && d < mejor) (hit = i), (mejor = d)
+        })
+        if (hit < 0) {
+          estado.agujeros.push({ ...aFraccion(vistaPlano.dePx(px, py)), d: Math.max(1, num('agD') || 6) })
+          hit = estado.agujeros.length - 1
+        }
+        estado.agSel = arrastre = hit
+        plano.setPointerCapture(e.pointerId)
+        plano.focus()
+        dibujarPlano()
+      })
+      plano.addEventListener('pointermove', (e) => {
+        if (arrastre < 0) return
+        const rect = plano.getBoundingClientRect()
+        Object.assign(estado.agujeros[arrastre], aFraccion(vistaPlano.dePx(e.clientX - rect.left, e.clientY - rect.top)))
+        dibujarPlano()
+      })
+      const soltar = () => {
+        if (arrastre < 0) return
+        arrastre = -1
+        pedir()
+      }
+      plano.addEventListener('pointerup', soltar)
+      plano.addEventListener('pointercancel', soltar)
+      const borrarAgujero = () => {
+        if (estado.agSel < 0) return
+        estado.agujeros.splice(estado.agSel, 1)
+        estado.agSel = -1
+        pedir()
+      }
+      plano.addEventListener('keydown', (e) => {
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault()
+          borrarAgujero()
+        }
+      })
+      $('agBorrar').addEventListener('click', borrarAgujero)
+      $('agVaciar').addEventListener('click', () => {
+        estado.agujeros = []
+        estado.agSel = -1
+        pedir()
+      })
+      const copiarAuto = () => {
+        estado.agujeros = estado.ultimoAuto.map((a) => ({ ...a }))
+        estado.agSel = -1
+        pedir()
+      }
+      $('agCopiar').addEventListener('click', copiarAuto)
+      // Editar el seleccionado a mano (mm desde la esquina inferior izquierda)
+      for (const id of ['agX', 'agY', 'agD'])
+        $(id).addEventListener('change', () => {
+          const sel = estado.agujeros[estado.agSel]
+          if (!sel || !estado.plano) return
+          const b = estado.plano.b
+          Object.assign(sel, aFraccion([b.min[0] + num('agX'), b.min[1] + num('agY')]))
+          sel.d = Math.max(1, num('agD') || sel.d)
+          pedir()
+        })
+      const setAgujerosModo = (m) => {
+        estado.agujerosModo = m
+        // La primera vez arranca con los que hubiera puesto el modo automático
+        if (m === 'medida' && !estado.agujeros.length) estado.agujeros = estado.ultimoAuto.map((a) => ({ ...a }))
+        pedir()
+      }
+      $('agAuto').addEventListener('click', () => setAgujerosModo('auto'))
+      $('agMedida').addEventListener('click', () => setAgujerosModo('medida'))
+      new ResizeObserver(() => dibujarPlano()).observe(plano)
       $('basePvc').addEventListener('click', () => setBase('pvc'))
 
       for (const id of ['explotar', 'corte', 'encendido']) $(id).addEventListener('input', aplicarVista)
