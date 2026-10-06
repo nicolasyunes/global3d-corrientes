@@ -69,7 +69,7 @@
       </div>
       <aside>
         <h1>Letra caja</h1>
-        <p class="lead">Frente impreso con encastre y LED interno. Cuerpo (pared + fondo) y tapa salen como piezas separadas.</p>
+        <p class="lead">Frente impreso con encastre y LED interno. Cada letra sale en dos piezas que encastran.</p>
 
         <h2>Contenido</h2>
         <div class="seg" role="group" aria-label="Origen">
@@ -105,21 +105,22 @@
         <h2>Cuerpo</h2>
         <label for="pared">Espesor de pared <span id="paredV"></span></label>
         <input type="range" id="pared" min="1.2" max="4" step="0.2" value="2" />
-        <label for="fondo">Espesor de fondo <span id="fondoV"></span></label>
-        <input type="range" id="fondo" min="1.2" max="4" step="0.2" value="2" />
+        <label for="fondo"><span id="fondoNombre">Espesor de fondo</span> <span id="fondoV"></span></label>
+        <input type="range" id="fondo" min="0.8" max="4" step="0.2" value="1.2" />
 
         <h2>Tapa y encastre</h2>
         <div class="seg" role="group" aria-label="Tipo de tapa">
-          <button type="button" id="modoTapa" aria-pressed="true">Sobre la pared</button>
-          <button type="button" id="modoRas" aria-pressed="false">Al ras (apoyo)</button>
+          <button type="button" id="modoTrasera" aria-pressed="true">Tapa trasera</button>
+          <button type="button" id="modoTapa" aria-pressed="false">Tapa al frente</button>
+          <button type="button" id="modoRas" aria-pressed="false">Al ras</button>
         </div>
         <p class="hint" id="modoHint"></p>
-        <label for="tapa">Espesor de tapa <span id="tapaV"></span></label>
+        <label for="tapa"><span id="tapaNombre">Espesor de tapa</span> <span id="tapaV"></span></label>
         <input type="range" id="tapa" min="0.8" max="4" step="0.2" value="1.6" />
-        <label for="labioAlto">Alto del labio <span id="labioAltoV"></span></label>
-        <input type="range" id="labioAlto" min="2" max="10" step="0.5" value="4" />
-        <label for="labioAncho">Ancho del labio <span id="labioAnchoV"></span></label>
-        <input type="range" id="labioAncho" min="0.8" max="3" step="0.2" value="1.6" />
+        <label for="labioAlto"><span id="labioAltoNombre">Alto del labio</span> <span id="labioAltoV"></span></label>
+        <input type="range" id="labioAlto" min="2" max="40" step="0.5" value="15" />
+        <label for="labioAncho"><span id="labioAnchoNombre">Ancho del labio</span> <span id="labioAnchoV"></span></label>
+        <input type="range" id="labioAncho" min="0.8" max="3" step="0.2" value="2" />
 
         <h2>LED y montaje</h2>
         <label class="check"><input type="checkbox" id="conCable" checked /> Agujero para cable (1 por letra)</label>
@@ -148,8 +149,8 @@
 
         <h2>Colores</h2>
         <div class="swatches">
-          <label>Cuerpo<input type="color" id="colorCuerpo" value="#1d1d1b" /></label>
-          <label>Tapa<input type="color" id="colorTapa" value="#f4f1ea" /></label>
+          <label><span id="colorCuerpoNombre">Paredes</span><input type="color" id="colorCuerpo" value="#1d1d1b" /></label>
+          <label><span id="colorTapaNombre">Frente</span><input type="color" id="colorTapa" value="#f4f1ea" /></label>
         </div>
 
         <div class="info" id="info"></div>
@@ -158,8 +159,9 @@
           <button class="btn primary" id="bajar3mf">Descargar 3MF (todas las piezas)</button>
           <button class="btn" id="bajarCuerpos">STL cuerpos</button>
           <button class="btn" id="bajarTapas">STL tapas</button>
+          <p class="hint" id="notaColor"></p>
         </div>
-        <p class="hint">Las piezas salen orientadas para imprimir: cuerpo con el fondo en la cama y tapa boca abajo (labio hacia arriba). Sin soportes.</p>
+        <p class="hint">Las piezas salen orientadas para imprimir sin soportes: cada una apoya en la cama su cara plana (el frente, el fondo o la tapa) con el encastre hacia arriba.</p>
       </aside>
     </div>
 
@@ -283,11 +285,37 @@
       }
 
       // ---------- Piezas 3D (Z = profundidad; frente en Z = prof) ----------
+      // Cada pieza: qué se exporta, qué se dibuja (y de qué color: 0 paredes, 1 frente),
+      // si se da vuelta para imprimir y hacia dónde se separa en la vista explotada.
       function piezasDeLetra(S, p, warns, n) {
-        const sobre = p.modo === 'tapa'
-        const hCuerpo = sobre ? p.prof - p.tapa : p.prof
         const hueco = g(S.offset(-p.pared, 'Round'))
         const pared = g(S.subtract(hueco))
+        const b = S.bounds()
+        const w = b.max[0] - b.min[0], h = b.max[1] - b.min[1]
+        if (hueco.area() / S.area() < 0.3) warns.push(`Letra ${n}: trazos finos para pared de ${p.pared} mm; casi no queda hueco para el LED.`)
+        if (Math.max(w, h) > CAMA) warns.push(`Letra ${n} mide ${Math.round(w)}×${Math.round(h)} mm: no entra en una cama de ${CAMA} mm.`)
+
+        if (p.modo === 'trasera') {
+          // Frente + paredes en una pieza, impresa con el frente sobre la cama (cara lisa).
+          // Atrás cierra una tapa con pollera que entra por dentro de la pared.
+          const frente = g(g(S.extrude(p.tapa)).translate([0, 0, p.prof - p.tapa]))
+          const paredes = g(pared.extrude(p.prof - p.tapa + 0.01))
+          const exterior = g(S.offset(-(p.pared + p.holguraLabio), 'Round'))
+          const pollera = g(exterior.subtract(g(exterior.offset(-p.labioAncho, 'Round'))))
+          const polleraAlto = Math.min(p.labioAlto, libreLed(p) - 1)
+          let trasera = g(exterior.extrude(p.fondo))
+          if (!pollera.isEmpty() && polleraAlto > 0.5) trasera = g(trasera.add(g(g(pollera.extrude(polleraAlto)).translate([0, 0, p.fondo]))))
+          else warns.push(`Letra ${n}: no entra la pollera; la tapa trasera queda sin encastre.`)
+          // Los agujeros van en la tapa trasera, dentro de la pollera
+          trasera = conAgujeros(trasera, S, p, p.pared + p.holguraLabio + p.labioAncho, warns, n)
+          return [
+            { nombre: 'frente', mat: 1, exportar: g(frente.add(paredes)), visual: [{ m: frente, mat: 1 }, { m: paredes, mat: 0 }], voltear: true, mueve: 0 },
+            { nombre: 'tapa trasera', mat: 0, exportar: trasera, visual: [{ m: trasera, mat: 0 }], voltear: false, mueve: -1 },
+          ]
+        }
+
+        const sobre = p.modo === 'tapa'
+        const hCuerpo = sobre ? p.prof - p.tapa : p.prof
         let cuerpo = g(g(S.extrude(p.fondo)).add(g(g(pared.extrude(hCuerpo - p.fondo)).translate([0, 0, p.fondo]))))
 
         const interior = hCuerpo - p.fondo - (sobre ? 0 : 1.8)
@@ -317,6 +345,17 @@
           tapa = g(tapa.add(g(g(labio.extrude(labioAlto)).translate([0, 0, p.prof - p.tapa - labioAlto]))))
         }
 
+        if (labio.isEmpty()) warns.push(`Letra ${n}: no entra el labio; la tapa queda apoyada sin encastre.`)
+        cuerpo = conAgujeros(cuerpo, S, p, p.pared, warns, n)
+        return [
+          { nombre: 'cuerpo', mat: 0, exportar: cuerpo, visual: [{ m: cuerpo, mat: 0 }], voltear: false, mueve: 0 },
+          { nombre: 'tapa', mat: 1, exportar: tapa, visual: [{ m: tapa, mat: 1 }], voltear: true, mueve: 1 },
+        ]
+      }
+
+      // Agujeros de cable y tornillo en la pieza que apoya contra la pared del local.
+      // margen: distancia del borde de la letra a la zona libre (pared, pollera…).
+      function conAgujeros(pieza, S, p, margen, warns, n) {
         // Agujero de cable: lo más cerca del centro de la letra, lejos de la pared
         const b = S.bounds()
         const centro = [(b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2]
@@ -326,14 +365,14 @@
         const rTornillo = (p.tornillo + p.holguraAgujeros) / 2
         const agujeros = []
         if (p.conCable) {
-          const libres = puntosInteriores(S, p.pared + rCable + 1)
+          const libres = puntosInteriores(S, margen + rCable + 1)
           if (libres.length) {
             const pc = libres.reduce((m, q) => (dist(q, centro) < dist(m, centro) ? q : m))
             agujeros.push({ pos: pc, r: rCable })
           } else warns.push(`Letra ${n}: no entra el agujero de Ø${p.cable} mm para el cable.`)
         }
         if (p.tornillos) {
-          const zona = puntosInteriores(S, p.pared + rTornillo + 2)
+          const zona = puntosInteriores(S, margen + rTornillo + 2)
           if (zona.length) {
             const izq = zona.reduce((m, q) => (q[0] < m[0] ? q : m))
             const der = zona.reduce((m, q) => (q[0] > m[0] ? q : m))
@@ -343,17 +382,9 @@
         }
         for (const a of agujeros) {
           const cil = g(g(g(CrossSection.circle(a.r, 40)).translate(a.pos)).extrude(p.fondo + 2))
-          cuerpo = g(cuerpo.subtract(g(cil.translate([0, 0, -1]))))
+          pieza = g(pieza.subtract(g(cil.translate([0, 0, -1]))))
         }
-
-        // Avisos de fabricación
-        const areaS = S.area()
-        if (hueco.area() / areaS < 0.3) warns.push(`Letra ${n}: trazos finos para pared de ${p.pared} mm; casi no queda hueco para el LED.`)
-        if (labio.isEmpty()) warns.push(`Letra ${n}: no entra el labio; la tapa queda apoyada sin encastre.`)
-        const w = b.max[0] - b.min[0], h = b.max[1] - b.min[1]
-        if (Math.max(w, h) > CAMA) warns.push(`Letra ${n} mide ${Math.round(w)}×${Math.round(h)} mm: no entra en una cama de ${CAMA} mm.`)
-
-        return { cuerpo, tapa, agujeros: agujeros.length }
+        return pieza
       }
 
       function malla(m) {
@@ -365,7 +396,7 @@
       }
 
       // ---------- Estado y armado ----------
-      const estado = { origen: 'texto', svg: null, modo: 'tapa', piezas: [], medidas: null }
+      const estado = { origen: 'texto', svg: null, modo: 'trasera', piezas: [], medidas: null }
 
       async function contornoActual() {
         if (estado.origen === 'svg') return estado.svg ? contornoDeSvg(estado.svg) : null
@@ -400,11 +431,17 @@
             const b = S.bounds()
             medidas = { w: b.max[0] - b.min[0], h: b.max[1] - b.min[1], p }
             S.decompose().map(g).forEach((comp, i) => {
-              const r = piezasDeLetra(comp, p, warns, i + 1)
-              piezas.push({ n: i + 1, cuerpo: malla(r.cuerpo), tapa: malla(r.tapa), agujeros: r.agujeros })
+              const partes = piezasDeLetra(comp, p, warns, i + 1).map((pt) => ({
+                nombre: pt.nombre, mat: pt.mat, voltear: pt.voltear, mueve: pt.mueve,
+                exp: malla(pt.exportar),
+                vis: pt.visual.map((v) => ({ malla: malla(v.m), mat: v.mat })),
+              }))
+              piezas.push({ n: i + 1, partes })
             })
-            const interior = libreLed(p) - p.labioAlto
-            if (interior < 15) warns.push(`Quedan ${interior.toFixed(0)} mm libres bajo el labio: con menos de 15–20 mm el LED se ve en puntos.`)
+            // En tapa trasera la pollera va por los costados: el LED usa todo el fondo
+            if (p.modo !== 'trasera' && libreLed(p) - p.labioAlto < 15)
+              warns.push(`Quedan ${(libreLed(p) - p.labioAlto).toFixed(0)} mm libres bajo el labio: con menos de 15–20 mm el LED se ve en puntos.`)
+            if (libreLed(p) < 15) warns.push(`Quedan ${libreLed(p).toFixed(0)} mm entre fondo y frente: con menos de 15–20 mm el LED se ve en puntos.`)
           }
           estado.piezas = piezas
           estado.medidas = medidas
@@ -432,12 +469,13 @@
       function dibujar() {
         for (const m of grupo.children) m.geometry.dispose()
         grupo.clear()
-        for (const pz of estado.piezas) {
-          grupo.add(new THREE.Mesh(geometria(pz.cuerpo), matCuerpo))
-          const tapa = new THREE.Mesh(geometria(pz.tapa), matTapa)
-          tapa.userData.tapa = true
-          grupo.add(tapa)
-        }
+        for (const pz of estado.piezas)
+          for (const parte of pz.partes)
+            for (const v of parte.vis) {
+              const mesh = new THREE.Mesh(geometria(v.malla), v.mat === 1 ? matTapa : matCuerpo)
+              mesh.userData.mueve = parte.mueve
+              grupo.add(mesh)
+            }
         aplicarVista()
         if (estado.medidas && !encuadrado) {
           const { w, h, p } = estado.medidas
@@ -452,7 +490,7 @@
 
       function aplicarVista() {
         const ex = num('explotar')
-        for (const m of grupo.children) if (m.userData.tapa) m.position.z = ex
+        for (const m of grupo.children) m.position.z = ex * m.userData.mueve
         const corte = $('corte').checked && estado.medidas
         planoCorte.constant = corte ? estado.medidas.h / 2 : 0
         matCuerpo.clippingPlanes = matTapa.clippingPlanes = corte ? [planoCorte] : []
@@ -472,29 +510,38 @@
           return
         }
         const p = m.p
-        const libre = libreLed(p) - p.labioAlto
+        const nPiezas = estado.piezas.reduce((s, pz) => s + pz.partes.length, 0)
+        const detalle =
+          p.modo === 'trasera'
+            ? `pollera de ${Math.min(p.labioAlto, libreLed(p) - 1).toFixed(1)} mm por los costados`
+            : `${(libreLed(p) - p.labioAlto).toFixed(1)} mm bajo el labio`
         $('info').innerHTML =
-          `<b>${Math.round(m.w)} × ${Math.round(m.h)} × ${p.prof} mm</b> · ${estado.piezas.length} letra(s), ${estado.piezas.length * 2} piezas<br>` +
-          `Espacio interno para LED: <b>${libreLed(p).toFixed(1)} mm</b> (${libre.toFixed(1)} mm bajo el labio)` +
+          `<b>${Math.round(m.w)} × ${Math.round(m.h)} × ${p.prof} mm</b> · ${estado.piezas.length} letra(s), ${nPiezas} piezas<br>` +
+          `Espacio interno para LED: <b>${libreLed(p).toFixed(1)} mm</b> (${detalle})` +
           warns.map((w) => `<div class="warn">⚠ ${w}</div>`).join('')
       }
 
       // ---------- Exportación (orientación de impresión, Z arriba) ----------
       function paraImprimir() {
         if (!estado.medidas) return []
-        const { h, p } = estado.medidas
+        const { p } = estado.medidas
         const objs = []
-        for (const pz of estado.piezas) {
-          objs.push({ nombre: `Letra ${pz.n} - cuerpo`, mat: 0, ...pz.cuerpo })
-          // Tapa girada 180° en X (labio hacia arriba) y corrida debajo de los cuerpos
-          const pos = new Float32Array(pz.tapa.pos.length)
-          for (let i = 0; i < pos.length; i += 3) {
-            pos[i] = pz.tapa.pos[i]
-            pos[i + 1] = -pz.tapa.pos[i + 1] - 15
-            pos[i + 2] = p.prof - pz.tapa.pos[i + 2]
-          }
-          objs.push({ nombre: `Letra ${pz.n} - tapa`, mat: 1, pos, idx: pz.tapa.idx })
-        }
+        for (const pz of estado.piezas)
+          pz.partes.forEach((parte, orden) => {
+            const { pos: src, idx } = parte.exp
+            let pos = src
+            if (parte.voltear) {
+              // Girada 180° en X (lo que da al frente queda sobre la cama) y corrida
+              // debajo de las demás piezas para que no se pisen
+              pos = new Float32Array(src.length)
+              for (let i = 0; i < pos.length; i += 3) {
+                pos[i] = src[i]
+                pos[i + 1] = -src[i + 1] - 15
+                pos[i + 2] = p.prof - src[i + 2]
+              }
+            }
+            objs.push({ nombre: `Letra ${pz.n} - ${parte.nombre}`, mat: parte.mat, orden, pos, idx })
+          })
         return objs
       }
 
@@ -552,8 +599,10 @@
       const nombreBase = () => (estado.origen === 'svg' ? 'logo' : $('texto').value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'letra') + '-caja'
 
       $('bajar3mf').addEventListener('click', () => descargar(`${nombreBase()}.3mf`, tresMF(paraImprimir())))
-      $('bajarCuerpos').addEventListener('click', () => descargar(`${nombreBase()}-cuerpos.stl`, stl(paraImprimir().filter((o) => o.mat === 0))))
-      $('bajarTapas').addEventListener('click', () => descargar(`${nombreBase()}-tapas.stl`, stl(paraImprimir().filter((o) => o.mat === 1))))
+      // Pieza 1 y pieza 2 de cada letra (cuerpo/tapa o frente/tapa trasera, según el modo)
+      const nombresStl = () => (estado.modo === 'trasera' ? ['frentes', 'tapas-traseras'] : ['cuerpos', 'tapas'])
+      $('bajarCuerpos').addEventListener('click', () => descargar(`${nombreBase()}-${nombresStl()[0]}.stl`, stl(paraImprimir().filter((o) => o.orden === 0))))
+      $('bajarTapas').addEventListener('click', () => descargar(`${nombreBase()}-${nombresStl()[1]}.stl`, stl(paraImprimir().filter((o) => o.orden === 1))))
 
       // ---------- Controles ----------
       const UNIDADES = {
@@ -567,11 +616,27 @@
         $('grupoTornillo').hidden = !$('tornillos').checked
         $('grupoAgujeros').hidden = !$('conCable').checked && !$('tornillos').checked
         $('grupoBorde').hidden = estado.modo !== 'ras'
+        const trasera = estado.modo === 'trasera'
         $('holguraLabioDonde').textContent = estado.modo === 'ras' ? 'borde del escalón' : 'pared interior'
-        $('modoHint').textContent =
-          estado.modo === 'tapa'
-            ? 'La tapa cubre el canto de la pared y el labio entra por dentro.'
-            : 'La tapa queda dentro de la pared, apoyada en un escalón interno.'
+        $('holguraLabio').previousElementSibling.firstChild.textContent = trasera ? 'Pollera ↔ ' : 'Labio ↔ '
+        $('fondoNombre').textContent = trasera ? 'Espesor de tapa trasera' : 'Espesor de fondo'
+        $('tapaNombre').textContent = trasera ? 'Espesor del frente' : 'Espesor de tapa'
+        $('labioAltoNombre').textContent = trasera ? 'Alto de la pollera' : 'Alto del labio'
+        $('labioAnchoNombre').textContent = trasera ? 'Espesor de la pollera' : 'Ancho del labio'
+        $('colorCuerpoNombre').textContent = trasera ? 'Paredes y tapa' : 'Cuerpo'
+        $('colorTapaNombre').textContent = trasera ? 'Frente' : 'Tapa'
+        const [a, b] = nombresStl()
+        $('bajarCuerpos').textContent = `STL ${a.replace('-', ' ')}`
+        $('bajarTapas').textContent = `STL ${b.replace('-', ' ')}`
+        $('modoHint').textContent = {
+          trasera: 'Frente y paredes en una pieza, impresa con el frente sobre la cama (cara lisa). Atrás cierra una tapa con pollera: el LED se instala desde atrás.',
+          tapa: 'La tapa cubre el canto de la pared y el labio entra por dentro.',
+          ras: 'La tapa queda dentro de la pared, apoyada en un escalón interno.',
+        }[estado.modo]
+        // El frente y las paredes son una sola pieza: dos colores solo con cambio de filamento por capa
+        $('notaColor').textContent = trasera
+          ? `Para frente y paredes de distinto color: cambio de filamento en Bambu Studio al terminar los primeros ${$('tapa').value} mm (el frente).`
+          : ''
       }
       let espera = 0
       const pedir = () => {
@@ -593,12 +658,18 @@
       }
       $('usarTexto').addEventListener('click', () => setOrigen('texto'))
       $('usarSvg').addEventListener('click', () => setOrigen('svg'))
+      // Valores de arranque de cada modo: la pollera trasera es alta y gruesa (guía y rigidez),
+      // el labio de las tapas frontales es corto
+      const ARRANQUE = { trasera: { labioAlto: 15, labioAncho: 2, fondo: 1.2 }, tapa: { labioAlto: 4, labioAncho: 1.6, fondo: 2 }, ras: { labioAlto: 4, labioAncho: 1.6, fondo: 2 } }
       const setModo = (m) => {
         estado.modo = m
+        for (const [id, v] of Object.entries(ARRANQUE[m])) $(id).value = v
+        $('modoTrasera').setAttribute('aria-pressed', m === 'trasera')
         $('modoTapa').setAttribute('aria-pressed', m === 'tapa')
         $('modoRas').setAttribute('aria-pressed', m === 'ras')
         pedir()
       }
+      $('modoTrasera').addEventListener('click', () => setModo('trasera'))
       $('modoTapa').addEventListener('click', () => setModo('tapa'))
       $('modoRas').addEventListener('click', () => setModo('ras'))
 
