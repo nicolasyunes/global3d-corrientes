@@ -5,6 +5,7 @@ import {
   DEFAULT_OPTIONS,
   DETAILS,
   fitSize,
+  loadTracer,
   vectorize,
   type Pixels,
   type VectorOptions,
@@ -73,8 +74,10 @@ export default function VectorizeTool() {
   useEffect(() => {
     if (!source) return
     setBusy(true)
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       try {
+        // VTracer (WASM) loads once, the first time an image is traced
+        await loadTracer()
         const mm = Number(widthMm.replace(',', '.')) || null
         setResult(vectorize(source.pixels, { ...options, widthMm: mm }))
         setError('')

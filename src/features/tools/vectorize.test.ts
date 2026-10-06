@@ -1,12 +1,16 @@
-import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { beforeAll, describe, expect, it } from 'vitest'
 import {
-  cleanSvg,
+  buildSvg,
   cornerColor,
   DEFAULT_OPTIONS,
   fitSize,
   flattenAlpha,
+  loadTracerSync,
   nearestIndex,
+  parsePaths,
   posterize,
+  smoothPath,
   quantize,
   thresholdPixels,
   vectorize,
@@ -144,15 +148,27 @@ describe('posterize', () => {
   })
 })
 
-describe('svg cleanup', () => {
-  it('keeps a hex fill and drops the stroke', () => {
-    const raw =
-      '<svg viewBox="0 0 2 2" version="1.1" xmlns="http://www.w3.org/2000/svg" desc="Created with imagetracer.js version 1.2.6" >' +
-      '<path fill="rgb(255,0,16)" stroke="rgb(255,0,16)" stroke-width="0" opacity="1" d="M 0 0 Z" /></svg>'
-    const svg = cleanSvg(raw)
-    expect(svg).toContain('<path fill="#ff0010" d="M 0 0 Z" />')
-    expect(svg).not.toContain('stroke')
-    expect(svg).not.toContain('desc=')
+describe('svg output', () => {
+  it('reads VTracer paths and rebuilds them with a viewBox', () => {
+    const raw = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<!-- Generator: visioncortex VTracer 0.1.0 -->',
+      '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="2" height="2">',
+      '<path d="M0 0 C1 0 1 1 0 1 Z " fill="#FF0010" transform="translate(1,0)"/>',
+      '</svg>',
+    ].join('\n')
+    const paths = parsePaths(raw)
+    expect(paths).toEqual([
+      {
+        d: 'M0 0 C1 0 1 1 0 1 Z ',
+        fill: '#ff0010',
+        transform: 'translate(1,0)',
+      },
+    ])
+    expect(buildSvg(2, 2, paths)).toBe(
+      '<svg viewBox="0 0 2 2" version="1.1" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M0 0 C1 0 1 1 0 1 Z " fill="#ff0010" transform="translate(1,0)"/></svg>',
+    )
   })
 
   it('adds a real size in mm, keeping the aspect ratio', () => {
@@ -162,7 +178,38 @@ describe('svg cleanup', () => {
   })
 })
 
+describe('smoothPath', () => {
+  // Octagon around a circle of radius 10: every turn is 45°, under a 60° corner
+  const octagon = 'M10,0 L17,3 L20,10 L17,17 L10,20 L3,17 L0,10 L3,3 Z'
+
+  it('turns a polygon that approximates a curve into smooth cubics', () => {
+    const d = smoothPath(octagon, 60, 2, 0)
+    expect(d.startsWith('M10 0')).toBe(true)
+    expect(d.match(/C/g)).toHaveLength(8)
+    expect(d).not.toContain('L')
+    expect(d.endsWith('Z')).toBe(true)
+  })
+
+  it('keeps a square sharp: right angles stay corners', () => {
+    const d = smoothPath('M0,0 L20,0 L20,20 L0,20 Z', 60, 2, 2)
+    expect(d).toBe('M0 0L20 0L20 20L0 20L0 0Z')
+  })
+
+  it('handles every subpath (outer outline and holes)', () => {
+    const d = smoothPath(
+      'M0,0 L20,0 L20,20 L0,20 Z M5,5 L15,5 L15,15 L5,15 Z',
+      60,
+      2,
+      2,
+    )
+    expect(d.match(/M/g)).toHaveLength(2)
+  })
+})
+
 describe('vectorize', () => {
+  beforeAll(() =>
+    loadTracerSync(readFileSync('node_modules/vtracer-wasm/vtracer.wasm')),
+  )
   const logo = image(40, 40, WHITE, BLACK, [10, 10, 30, 30])
 
   it('traces a one-color logo into a single shape without the background', () => {

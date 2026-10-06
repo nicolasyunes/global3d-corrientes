@@ -1,4 +1,4 @@
-import ImageTracer from 'imagetracerjs'
+import initVtracer, { initSync, to_svg } from 'vtracer-wasm'
 
 export type VectorMode = 'mono' | 'color'
 export type Detail = 'low' | 'medium' | 'high'
@@ -32,34 +32,63 @@ export const DETAILS: { value: Detail; label: string }[] = [
   { value: 'high', label: 'Máximo' },
 ]
 
-// ltres/qtres: error allowed when fitting lines and curves (lower = closer to
-// the pixels). pathomit: outlines shorter than this many pixels are dropped;
-// 16 clears the 2–4 px blobs left in tight curves, keeping an i-dot at 1000 px.
-const DETAIL_PRESETS: Record<Detail, Record<string, number>> = {
+// VTracer (visioncortex, MIT) via vtracer-wasm. filterSpeckle: patches smaller
+// than this side in px are dropped (dust from anti-aliasing). cornerThreshold:
+// turns sharper than this angle stay corners instead of curves.
+// lengthThreshold: shortest segment before curves are fitted. pathPrecision:
+// decimals in the path data.
+const DETAIL_PRESETS: Record<
+  Detail,
+  {
+    filterSpeckle: number
+    cornerThreshold: number
+    lengthThreshold: number
+    pathPrecision: number
+    // smoothPath passes over the curve vertices
+    smooth: number
+  }
+> = {
   low: {
-    ltres: 2,
-    qtres: 2,
-    pathomit: 32,
-    roundcoords: 1,
+    filterSpeckle: 8,
+    cornerThreshold: 70,
+    lengthThreshold: 6,
+    pathPrecision: 1,
+    smooth: 3,
   },
   medium: {
-    ltres: 1,
-    qtres: 1,
-    pathomit: 16,
-    roundcoords: 1,
+    filterSpeckle: 4,
+    cornerThreshold: 60,
+    lengthThreshold: 4,
+    pathPrecision: 2,
+    smooth: 2,
   },
   high: {
-    ltres: 0.5,
-    qtres: 0.5,
-    pathomit: 6,
-    roundcoords: 2,
+    filterSpeckle: 2,
+    cornerThreshold: 55,
+    lengthThreshold: 3.5,
+    pathPrecision: 2,
+    smooth: 1,
   },
 }
 
-export const MAX_SIDE = 1000
+// The tracer is a WASM module: load it once before calling vectorize().
+let tracerReady: Promise<void> | null = null
+export function loadTracer(): Promise<void> {
+  tracerReady ??= import('vtracer-wasm/vtracer.wasm?url').then(
+    async ({ default: url }) => {
+      await initVtracer({ module_or_path: url })
+    },
+  )
+  return tracerReady
+}
 
-// px² of bounding box; smaller shapes are dropped as specks.
-const MIN_SHAPE_AREA = 20
+// Tests (Node) hand over the .wasm bytes directly.
+export function loadTracerSync(bytes: BufferSource) {
+  initSync({ module: bytes })
+  tracerReady = Promise.resolve()
+}
+
+export const MAX_SIDE = 1000
 
 export interface Rgba {
   r: number
@@ -135,17 +164,130 @@ export function nearestIndex(palette: Rgba[], c: Rgba): number {
 }
 
 const hex = (n: number) => n.toString(16).padStart(2, '0')
+const toHex = (c: Rgba) => `#${hex(c.r)}${hex(c.g)}${hex(c.b)}`
 
-// imagetracer writes fill + matching stroke + opacity on every path; 3D tools
-// ignore strokes and the stroke fattens shapes in browsers. Keep a hex fill only.
-export function cleanSvg(svg: string): string {
-  return svg
-    .replace(
-      /fill="rgb\((\d+),(\d+),(\d+)\)" stroke="[^"]*" stroke-width="[^"]*" opacity="([^"]*)" /g,
-      (_m, r, g, b, op) =>
-        `fill="#${hex(+r)}${hex(+g)}${hex(+b)}"${Number(op) < 1 ? ` opacity="${op}"` : ''} `,
+export interface TracedPath {
+  d: string
+  fill: string
+  transform: string | null
+}
+
+// VTracer writes one <path d fill transform> per shape, plus a generator
+// comment and a fixed pixel size. Read the shapes back so the SVG can be
+// rebuilt with a viewBox (scalable, and sized in mm on request).
+export function parsePaths(svg: string): TracedPath[] {
+  return [...svg.matchAll(/<path\b([^>]*?)\/?>/g)].map(([, attrs]) => {
+    const attr = (name: string) =>
+      new RegExp(`\\b${name}="([^"]*)"`).exec(attrs)?.[1] ?? null
+    return {
+      d: attr('d') ?? '',
+      fill: (attr('fill') ?? '#000000').toLowerCase(),
+      transform: attr('transform'),
+    }
+  })
+}
+
+// The spline output of this VTracer build comes out garbled, so it traces
+// polygons (clean, staircase-free outlines) and the curves are fitted here:
+// every vertex where the outline turns more than `cornerDeg` stays a sharp
+// corner; through the rest passes a smooth cubic (Catmull-Rom → Bézier), the
+// way Potrace rounds a logo. Works on each closed subpath ("M … L … Z").
+export function smoothPath(
+  d: string,
+  cornerDeg: number,
+  decimals: number,
+  passes = 2,
+) {
+  const f = (n: number) => String(Number(n.toFixed(decimals)))
+  const corner = Math.cos((cornerDeg * Math.PI) / 180)
+  return d
+    .split(/(?=M)/)
+    .map((sub) => {
+      const nums = sub.match(/-?\d*\.?\d+(?:e-?\d+)?/gi)?.map(Number) ?? []
+      let pts: [number, number][] = []
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        const p: [number, number] = [nums[i], nums[i + 1]]
+        // Vertices less than a pixel apart only add wobble
+        const last = pts[pts.length - 1]
+        if (!last || Math.hypot(p[0] - last[0], p[1] - last[1]) >= 1)
+          pts.push(p)
+      }
+      if (pts.length > 3) {
+        const [fx, fy] = pts[0],
+          [lx, ly] = pts[pts.length - 1]
+        if (Math.hypot(fx - lx, fy - ly) < 1) pts.pop()
+      }
+      const n = pts.length
+      if (n < 3) return sub.trim()
+      const at = (i: number) => pts[(i + n) % n]
+      // Is the outline turning sharply at vertex i? The direction in and out is
+      // taken against the first vertices at least 2.5 px away, so a short
+      // jog in a curve isn't read as a corner.
+      const lejos = (i: number, paso: number) => {
+        const [x0, y0] = at(i)
+        for (let k = 1; k < n; k++) {
+          const q = at(i + k * paso)
+          if (Math.hypot(q[0] - x0, q[1] - y0) >= 2.5) return q
+        }
+        return at(i + paso)
+      }
+      const sharp = pts.map((_, i) => {
+        const [ax, ay] = lejos(i, -1),
+          [bx, by] = at(i),
+          [cx, cy] = lejos(i, 1)
+        const ux = bx - ax,
+          uy = by - ay,
+          vx = cx - bx,
+          vy = cy - by
+        const l = Math.hypot(ux, uy) * Math.hypot(vx, vy) || 1
+        return (ux * vx + uy * vy) / l < corner
+      })
+      // Smoothing passes on the curve vertices (each one moves halfway to
+      // the midpoint of its neighbors) even out the polygon's uneven steps.
+      // Corners don't move.
+      for (let pasada = 0; pasada < passes; pasada++)
+        pts = pts.map((p, i) => {
+          if (sharp[i]) return p
+          const [ax, ay] = at(i - 1),
+            [cx, cy] = at(i + 1)
+          return [p[0] / 2 + (ax + cx) / 4, p[1] / 2 + (ay + cy) / 4]
+        })
+      // Tangent at each vertex (zero on corners, so the curve meets it straight)
+      const tan = pts.map((_, i) => {
+        if (sharp[i]) return [0, 0]
+        const [ax, ay] = at(i - 1),
+          [cx, cy] = at(i + 1)
+        return [(cx - ax) / 6, (cy - ay) / 6]
+      })
+      let out = `M${f(pts[0][0])} ${f(pts[0][1])}`
+      for (let i = 0; i < n; i++) {
+        const [bx, by] = at(i),
+          [cx, cy] = at(i + 1)
+        const t0 = tan[i],
+          t1 = tan[(i + 1) % n]
+        if (!t0[0] && !t0[1] && !t1[0] && !t1[1]) {
+          out += `L${f(cx)} ${f(cy)}`
+          continue
+        }
+        out += `C${f(bx + t0[0])} ${f(by + t0[1])} ${f(cx - t1[0])} ${f(cy - t1[1])} ${f(cx)} ${f(cy)}`
+      }
+      return out + 'Z'
+    })
+    .join('')
+}
+
+export function buildSvg(
+  width: number,
+  height: number,
+  paths: TracedPath[],
+): string {
+  const body = paths
+    .map(
+      (p) =>
+        `<path d="${p.d}" fill="${p.fill}"${p.transform ? ` transform="${p.transform}"` : ''}/>`,
     )
-    .replace(/ desc="[^"]*"/, '')
+    .join('')
+  return `<svg viewBox="0 0 ${width} ${height}" version="1.1" xmlns="http://www.w3.org/2000/svg">${body}</svg>`
 }
 
 export function withPhysicalSize(
@@ -286,47 +428,62 @@ export function vectorize(px: Pixels, options: VectorOptions): VectorResult {
         { r: 255, g: 255, b: 255, a: 255 },
       ]
     : quantize(flat, Math.min(Math.max(options.colors, 2), 16))
+  // Posterized first: every pixel is exactly a palette color, without the
+  // anti-aliasing slivers, so VTracer only has to follow the edges.
   const input = posterize(flat, pal)
-  const traceOptions = {
-    ...DETAIL_PRESETS[options.detail],
-    viewbox: true,
-    strokewidth: 0,
-    rightangleenhance: true,
-    // A fixed palette and one cycle: imagetracer only assigns pixels to it.
-    colorquantcycles: 1,
-    colorsampling: 0,
-    pal,
-    // The input is already posterized: blurring would bring back the in-between
-    // colors that turn into specks.
-    blurradius: 0,
-  }
-  const data = ImageTracer.imagedataToTracedata(input, traceOptions)
-  const palette = data.palette as Rgba[]
-  // Blobs of a few pixels survive in tight curves; they'd print as dust.
-  // Marking them as holes makes getsvgstring skip them without reindexing.
-  for (const layer of data.layers)
-    for (const path of layer) {
-      const [x0, y0, x1, y1] = path.boundingbox
-      if (!path.isholepath && (x1 - x0) * (y1 - y0) < MIN_SHAPE_AREA)
-        path.isholepath = true
+  const preset = DETAIL_PRESETS[options.detail]
+  const raw = to_svg(new Uint8Array(input.data.buffer), px.width, px.height, {
+    filterSpeckle: preset.filterSpeckle,
+    cornerThreshold: preset.cornerThreshold,
+    lengthThreshold: preset.lengthThreshold,
+    pathPrecision: preset.pathPrecision,
+    binary: false,
+    // Polygons, and the curves fitted by smoothPath (see there why)
+    mode: 'polygon',
+    // Cutout: each color is its own shape with holes, nothing overlaps.
+    // Removing the background then leaves real holes (the inside of an O), and
+    // each shape can be extruded on its own.
+    hierarchical: 'cutout',
+    spliceThreshold: 45,
+    maxIterations: 10,
+    // In this build it's the number of color bits dropped: 0 keeps the palette.
+    colorPrecision: 0,
+    layerDifference: 1,
+  })
+  // VTracer averages each patch, so a fill can land a step off its palette
+  // color: snap it back, so the background is recognized and colors stay clean.
+  const traced = parsePaths(raw).map((p) => {
+    const n = parseInt(p.fill.slice(1), 16)
+    const i = nearestIndex(pal, {
+      r: n >> 16,
+      g: (n >> 8) & 255,
+      b: n & 255,
+      a: 255,
+    })
+    return {
+      ...p,
+      d: smoothPath(
+        p.d,
+        preset.cornerThreshold,
+        preset.pathPrecision,
+        preset.smooth,
+      ),
+      fill: toHex(pal[i]),
+      index: i,
     }
-
-  // Colors left in the SVG: not the removed background, nor colors whose areas
-  // were all smaller than the speck filters.
-  const used = (i: number) => data.layers[i].some((p) => !p.isholepath)
-
-  if (options.removeBackground) {
-    const bg = mono ? 1 : nearestIndex(palette, cornerColor(input))
-    data.layers[bg] = []
-  }
+  })
+  const bg = mono ? 1 : nearestIndex(pal, cornerColor(input))
+  const kept = options.removeBackground
+    ? traced.filter((p) => p.index !== bg)
+    : traced
   const svg = withPhysicalSize(
-    cleanSvg(ImageTracer.getsvgstring(data, traceOptions)),
+    buildSvg(px.width, px.height, kept),
     px.width,
     px.height,
     options.widthMm,
   )
-  const colors = palette.flatMap((c, i) =>
-    used(i) ? [`#${hex(c.r)}${hex(c.g)}${hex(c.b)}`] : [],
-  )
-  return { svg, paths: (svg.match(/<path /g) ?? []).length, colors }
+  // Colors left in the SVG, in palette order
+  const used = new Set(kept.map((p) => p.index))
+  const colors = pal.flatMap((c, i) => (used.has(i) ? [toHex(c)] : []))
+  return { svg, paths: kept.length, colors }
 }
