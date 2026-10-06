@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Letra caja</title>
+    <!-- SVGLoader importa "three" a secas: el import map lo resuelve al mismo módulo -->
+    <script type="importmap">
+      { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+    </script>
+    <style>
+      :root {
+        --bg: #f6f5f2;
+        --panel: #ffffff;
+        --ink: #1b1b1b;
+        --muted: #6b6b6b;
+        --line: #e2e0da;
+        --accent: #f37021;
+        --warn: #b4420f;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      .app { display: grid; grid-template-columns: 1fr 360px; height: 100vh; }
+      @media (max-width: 860px) { .app { grid-template-columns: 1fr; height: auto; } #view { height: 60vh; } }
+      #view { position: relative; min-height: 360px; background: radial-gradient(circle at 50% 35%, #8d8a84, #4a4844); }
+      .overlay { color: #e9e6df; }
+      #view canvas { display: block; width: 100%; height: 100%; }
+      .overlay { position: absolute; left: 16px; right: 16px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 12px; color: var(--muted); pointer-events: none; }
+      .overlay > * { pointer-events: auto; }
+      .busy { position: absolute; top: 14px; left: 16px; padding: 4px 10px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 700; }
+      aside { background: var(--panel); border-left: 1px solid var(--line); padding: 20px; overflow-y: auto; }
+      h1 { font-size: 20px; margin: 0 0 4px; }
+      .lead { color: var(--muted); margin: 0 0 8px; font-size: 13px; }
+      h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 6px; padding-top: 14px; border-top: 1px solid var(--line); }
+      label { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 13px; margin: 10px 0 2px; }
+      label span { color: var(--muted); font-weight: 400; }
+      input[type=range] { width: 100%; accent-color: var(--accent); }
+      input[type=text], select { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: #fff; }
+      .seg { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: #efebe4; margin-top: 4px; }
+      .seg button { border: 0; background: transparent; border-radius: 999px; padding: 6px 12px; font: inherit; font-weight: 700; font-size: 12px; color: var(--muted); cursor: pointer; }
+      .seg button[aria-pressed=true] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+      .check { display: flex; gap: 8px; align-items: center; justify-content: flex-start; font-weight: 600; }
+      .check input { accent-color: var(--accent); }
+      .drop { border: 2px dashed var(--line); border-radius: 10px; padding: 12px; text-align: center; cursor: pointer; color: var(--muted); font-size: 13px; margin-top: 8px; }
+      .drop.over { border-color: var(--accent); }
+      .drop b { color: var(--ink); }
+      .swatches { display: flex; gap: 14px; margin-top: 8px; }
+      .swatches label { flex-direction: column; align-items: center; gap: 2px; margin: 0; font-weight: 400; font-size: 11px; color: var(--muted); }
+      input[type=color] { width: 40px; height: 30px; border: 1px solid var(--line); border-radius: 6px; padding: 2px; background: #fff; cursor: pointer; }
+      .info { margin-top: 12px; font-size: 13px; color: var(--muted); }
+      .info b { color: var(--ink); }
+      .warn { color: var(--warn); margin-top: 4px; }
+      .actions { display: grid; gap: 8px; margin-top: 16px; }
+      button.btn { font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 14px; cursor: pointer; border: 1px solid var(--ink); background: var(--panel); color: var(--ink); }
+      button.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+      button.btn:disabled { opacity: .5; cursor: wait; }
+      .hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div id="view">
+        <span class="busy" id="busy" hidden>Calculando…</span>
+        <div class="overlay">
+          <label class="check" style="margin:0">Separar piezas <input type="range" id="explotar" min="0" max="80" value="0" style="width:120px" /></label>
+          <label class="check" style="margin:0"><input type="checkbox" id="corte" /> Ver corte</label>
+          <label class="check" style="margin:0"><input type="checkbox" id="encendido" /> LED encendido</label>
+        </div>
+      </div>
+      <aside>
+        <h1>Letra caja</h1>
+        <p class="lead">Frente impreso con encastre y LED interno. Cuerpo (pared + fondo) y tapa salen como piezas separadas.</p>
+
+        <h2>Contenido</h2>
+        <div class="seg" role="group" aria-label="Origen">
+          <button type="button" id="usarTexto" aria-pressed="true">Texto</button>
+          <button type="button" id="usarSvg" aria-pressed="false">SVG</button>
+        </div>
+        <div id="panelTexto">
+          <label for="texto">Texto</label>
+          <input type="text" id="texto" value="G3D" maxlength="24" />
+          <label for="fuente">Tipografía</label>
+          <select id="fuente">
+            <option value="montserrat">Montserrat ExtraBold</option>
+            <option value="anton">Anton</option>
+            <option value="bebas">Bebas Neue</option>
+            <option value="poppins">Poppins Bold</option>
+            <option value="pacifico">Pacifico (cursiva unida)</option>
+          </select>
+          <label for="espaciado">Espaciado <span id="espaciadoV"></span></label>
+          <input type="range" id="espaciado" min="0" max="40" step="1" value="10" />
+        </div>
+        <div id="panelSvg" hidden>
+          <div class="drop" id="drop" tabindex="0" role="button"><b>Subir SVG</b><br /><span id="svgNombre">formas rellenas, un color</span></div>
+          <input type="file" id="file" accept=".svg,image/svg+xml" hidden />
+          <p class="hint">Para PNG o JPG, primero pasalo por Herramientas → Imagen a SVG.</p>
+        </div>
+
+        <h2>Tamaño</h2>
+        <label for="alto">Alto de la letra <span id="altoV"></span></label>
+        <input type="range" id="alto" min="40" max="400" step="5" value="150" />
+        <label for="prof">Profundidad total <span id="profV"></span></label>
+        <input type="range" id="prof" min="20" max="100" step="1" value="40" />
+
+        <h2>Cuerpo</h2>
+        <label for="pared">Espesor de pared <span id="paredV"></span></label>
+        <input type="range" id="pared" min="1.2" max="4" step="0.2" value="2" />
+        <label for="fondo">Espesor de fondo <span id="fondoV"></span></label>
+        <input type="range" id="fondo" min="1.2" max="4" step="0.2" value="2" />
+
+        <h2>Tapa y encastre</h2>
+        <div class="seg" role="group" aria-label="Tipo de tapa">
+          <button type="button" id="modoTapa" aria-pressed="true">Sobre la pared</button>
+          <button type="button" id="modoRas" aria-pressed="false">Al ras (apoyo)</button>
+        </div>
+        <p class="hint" id="modoHint"></p>
+        <label for="tapa">Espesor de tapa <span id="tapaV"></span></label>
+        <input type="range" id="tapa" min="0.8" max="4" step="0.2" value="1.6" />
+        <label for="labioAlto">Alto del labio <span id="labioAltoV"></span></label>
+        <input type="range" id="labioAlto" min="2" max="10" step="0.5" value="4" />
+        <label for="labioAncho">Ancho del labio <span id="labioAnchoV"></span></label>
+        <input type="range" id="labioAncho" min="0.8" max="3" step="0.2" value="1.6" />
+
+        <h2>LED y montaje</h2>
+        <label class="check"><input type="checkbox" id="conCable" checked /> Agujero para cable (1 por letra)</label>
+        <div id="grupoCable">
+          <label for="cable">Cable Ø <span id="cableV"></span></label>
+          <input type="range" id="cable" min="3" max="12" step="0.5" value="6" />
+        </div>
+        <label class="check"><input type="checkbox" id="tornillos" checked /> Agujeros para tornillo (2 por letra)</label>
+        <div id="grupoTornillo">
+          <label for="tornillo">Tornillo Ø <span id="tornilloV"></span></label>
+          <input type="range" id="tornillo" min="3" max="6" step="0.5" value="4" />
+        </div>
+
+        <h2>Tolerancias de contacto</h2>
+        <p class="hint">Juego que se deja en cada lugar donde una pieza toca a otra. Calibralas con una letra de prueba para tu impresora y filamento.</p>
+        <label for="holguraLabio">Labio ↔ <span id="holguraLabioDonde">pared interior</span> <span id="holguraLabioV"></span></label>
+        <input type="range" id="holguraLabio" min="0" max="0.8" step="0.05" value="0.2" />
+        <div id="grupoBorde">
+          <label for="holguraBorde">Borde de la tapa ↔ pared interior <span id="holguraBordeV"></span></label>
+          <input type="range" id="holguraBorde" min="0" max="0.8" step="0.05" value="0.2" />
+        </div>
+        <div id="grupoAgujeros">
+          <label for="holguraAgujeros">Agujeros (se agrandan) <span id="holguraAgujerosV"></span></label>
+          <input type="range" id="holguraAgujeros" min="0" max="1" step="0.05" value="0.3" />
+        </div>
+
+        <h2>Colores</h2>
+        <div class="swatches">
+          <label>Cuerpo<input type="color" id="colorCuerpo" value="#1d1d1b" /></label>
+          <label>Tapa<input type="color" id="colorTapa" value="#f4f1ea" /></label>
+        </div>
+
+        <div class="info" id="info"></div>
+
+        <div class="actions">
+          <button class="btn primary" id="bajar3mf">Descargar 3MF (todas las piezas)</button>
+          <button class="btn" id="bajarCuerpos">STL cuerpos</button>
+          <button class="btn" id="bajarTapas">STL tapas</button>
+        </div>
+        <p class="hint">Las piezas salen orientadas para imprimir: cuerpo con el fondo en la cama y tapa boca abajo (labio hacia arriba). Sin soportes.</p>
+      </aside>
+    </div>
+
+    <script type="module">
+      const T = 'https://cdn.jsdelivr.net/npm/three@0.170.0'
+      const THREE = await import(`${T}/build/three.module.js`)
+      const { OrbitControls } = await import(`${T}/examples/jsm/controls/OrbitControls.js`)
+      const { RoomEnvironment } = await import(`${T}/examples/jsm/environments/RoomEnvironment.js`)
+      const { SVGLoader } = await import(`${T}/examples/jsm/loaders/SVGLoader.js`)
+      const { zipSync, strToU8 } = await import(`${T}/examples/jsm/libs/fflate.module.js`)
+      const opentype = (await import('https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.module.js')).default
+      const Module = (await import('https://cdn.jsdelivr.net/npm/manifold-3d@3.5.4/manifold.js')).default
+      const wasm = await Module()
+      wasm.setup()
+      const { CrossSection, Manifold } = wasm
+
+      const FUENTES = {
+        montserrat: 'https://cdn.jsdelivr.net/npm/@fontsource/montserrat@5/files/montserrat-latin-800-normal.woff',
+        anton: 'https://cdn.jsdelivr.net/npm/@fontsource/anton@5/files/anton-latin-400-normal.woff',
+        bebas: 'https://cdn.jsdelivr.net/npm/@fontsource/bebas-neue@5/files/bebas-neue-latin-400-normal.woff',
+        poppins: 'https://cdn.jsdelivr.net/npm/@fontsource/poppins@5/files/poppins-latin-700-normal.woff',
+        pacifico: 'https://cdn.jsdelivr.net/npm/@fontsource/pacifico@5/files/pacifico-latin-400-normal.woff',
+      }
+      // Cama de Bambu X1/P1: una letra más grande hay que cortarla
+      const CAMA = 256
+
+      const $ = (id) => document.getElementById(id)
+      const num = (id) => Number($(id).value)
+
+      // ---------- Escena (Y arriba: la letra parada, mirando a +Z) ----------
+      const view = $('view')
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+      renderer.toneMapping = THREE.NeutralToneMapping
+      renderer.localClippingEnabled = true
+      view.prepend(renderer.domElement)
+      const scene = new THREE.Scene()
+      scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture
+      const camera = new THREE.PerspectiveCamera(30, 1, 1, 10000)
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      const luz = new THREE.DirectionalLight(0xffffff, 1.2)
+      luz.position.set(200, 400, 500)
+      scene.add(luz)
+
+      // Corte horizontal a media altura: deja ver pared, labio y tapa de perfil
+      const planoCorte = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)
+      const matCuerpo = new THREE.MeshStandardMaterial({ color: $('colorCuerpo').value, roughness: 0.55, side: THREE.DoubleSide })
+      const matTapa = new THREE.MeshStandardMaterial({ color: $('colorTapa').value, roughness: 0.45, side: THREE.DoubleSide })
+      const grupo = new THREE.Group()
+      scene.add(grupo)
+
+      function ajustar() {
+        const { clientWidth: w, clientHeight: h } = view
+        renderer.setSize(w, h, false)
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+      }
+      new ResizeObserver(ajustar).observe(view)
+      renderer.setAnimationLoop(() => {
+        controls.update()
+        renderer.render(scene, camera)
+      })
+
+      // ---------- Memoria WASM: todo objeto de manifold se libera al terminar ----------
+      let basura = []
+      const g = (o) => (basura.push(o), o)
+      const liberar = () => {
+        for (const o of basura) o.delete()
+        basura = []
+      }
+
+      // ---------- Contorno 2D ----------
+      const fuentes = new Map()
+      async function fuente(id) {
+        if (!fuentes.has(id)) fuentes.set(id, fetch(FUENTES[id]).then((r) => r.arrayBuffer()).then((b) => opentype.parse(b)))
+        return fuentes.get(id)
+      }
+
+      function svgDeTexto(font, texto, espaciadoPct) {
+        const size = 100
+        const k = size / font.unitsPerEm
+        const glifos = font.stringToGlyphs(texto)
+        let x = 0
+        const d = glifos.map((gl, i) => {
+          const pd = gl.getPath(x, 0, size).toPathData(2)
+          x += gl.advanceWidth * k + (espaciadoPct / 100) * size * 0.7
+          if (i < glifos.length - 1) x += font.getKerningValue(gl, glifos[i + 1]) * k
+          return pd
+        })
+        return `<svg xmlns="http://www.w3.org/2000/svg"><path fill-rule="nonzero" d="${d.join(' ')}"/></svg>`
+      }
+
+      // SVG → CrossSection (Y hacia arriba), respetando el fill-rule de cada path
+      function contornoDeSvg(svgTexto) {
+        const data = new SVGLoader().parse(svgTexto)
+        const partes = []
+        for (const path of data.paths) {
+          const st = path.userData?.style ?? {}
+          if (st.fill === 'none' || st.fill === 'transparent') continue
+          const polys = path.subPaths.map((sp) => sp.getPoints(16).map((p) => [p.x, -p.y])).filter((p) => p.length >= 3)
+          if (polys.length) partes.push(g(new CrossSection(polys, st.fillRule === 'evenodd' ? 'EvenOdd' : 'NonZero')))
+        }
+        if (!partes.length) return null
+        const todo = g(CrossSection.union(partes))
+        return todo.isEmpty() ? null : todo
+      }
+
+      // Escala a la altura pedida, centrado en X y con la base en Y=0
+      function normalizar(cs, alto) {
+        const b = cs.bounds()
+        const s = alto / (b.max[1] - b.min[1])
+        return g(g(cs.translate([-(b.min[0] + b.max[0]) / 2, -b.min[1]])).scale(s))
+      }
+
+      // Punto dentro de la forma a una distancia >= d del borde (vértices del contorno erosionado)
+      function puntosInteriores(S, d) {
+        const E = g(S.offset(-d, 'Round'))
+        if (E.isEmpty()) return []
+        return E.toPolygons().flat()
+      }
+
+      // ---------- Piezas 3D (Z = profundidad; frente en Z = prof) ----------
+      function piezasDeLetra(S, p, warns, n) {
+        const sobre = p.modo === 'tapa'
+        const hCuerpo = sobre ? p.prof - p.tapa : p.prof
+        const hueco = g(S.offset(-p.pared, 'Round'))
+        const pared = g(S.subtract(hueco))
+        let cuerpo = g(g(S.extrude(p.fondo)).add(g(g(pared.extrude(hCuerpo - p.fondo)).translate([0, 0, p.fondo]))))
+
+        const interior = hCuerpo - p.fondo - (sobre ? 0 : 1.8)
+        const labioAlto = Math.min(p.labioAlto, interior - 2)
+
+        let contornoTapa, labioExt
+        if (sobre) {
+          // La tapa cubre el canto de la pared; el labio entra con holgura por dentro
+          contornoTapa = S
+          labioExt = g(S.offset(-(p.pared + p.holguraLabio), 'Round'))
+        } else {
+          // Apoyo escalonado (3 escalones de 0,6 mm ≈ 40°): se imprime sin soportes
+          const apoyo = 1.5
+          const zTop = p.prof - p.tapa
+          for (let k = 1; k <= 3; k++) {
+            const ancho = (apoyo * (4 - k)) / 3
+            const anillo = g(hueco.subtract(g(hueco.offset(-ancho, 'Round'))))
+            cuerpo = g(cuerpo.add(g(g(anillo.extrude(0.6)).translate([0, 0, zTop - 0.6 * k]))))
+          }
+          // Dos contactos: el borde de la tapa con la pared y el labio con el borde del escalón
+          contornoTapa = g(hueco.offset(-p.holguraBorde, 'Round'))
+          labioExt = g(hueco.offset(-(apoyo + p.holguraLabio), 'Round'))
+        }
+        const labio = g(labioExt.subtract(g(labioExt.offset(-p.labioAncho, 'Round'))))
+        let tapa = g(g(contornoTapa.extrude(p.tapa)).translate([0, 0, p.prof - p.tapa]))
+        if (!labio.isEmpty() && labioAlto > 0.5) {
+          tapa = g(tapa.add(g(g(labio.extrude(labioAlto)).translate([0, 0, p.prof - p.tapa - labioAlto]))))
+        }
+
+        // Agujero de cable: lo más cerca del centro de la letra, lejos de la pared
+        const b = S.bounds()
+        const centro = [(b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2]
+        const dist = (a, c) => Math.hypot(a[0] - c[0], a[1] - c[1])
+        // Radio real del agujero: nominal + la tolerancia (los agujeros impresos salen más chicos)
+        const rCable = (p.cable + p.holguraAgujeros) / 2
+        const rTornillo = (p.tornillo + p.holguraAgujeros) / 2
+        const agujeros = []
+        if (p.conCable) {
+          const libres = puntosInteriores(S, p.pared + rCable + 1)
+          if (libres.length) {
+            const pc = libres.reduce((m, q) => (dist(q, centro) < dist(m, centro) ? q : m))
+            agujeros.push({ pos: pc, r: rCable })
+          } else warns.push(`Letra ${n}: no entra el agujero de Ø${p.cable} mm para el cable.`)
+        }
+        if (p.tornillos) {
+          const zona = puntosInteriores(S, p.pared + rTornillo + 2)
+          if (zona.length) {
+            const izq = zona.reduce((m, q) => (q[0] < m[0] ? q : m))
+            const der = zona.reduce((m, q) => (q[0] > m[0] ? q : m))
+            const lejos = (q) => agujeros.every((a) => dist(a.pos, q) > a.r + rTornillo + 4)
+            for (const q of dist(izq, der) > 15 ? [izq, der] : [izq]) if (lejos(q)) agujeros.push({ pos: q, r: rTornillo })
+          } else warns.push(`Letra ${n}: no entran los agujeros de tornillo.`)
+        }
+        for (const a of agujeros) {
+          const cil = g(g(g(CrossSection.circle(a.r, 40)).translate(a.pos)).extrude(p.fondo + 2))
+          cuerpo = g(cuerpo.subtract(g(cil.translate([0, 0, -1]))))
+        }
+
+        // Avisos de fabricación
+        const areaS = S.area()
+        if (hueco.area() / areaS < 0.3) warns.push(`Letra ${n}: trazos finos para pared de ${p.pared} mm; casi no queda hueco para el LED.`)
+        if (labio.isEmpty()) warns.push(`Letra ${n}: no entra el labio; la tapa queda apoyada sin encastre.`)
+        const w = b.max[0] - b.min[0], h = b.max[1] - b.min[1]
+        if (Math.max(w, h) > CAMA) warns.push(`Letra ${n} mide ${Math.round(w)}×${Math.round(h)} mm: no entra en una cama de ${CAMA} mm.`)
+
+        return { cuerpo, tapa, agujeros: agujeros.length }
+      }
+
+      function malla(m) {
+        const mesh = m.getMesh()
+        const n = mesh.numVert ?? mesh.vertProperties.length / mesh.numProp
+        const pos = new Float32Array(n * 3)
+        for (let i = 0; i < n; i++) for (let j = 0; j < 3; j++) pos[i * 3 + j] = mesh.vertProperties[i * mesh.numProp + j]
+        return { pos, idx: new Uint32Array(mesh.triVerts) }
+      }
+
+      // ---------- Estado y armado ----------
+      const estado = { origen: 'texto', svg: null, modo: 'tapa', piezas: [], medidas: null }
+
+      async function contornoActual() {
+        if (estado.origen === 'svg') return estado.svg ? contornoDeSvg(estado.svg) : null
+        const texto = $('texto').value.trim()
+        if (!texto) return null
+        return contornoDeSvg(svgDeTexto(await fuente($('fuente').value), texto, num('espaciado')))
+      }
+
+      const params = () => ({
+        alto: num('alto'), prof: num('prof'), pared: num('pared'), fondo: num('fondo'),
+        tapa: num('tapa'), labioAlto: num('labioAlto'), labioAncho: num('labioAncho'),
+        holguraLabio: num('holguraLabio'), holguraBorde: num('holguraBorde'), holguraAgujeros: num('holguraAgujeros'),
+        conCable: $('conCable').checked, cable: num('cable'),
+        tornillos: $('tornillos').checked, tornillo: num('tornillo'), modo: estado.modo,
+      })
+
+      let version = 0
+      let encuadrado = false
+      async function reconstruir() {
+        const v = ++version
+        $('busy').hidden = false
+        await new Promise((r) => setTimeout(r, 30))
+        try {
+          const base = await contornoActual()
+          if (v !== version) return
+          const warns = []
+          const piezas = []
+          let medidas = null
+          if (base) {
+            const p = params()
+            const S = normalizar(base, p.alto)
+            const b = S.bounds()
+            medidas = { w: b.max[0] - b.min[0], h: b.max[1] - b.min[1], p }
+            S.decompose().map(g).forEach((comp, i) => {
+              const r = piezasDeLetra(comp, p, warns, i + 1)
+              piezas.push({ n: i + 1, cuerpo: malla(r.cuerpo), tapa: malla(r.tapa), agujeros: r.agujeros })
+            })
+            const interior = libreLed(p) - p.labioAlto
+            if (interior < 15) warns.push(`Quedan ${interior.toFixed(0)} mm libres bajo el labio: con menos de 15–20 mm el LED se ve en puntos.`)
+          }
+          estado.piezas = piezas
+          estado.medidas = medidas
+          dibujar()
+          informar(warns)
+        } catch (e) {
+          console.error(e)
+          $('info').innerHTML = `<div class="warn">No se pudo generar: ${e.message}</div>`
+        } finally {
+          liberar()
+          if (v === version) $('busy').hidden = true
+        }
+      }
+
+      function geometria({ pos, idx }) {
+        const geo = new THREE.BufferGeometry()
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+        geo.setIndex(new THREE.BufferAttribute(idx, 1))
+        const plana = geo.toNonIndexed()
+        plana.computeVertexNormals()
+        geo.dispose()
+        return plana
+      }
+
+      function dibujar() {
+        for (const m of grupo.children) m.geometry.dispose()
+        grupo.clear()
+        for (const pz of estado.piezas) {
+          grupo.add(new THREE.Mesh(geometria(pz.cuerpo), matCuerpo))
+          const tapa = new THREE.Mesh(geometria(pz.tapa), matTapa)
+          tapa.userData.tapa = true
+          grupo.add(tapa)
+        }
+        aplicarVista()
+        if (estado.medidas && !encuadrado) {
+          const { w, h, p } = estado.medidas
+          // Distancia para que entre todo el ancho y el alto, según el aspecto del visor
+          const tv = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+          const d = Math.max(h / 2 / tv, w / 2 / (tv * camera.aspect)) * 1.35 + p.prof
+          camera.position.set(d * 0.35, h / 2 + d * 0.3, d * 0.9)
+          controls.target.set(0, h / 2, p.prof / 2)
+          encuadrado = true
+        }
+      }
+
+      function aplicarVista() {
+        const ex = num('explotar')
+        for (const m of grupo.children) if (m.userData.tapa) m.position.z = ex
+        const corte = $('corte').checked && estado.medidas
+        planoCorte.constant = corte ? estado.medidas.h / 2 : 0
+        matCuerpo.clippingPlanes = matTapa.clippingPlanes = corte ? [planoCorte] : []
+        matCuerpo.needsUpdate = matTapa.needsUpdate = true
+        const on = $('encendido').checked
+        matTapa.emissive.set(on ? '#fff3d6' : '#000000')
+        matTapa.emissiveIntensity = on ? 0.9 : 0
+      }
+
+      // Entre el fondo y la cara interna de la tapa; en los dos modos la tapa ocupa su espesor
+      const libreLed = (p) => p.prof - p.tapa - p.fondo
+
+      function informar(warns) {
+        const m = estado.medidas
+        if (!m) {
+          $('info').innerHTML = 'Escribí un texto o subí un SVG.'
+          return
+        }
+        const p = m.p
+        const libre = libreLed(p) - p.labioAlto
+        $('info').innerHTML =
+          `<b>${Math.round(m.w)} × ${Math.round(m.h)} × ${p.prof} mm</b> · ${estado.piezas.length} letra(s), ${estado.piezas.length * 2} piezas<br>` +
+          `Espacio interno para LED: <b>${libreLed(p).toFixed(1)} mm</b> (${libre.toFixed(1)} mm bajo el labio)` +
+          warns.map((w) => `<div class="warn">⚠ ${w}</div>`).join('')
+      }
+
+      // ---------- Exportación (orientación de impresión, Z arriba) ----------
+      function paraImprimir() {
+        if (!estado.medidas) return []
+        const { h, p } = estado.medidas
+        const objs = []
+        for (const pz of estado.piezas) {
+          objs.push({ nombre: `Letra ${pz.n} - cuerpo`, mat: 0, ...pz.cuerpo })
+          // Tapa girada 180° en X (labio hacia arriba) y corrida debajo de los cuerpos
+          const pos = new Float32Array(pz.tapa.pos.length)
+          for (let i = 0; i < pos.length; i += 3) {
+            pos[i] = pz.tapa.pos[i]
+            pos[i + 1] = -pz.tapa.pos[i + 1] - 15
+            pos[i + 2] = p.prof - pz.tapa.pos[i + 2]
+          }
+          objs.push({ nombre: `Letra ${pz.n} - tapa`, mat: 1, pos, idx: pz.tapa.idx })
+        }
+        return objs
+      }
+
+      function stl(objs) {
+        const tris = objs.reduce((s, o) => s + o.idx.length / 3, 0)
+        const buf = new DataView(new ArrayBuffer(84 + tris * 50))
+        buf.setUint32(80, tris, true)
+        let off = 84
+        for (const { pos, idx } of objs) {
+          for (let t = 0; t < idx.length; t += 3) {
+            const v = [0, 1, 2].map((k) => [pos[idx[t + k] * 3], pos[idx[t + k] * 3 + 1], pos[idx[t + k] * 3 + 2]])
+            const u = [0, 1, 2].map((k) => v[1][k] - v[0][k])
+            const w = [0, 1, 2].map((k) => v[2][k] - v[0][k])
+            const n = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]]
+            const l = Math.hypot(...n) || 1
+            for (const f of [...n.map((c) => c / l), ...v.flat()]) {
+              buf.setFloat32(off, f, true)
+              off += 4
+            }
+            off += 2
+          }
+        }
+        return new Blob([buf], { type: 'model/stl' })
+      }
+
+      function tresMF(objs) {
+        const esc = (s) => s.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c])
+        const recursos = objs.map((o, i) => {
+          const vs = []
+          for (let k = 0; k < o.pos.length; k += 3) vs.push(`<vertex x="${o.pos[k].toFixed(4)}" y="${o.pos[k + 1].toFixed(4)}" z="${o.pos[k + 2].toFixed(4)}"/>`)
+          const ts = []
+          for (let k = 0; k < o.idx.length; k += 3) ts.push(`<triangle v1="${o.idx[k]}" v2="${o.idx[k + 1]}" v3="${o.idx[k + 2]}"/>`)
+          return `<object id="${i + 2}" name="${esc(o.nombre)}" type="model" pid="1" pindex="${o.mat}"><mesh><vertices>${vs.join('')}</vertices><triangles>${ts.join('')}</triangles></mesh></object>`
+        })
+        const modelo =
+          '<?xml version="1.0" encoding="UTF-8"?><model unit="millimeter" xml:lang="es-AR" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">' +
+          `<resources><basematerials id="1"><base name="Cuerpo" displaycolor="${$('colorCuerpo').value.toUpperCase()}"/><base name="Tapa" displaycolor="${$('colorTapa').value.toUpperCase()}"/></basematerials>` +
+          recursos.join('') +
+          `</resources><build>${objs.map((_o, i) => `<item objectid="${i + 2}"/>`).join('')}</build></model>`
+        const zip = zipSync({
+          '[Content_Types].xml': strToU8('<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/></Types>'),
+          '_rels/.rels': strToU8('<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>'),
+          '3D/3dmodel.model': strToU8(modelo),
+        })
+        return new Blob([zip], { type: 'model/3mf' })
+      }
+
+      function descargar(nombre, blob) {
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = nombre
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+      }
+      const nombreBase = () => (estado.origen === 'svg' ? 'logo' : $('texto').value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'letra') + '-caja'
+
+      $('bajar3mf').addEventListener('click', () => descargar(`${nombreBase()}.3mf`, tresMF(paraImprimir())))
+      $('bajarCuerpos').addEventListener('click', () => descargar(`${nombreBase()}-cuerpos.stl`, stl(paraImprimir().filter((o) => o.mat === 0))))
+      $('bajarTapas').addEventListener('click', () => descargar(`${nombreBase()}-tapas.stl`, stl(paraImprimir().filter((o) => o.mat === 1))))
+
+      // ---------- Controles ----------
+      const UNIDADES = {
+        alto: 'mm', prof: 'mm', pared: 'mm', fondo: 'mm', tapa: 'mm', labioAlto: 'mm', labioAncho: 'mm',
+        cable: 'mm', tornillo: 'mm', espaciado: '%', holguraLabio: 'mm', holguraBorde: 'mm', holguraAgujeros: 'mm',
+      }
+      const etiquetas = () => {
+        for (const [id, u] of Object.entries(UNIDADES)) $(id + 'V').textContent = `${$(id).value} ${u}`
+        // Cada control aparece solo cuando su contacto existe
+        $('grupoCable').hidden = !$('conCable').checked
+        $('grupoTornillo').hidden = !$('tornillos').checked
+        $('grupoAgujeros').hidden = !$('conCable').checked && !$('tornillos').checked
+        $('grupoBorde').hidden = estado.modo !== 'ras'
+        $('holguraLabioDonde').textContent = estado.modo === 'ras' ? 'borde del escalón' : 'pared interior'
+        $('modoHint').textContent =
+          estado.modo === 'tapa'
+            ? 'La tapa cubre el canto de la pared y el labio entra por dentro.'
+            : 'La tapa queda dentro de la pared, apoyada en un escalón interno.'
+      }
+      let espera = 0
+      const pedir = () => {
+        etiquetas()
+        clearTimeout(espera)
+        espera = setTimeout(reconstruir, 220)
+      }
+      for (const id of Object.keys(UNIDADES)) $(id).addEventListener('input', pedir)
+      for (const id of ['texto', 'fuente', 'tornillos', 'conCable']) $(id).addEventListener('input', pedir)
+
+      const setOrigen = (o) => {
+        estado.origen = o
+        $('usarTexto').setAttribute('aria-pressed', o === 'texto')
+        $('usarSvg').setAttribute('aria-pressed', o === 'svg')
+        $('panelTexto').hidden = o !== 'texto'
+        $('panelSvg').hidden = o !== 'svg'
+        encuadrado = false
+        pedir()
+      }
+      $('usarTexto').addEventListener('click', () => setOrigen('texto'))
+      $('usarSvg').addEventListener('click', () => setOrigen('svg'))
+      const setModo = (m) => {
+        estado.modo = m
+        $('modoTapa').setAttribute('aria-pressed', m === 'tapa')
+        $('modoRas').setAttribute('aria-pressed', m === 'ras')
+        pedir()
+      }
+      $('modoTapa').addEventListener('click', () => setModo('tapa'))
+      $('modoRas').addEventListener('click', () => setModo('ras'))
+
+      for (const id of ['explotar', 'corte', 'encendido']) $(id).addEventListener('input', aplicarVista)
+      $('colorCuerpo').addEventListener('input', (e) => matCuerpo.color.set(e.target.value))
+      $('colorTapa').addEventListener('input', (e) => matTapa.color.set(e.target.value))
+
+      const drop = $('drop')
+      const leer = async (f) => {
+        if (!f) return
+        estado.svg = await f.text()
+        $('svgNombre').textContent = f.name
+        encuadrado = false
+        pedir()
+      }
+      drop.addEventListener('click', () => $('file').click())
+      drop.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && $('file').click())
+      $('file').addEventListener('change', (e) => leer(e.target.files[0]))
+      drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over') })
+      drop.addEventListener('dragleave', () => drop.classList.remove('over'))
+      drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); leer(e.dataTransfer.files[0]) })
+
+      etiquetas()
+      reconstruir()
+    </script>
+  </body>
+</html>

@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Llavero con logo</title>
+    <style>
+      :root {
+        --bg: #f6f5f2;
+        --panel: #ffffff;
+        --ink: #1b1b1b;
+        --muted: #6b6b6b;
+        --line: #e2e0da;
+        --accent: #f9d72c;
+        --accent-ink: #1b1b1b;
+        --warn: #b4420f;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+      }
+      main { max-width: 960px; margin: 0 auto; padding: 32px 16px 64px; }
+      h1 { font-size: 26px; margin: 0 0 4px; }
+      .lead { color: var(--muted); margin: 0 0 24px; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+      @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+      .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+      .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 14px; }
+      .drop {
+        display: grid; place-items: center; text-align: center;
+        min-height: 220px; border: 2px dashed var(--line); border-radius: 10px;
+        cursor: pointer; padding: 16px; transition: border-color .15s, background .15s;
+      }
+      .drop.over { border-color: var(--ink); background: #faf9f6; }
+      .drop svg { max-width: 100%; max-height: 180px; }
+      .drop small { color: var(--muted); display: block; margin-top: 8px; }
+      label { display: block; font-weight: 600; font-size: 13px; margin: 12px 0 4px; }
+      input[type=text], select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: #fff; }
+      input[type=range] { width: 100%; }
+      .row { display: flex; gap: 12px; }
+      .row > div { flex: 1; }
+      .colors { display: flex; gap: 16px; align-items: center; }
+      .colors input { width: 44px; height: 32px; border: 1px solid var(--line); border-radius: 6px; padding: 2px; background: #fff; }
+      .val { color: var(--muted); font-weight: 400; }
+      .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+      button {
+        font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 16px; cursor: pointer;
+        border: 1px solid var(--ink); background: var(--panel); color: var(--ink);
+      }
+      button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+      button:disabled { opacity: .5; cursor: not-allowed; }
+      .msg { margin-top: 12px; font-size: 13px; color: var(--muted); min-height: 20px; }
+      .msg.warn { color: var(--warn); }
+      .tips { margin-top: 20px; font-size: 13px; color: var(--muted); }
+      .tips li { margin-bottom: 4px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Llavero con logo</h1>
+      <p class="lead">
+        Subí el logo en SVG, ajustá el texto y la forma, y abrilo en OpenSCAD Playground para ver el
+        3D y exportar STL o 3MF. Todo se procesa en tu navegador.
+      </p>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Logo</h2>
+          <div class="drop" id="drop" tabindex="0" role="button" aria-label="Subir logo SVG">
+            <div id="preview"></div>
+          </div>
+          <input type="file" id="file" accept=".svg,image/svg+xml" hidden />
+          <div class="msg" id="logoMsg"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Personalización</h2>
+          <label for="texto">Texto</label>
+          <input type="text" id="texto" value="GLOBAL3D" maxlength="20" />
+
+          <div class="row">
+            <div>
+              <label for="forma">Forma</label>
+              <select id="forma">
+                <option value="redondeada">Rectángulo redondeado</option>
+                <option value="circulo">Círculo</option>
+                <option value="contorno">Contorno del logo</option>
+              </select>
+            </div>
+            <div>
+              <label for="modo">Logo</label>
+              <select id="modo">
+                <option value="relieve">En relieve</option>
+                <option value="a_ras">Incrustado a ras</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="argolla">Argolla</label>
+              <select id="argolla">
+                <option value="arriba">Arriba</option>
+                <option value="izquierda">Izquierda</option>
+              </select>
+            </div>
+            <div>
+              <label>Colores</label>
+              <div class="colors">
+                <input type="color" id="colorBase" value="#1b1b1b" aria-label="Color de la base" />
+                <input type="color" id="colorRelieve" value="#f9d72c" aria-label="Color del logo" />
+              </div>
+            </div>
+          </div>
+
+          <label for="ancho">Ancho del logo <span class="val" id="anchoVal"></span></label>
+          <input type="range" id="ancho" min="10" max="80" step="1" value="30" />
+        </section>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="abrir">Abrir en OpenSCAD Playground</button>
+        <button id="descargar">Descargar .scad + logo</button>
+      </div>
+      <div class="msg" id="msg"></div>
+
+      <ul class="tips">
+        <li>El SVG tiene que tener <b>formas rellenas</b>: OpenSCAD ignora los trazos sin relleno.</li>
+        <li>Para multicolor: exportá 3MF desde el playground, o STL por separado con el parámetro <i>parte</i>.</li>
+        <li>Si el logo es PNG o JPG, primero vectorizalo (potrace o vtracer).</li>
+      </ul>
+    </main>
+
+    <script type="module">
+      import scadTemplate from './llavero.scad?raw'
+
+      const PLAYGROUND = 'https://ochafik.com/openscad2/'
+      // Logo de ejemplo: cubo isométrico en tres caras rellenas
+      const SAMPLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <path d="M50 5 L90 27 L50 49 L10 27 Z"/>
+  <path d="M10 33 L47 54 L47 95 L10 74 Z"/>
+  <path d="M53 54 L90 33 L90 74 L53 95 Z"/>
+</svg>`
+
+      const $ = (id) => document.getElementById(id)
+      const state = { svg: SAMPLE_SVG, aspecto: 1, nombre: 'ejemplo' }
+
+      // Proporción real del dibujo (no del viewBox) para que resize() no deforme el logo
+      function medirAspecto(svgText) {
+        const host = document.createElement('div')
+        host.style.cssText = 'position:absolute;left:-9999px;top:0;width:500px;height:500px'
+        host.innerHTML = svgText
+        document.body.appendChild(host)
+        try {
+          const svg = host.querySelector('svg')
+          if (!svg) return null
+          const box = svg.getBBox()
+          return box.width > 0 && box.height > 0 ? box.height / box.width : null
+        } finally {
+          host.remove()
+        }
+      }
+
+      function cargarLogo(svgText, nombre) {
+        const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml')
+        if (doc.querySelector('parsererror') || !doc.querySelector('svg')) {
+          mensaje($('logoMsg'), 'No es un SVG válido.', true)
+          return
+        }
+        const aspecto = medirAspecto(svgText)
+        if (!aspecto) {
+          mensaje($('logoMsg'), 'El SVG no tiene formas visibles.', true)
+          return
+        }
+        Object.assign(state, { svg: svgText, aspecto, nombre })
+        $('preview').innerHTML = svgText + `<small>${nombre} · clic o arrastrá para cambiarlo</small>`
+        const sinRelleno = [...doc.querySelectorAll('path,rect,circle,ellipse,polygon')].some(
+          (el) => el.getAttribute('fill') === 'none',
+        )
+        mensaje(
+          $('logoMsg'),
+          sinRelleno ? 'Hay formas con fill="none": OpenSCAD no las va a importar.' : '',
+          sinRelleno,
+        )
+      }
+
+      function mensaje(el, texto, warn = false) {
+        el.textContent = texto
+        el.classList.toggle('warn', warn)
+      }
+
+      // Reescribe el valor por defecto de cada parámetro del Customizer
+      function setVar(src, nombre, valor) {
+        const lit = typeof valor === 'string' ? JSON.stringify(valor) : String(valor)
+        return src.replace(new RegExp(`^(${nombre}\\s*=\\s*)[^;]*;`, 'm'), `$1${lit};`)
+      }
+
+      function generarScad() {
+        const vars = {
+          texto: $('texto').value,
+          forma: $('forma').value,
+          modo: $('modo').value,
+          posicion_argolla: $('argolla').value,
+          color_base: $('colorBase').value,
+          color_relieve: $('colorRelieve').value,
+          logo_ancho: Number($('ancho').value),
+          logo_aspecto: Math.round(state.aspecto * 1000) / 1000,
+        }
+        return Object.entries(vars).reduce((src, [k, v]) => setVar(src, k, v), scadTemplate)
+      }
+
+      async function gzipBase64(texto) {
+        const stream = new Blob([texto]).stream().pipeThrough(new CompressionStream('gzip'))
+        const bytes = new Uint8Array(await new Response(stream).arrayBuffer())
+        let bin = ''
+        for (let i = 0; i < bytes.length; i += 0x8000) {
+          bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+        }
+        return btoa(bin)
+      }
+
+      // Mismo formato que src/state/fragment-state.ts de openscad-playground
+      async function urlPlayground() {
+        const payload = {
+          params: {
+            activePath: '/llavero.scad',
+            sources: [
+              { path: '/llavero.scad', content: generarScad() },
+              { path: '/logo.svg', content: state.svg },
+            ],
+            features: ['lazy-union'],
+            exportFormat2D: 'svg',
+            exportFormat3D: '3mf',
+          },
+          view: {
+            layout: { mode: 'multi', editor: false, viewer: true, customizer: true },
+            color: $('colorRelieve').value,
+          },
+        }
+        return PLAYGROUND + '#' + (await gzipBase64(JSON.stringify(payload)))
+      }
+
+      function descargar(nombre, contenido, tipo) {
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(new Blob([contenido], { type: tipo }))
+        a.download = nombre
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+      }
+
+      $('abrir').addEventListener('click', async () => {
+        const url = await urlPlayground()
+        // Chrome acepta fragmentos de ~2 MB; más que eso se corta
+        if (url.length > 1_800_000) {
+          mensaje($('msg'), 'El logo es demasiado pesado para pasarlo por URL. Simplificalo o usá “Descargar”.', true)
+          return
+        }
+        window.open(url, '_blank', 'noopener')
+        mensaje($('msg'), 'Abierto en una pestaña nueva. La primera carga del playground tarda unos segundos.')
+      })
+
+      $('descargar').addEventListener('click', () => {
+        descargar('llavero.scad', generarScad(), 'text/plain')
+        setTimeout(() => descargar('logo.svg', state.svg, 'image/svg+xml'), 300)
+        mensaje($('msg'), 'Poné los dos archivos en la misma carpeta y abrí llavero.scad en OpenSCAD.')
+      })
+
+      const drop = $('drop')
+      const leer = async (file) => {
+        if (file) cargarLogo(await file.text(), file.name)
+      }
+      drop.addEventListener('click', () => $('file').click())
+      drop.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && $('file').click())
+      $('file').addEventListener('change', (e) => leer(e.target.files[0]))
+      drop.addEventListener('dragover', (e) => {
+        e.preventDefault()
+        drop.classList.add('over')
+      })
+      drop.addEventListener('dragleave', () => drop.classList.remove('over'))
+      drop.addEventListener('drop', (e) => {
+        e.preventDefault()
+        drop.classList.remove('over')
+        leer(e.dataTransfer.files[0])
+      })
+
+      const syncAncho = () => ($('anchoVal').textContent = `${$('ancho').value} mm`)
+      $('ancho').addEventListener('input', syncAncho)
+      syncAncho()
+      cargarLogo(SAMPLE_SVG, 'ejemplo')
+    </script>
+  </body>
+</html>
