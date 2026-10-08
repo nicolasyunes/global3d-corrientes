@@ -27,6 +27,7 @@ import AdminLayout from './AdminLayout'
 // The QR and vectorizer libraries are only needed on this page: keep them out
 // of the bundle every admin screen loads.
 const ToolsPage = lazy(() => import('@/features/tools/ToolsPage'))
+const StatsPage = lazy(() => import('@/features/stats/StatsPage'))
 
 function OperatorAdminOnly({ children }: { children: ReactNode }) {
   const { isAdmin } = useOperator()
@@ -97,6 +98,16 @@ export function Component() {
             element={
               <OperatorAdminOnly>
                 <ProductForm />
+              </OperatorAdminOnly>
+            }
+          />
+          <Route
+            path="estadisticas"
+            element={
+              <OperatorAdminOnly>
+                <Suspense fallback={null}>
+                  <StatsPage />
+                </Suspense>
               </OperatorAdminOnly>
             }
           />
