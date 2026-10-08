@@ -89,6 +89,18 @@ export default function SalesPanel({
                   <button type="button" className="fl-btn" disabled={busy} onClick={() => confirmVoid(s.id)}>
                     Confirmar anulación
                   </button>
+                  <button
+                    type="button"
+                    className="fl-btn"
+                    disabled={busy}
+                    onClick={() => {
+                      setVoiding(null)
+                      setReason('')
+                      setError(null)
+                    }}
+                  >
+                    Cancelar
+                  </button>
                 </span>
               ) : (
                 <button

@@ -151,6 +151,33 @@ describe('FilamentsPage', () => {
     expect(code).toHaveValue('#7cc4ec')
   })
 
+  it('saves the line and warns when a stock correction fails', async () => {
+    mocks.saveLine.mockResolvedValue({
+      line: {},
+      colorIds: Array.from({ length: 50 }, (_, i) => `c${i}`),
+    })
+    mocks.adjustFilament.mockRejectedValue(
+      new Error('No hay stock suficiente (quedan 0)'),
+    )
+    await renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Editar 3N3 PLA' }))
+    const drawer = screen.getByRole('dialog', { name: 'Editar línea de filamento' })
+    fireEvent.click(
+      within(drawer).getAllByRole('button', { name: /^Sumar bobina de / })[0],
+    )
+    await act(async () => {
+      fireEvent.click(within(drawer).getByRole('button', { name: 'Guardar' }))
+    })
+    expect(mocks.saveLine).toHaveBeenCalledTimes(1)
+    expect(mocks.adjustFilament).toHaveBeenCalled()
+    expect(
+      screen.getByText(
+        /Línea guardada, pero no se pudo corregir el stock.*No hay stock suficiente [(]quedan 0[)]/,
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Guardar' })).toBeNull()
+  })
+
   it('downloads the palette as a PDF with the chosen options', async () => {
     const create = vi.fn(() => 'blob:fake')
     const revoke = vi.fn()

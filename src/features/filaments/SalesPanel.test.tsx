@@ -47,6 +47,14 @@ describe('SalesPanel', () => {
     expect(screen.getByText(/Efectivo/)).toBeInTheDocument()
   })
 
+  it('cancelar sale del modo anulación sin llamar a la base', async () => {
+    render(<SalesPanel reloadKey={0} onChanged={vi.fn()} />)
+    fireEvent.click(await screen.findByRole('button', { name: /Anular venta/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('button', { name: 'Confirmar anulación' })).toBeNull()
+    expect(api.voidFilamentSale).not.toHaveBeenCalled()
+  })
+
   it('anular pide motivo y llama a la base', async () => {
     const onChanged = vi.fn()
     render(<SalesPanel reloadKey={0} onChanged={onChanged} />)

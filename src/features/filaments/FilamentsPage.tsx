@@ -291,9 +291,9 @@ export default function FilamentsPage() {
             setEditing(undefined)
             setBuying({ lineId: l.id })
           }}
-          onSaved={() => {
+          onSaved={(warning) => {
             setEditing(undefined)
-            showToast('Línea guardada')
+            showToast(warning ?? 'Línea guardada')
             void reload()
           }}
         />
