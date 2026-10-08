@@ -345,6 +345,82 @@ export type Database = {
           },
         ]
       }
+      filament_sales: {
+        Row: {
+          color_id: string | null
+          color_label: string
+          created_at: string
+          customer: string | null
+          id: string
+          line_label: string
+          operator_id: string | null
+          payment: string
+          quantity: number
+          refill: boolean
+          total: number | null
+          unit_price: number
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          color_id?: string | null
+          color_label: string
+          created_at?: string
+          customer?: string | null
+          id?: string
+          line_label: string
+          operator_id?: string | null
+          payment: string
+          quantity: number
+          refill?: boolean
+          total?: number | null
+          unit_price: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          color_id?: string | null
+          color_label?: string
+          created_at?: string
+          customer?: string | null
+          id?: string
+          line_label?: string
+          operator_id?: string | null
+          payment?: string
+          quantity?: number
+          refill?: boolean
+          total?: number | null
+          unit_price?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'filament_sales_color_id_fkey'
+            columns: ['color_id']
+            isOneToOne: false
+            referencedRelation: 'filament_colors'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'filament_sales_operator_id_fkey'
+            columns: ['operator_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'filament_sales_voided_by_fkey'
+            columns: ['voided_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       idea_files: {
         Row: {
           id: string
@@ -1323,6 +1399,42 @@ export type Database = {
           p_note?: string | null
         }
         Returns: Database['public']['Tables']['filament_colors']['Row']
+      }
+      adjust_filament: {
+        Args: {
+          p_color: string
+          p_delta: number
+          p_note: string
+          p_operator: string
+          p_refill: boolean
+        }
+        Returns: Database['public']['Tables']['filament_colors']['Row']
+      }
+      sell_filament: {
+        Args: {
+          p_color: string
+          p_customer?: string | null
+          p_operator: string
+          p_payment: string
+          p_qty: number
+          p_refill: boolean
+        }
+        Returns: Database['public']['Tables']['filament_sales']['Row']
+      }
+      take_filament: {
+        Args: {
+          p_color: string
+          p_kind: string
+          p_note?: string | null
+          p_operator: string
+          p_qty: number
+          p_refill: boolean
+        }
+        Returns: Database['public']['Tables']['filament_colors']['Row']
+      }
+      void_filament_sale: {
+        Args: { p_operator: string; p_reason: string; p_sale: string }
+        Returns: Database['public']['Tables']['filament_sales']['Row']
       }
       increment_task: {
         Args: { p_task: string; p_delta: number; p_operator: string | null }
