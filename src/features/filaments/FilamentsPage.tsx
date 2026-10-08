@@ -234,7 +234,13 @@ export default function FilamentsPage() {
       </div>
 
       {shownView === 'activity' ? (
-        <ActivityView reloadKey={changes} />
+        <ActivityView
+          reloadKey={changes}
+          onChanged={() => {
+            setChanges((n) => n + 1)
+            void reload()
+          }}
+        />
       ) : loading ? (
         <p className="fl-quiet">Cargando filamentos…</p>
       ) : lines.length === 0 ? (
