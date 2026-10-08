@@ -155,7 +155,7 @@ describe('FilamentsPage', () => {
     expect(within(list).getByText('Rojo')).toBeInTheDocument()
     expect(within(list).getByText('sabri')).toBeInTheDocument()
     expect(
-      within(list).getByText('Se terminó en el taller'),
+      within(list).getByText('A producción'),
     ).toBeInTheDocument()
     expect(within(list).getByText('Color borrado')).toBeInTheDocument()
 
