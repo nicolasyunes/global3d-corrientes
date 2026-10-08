@@ -3,7 +3,9 @@ import type { FilamentLogRow, FilamentSale } from '@/features/filaments/filament
 import type { OrderWithCustomer } from '@/features/orders/orders.api'
 import type { ProductSaleRow } from '@/features/orders/productSales.api'
 import {
+  comparisonRange,
   deliveredSummary,
+  type DeliveredRow,
   exitsByPerson,
   exitsByReason,
   inRange,
@@ -77,6 +79,41 @@ describe('periodRange', () => {
       to: d(2026, 9, 16),
     })
   })
+  it('rango libre con fechas invertidas las intercambia', () => {
+    expect(periodRange('custom', NOW, { from: '2026-09-15', to: '2026-09-01' })).toEqual({
+      from: d(2026, 9, 1),
+      to: d(2026, 9, 16),
+    })
+  })
+})
+
+describe('comparisonRange', () => {
+  it('hoy: ayer hasta la misma hora', () => {
+    expect(comparisonRange('today', periodRange('today', NOW), NOW)).toEqual({
+      from: d(2026, 10, 7),
+      to: new Date(2026, 9, 7, 15, 30),
+    })
+  })
+  it('semana: lunes anterior hasta jueves a la misma hora', () => {
+    expect(comparisonRange('week', periodRange('week', NOW), NOW)).toEqual({
+      from: d(2026, 9, 28),
+      to: new Date(2026, 9, 1, 15, 30),
+    })
+  })
+  it('mes: mes anterior hasta el mismo día y hora', () => {
+    expect(comparisonRange('month', periodRange('month', NOW), NOW)).toEqual({
+      from: d(2026, 9, 1),
+      to: new Date(2026, 8, 8, 15, 30),
+    })
+  })
+  it('nunca pasa del fin del período anterior', () => {
+    const at = new Date(2026, 2, 31, 12) // March vs 28-day February
+    expect(comparisonRange('month', periodRange('month', at), at).to).toEqual(d(2026, 3, 1))
+  })
+  it('rango libre: período anterior completo', () => {
+    const r = periodRange('custom', NOW, { from: '2026-09-11', to: '2026-09-20' })
+    expect(comparisonRange('custom', r, NOW)).toEqual({ from: d(2026, 9, 1), to: d(2026, 9, 11) })
+  })
 })
 
 describe('previousRange', () => {
@@ -142,9 +179,12 @@ describe('toDeliveredRows', () => {
     expect(rows.map((r) => r.id)).toEqual(['t1', 'o1'])
     expect(rows[0]).toMatchObject({ kind: 'product', exact: true, method: 'transfer', amount: 8000 })
   })
-  it('una forma de cobro desconocida queda en null', () => {
-    const [row] = toDeliveredRows([], [{ ...direct, method: 'other' } as ProductSaleRow], new Map())
-    expect(row.method).toBeNull()
+  it('conserva la forma de cobro tal cual y null si falta', () => {
+    const one = (method: string | null) =>
+      toDeliveredRows([], [{ ...direct, method } as ProductSaleRow], new Map())[0].method
+    expect(one('uala')).toBe('uala')
+    expect(one('mercadopago')).toBe('mercadopago')
+    expect(one(null)).toBeNull()
   })
 })
 
@@ -160,14 +200,31 @@ describe('salesSummary', () => {
 })
 
 describe('deliveredSummary', () => {
+  const row = (over: Partial<DeliveredRow>): DeliveredRow => ({
+    id: 'x', kind: 'product', at: '2026-10-02', exact: true, customerName: null,
+    productLabel: 'x', amount: 1000, method: null, href: null, ...over,
+  })
   it('separa pedidos y ventas directas', () => {
     const s = deliveredSummary([
-      { id: 'o1', kind: 'order', at: '2026-10-01', exact: false, customerName: null, productLabel: 'x', amount: 55000, method: null, href: null },
-      { id: 'o2', kind: 'order', at: '2026-10-02', exact: false, customerName: null, productLabel: 'x', amount: null, method: null, href: null },
-      { id: 't1', kind: 'product', at: '2026-10-02', exact: true, customerName: null, productLabel: 'x', amount: 8000, method: 'transfer', href: null },
-      { id: 't2', kind: 'product', at: '2026-10-02', exact: true, customerName: null, productLabel: 'x', amount: 3000, method: 'cash', href: null },
+      row({ id: 'o1', kind: 'order', amount: 55000 }),
+      row({ id: 'o2', kind: 'order', amount: null }),
+      row({ id: 't1', amount: 8000, method: 'transfer' }),
+      row({ id: 't2', amount: 3000, method: 'cash' }),
     ])
-    expect(s).toEqual({ orders: 2, ordersAmount: 55000, direct: 2, directAmount: 11000, cash: 3000, transfer: 8000 })
+    expect(s).toEqual({
+      orders: 2, ordersAmount: 55000, direct: 2, directAmount: 11000, cash: 3000, transfer: 8000, other: 0,
+    })
+  })
+  it('Mercado Pago es transferencia; Ualá, Brubank, otro y sin dato van a otros', () => {
+    const s = deliveredSummary([
+      row({ amount: 100, method: 'mercadopago' }),
+      row({ amount: 10, method: 'uala' }),
+      row({ amount: 20, method: 'brubank' }),
+      row({ amount: 30, method: 'other' }),
+      row({ amount: 40, method: null }),
+      row({ kind: 'order', amount: 999, method: null }),
+    ])
+    expect(s).toMatchObject({ cash: 0, transfer: 100, other: 100 })
   })
 })
 
@@ -176,24 +233,37 @@ describe('exitsByReason / exitsByPerson', () => {
     log({ kind: 'used', delta: -2 }),
     log({ kind: 'transfer', delta: -1, operator_id: 'op-2' }),
     log({ kind: 'personal', delta: -1, operator_id: 'op-2' }),
-    log({ kind: 'adjust', delta: -1 }),
-    log({ kind: 'adjust', delta: 2 }),
+    log({ kind: 'adjust', delta: -3 }),
+    log({ kind: 'adjust', delta: 2, operator_id: 'op-2' }),
+    log({ kind: 'count', delta: 4 }),
     log({ kind: 'sale', delta: -3, operator_id: 'op-2' }),
     log({ kind: 'purchase', delta: 10 }),
   ]
-  it('cuenta movimientos y unidades por motivo (ajuste = neto)', () => {
+  const sales = [
+    sale({ id: 'a', operator_id: 'op-2', quantity: 2 }),
+    sale({ id: 'b', operator_id: 'op-2', quantity: 5, voided_at: 'x', void_reason: 'e' }),
+    sale({ id: 'c', operator_id: 'op-3', quantity: 1 }),
+  ]
+  it('cuenta movimientos y unidades por motivo (ajuste y conteo con signo)', () => {
     const r = exitsByReason(rows)
     expect(r.used).toEqual({ moves: 1, units: 2 })
     expect(r.transfer).toEqual({ moves: 1, units: 1 })
     expect(r.personal).toEqual({ moves: 1, units: 1 })
-    expect(r.adjust).toEqual({ moves: 2, units: 1 })
-    expect(r.count).toEqual({ moves: 0, units: 0 })
+    expect(r.adjust).toEqual({ moves: 2, units: -1 })
+    expect(r.count).toEqual({ moves: 1, units: 4 })
   })
-  it('por persona, ordenado por unidades', () => {
-    expect(exitsByPerson(rows)).toEqual([
-      { operatorId: 'op-2', sale: 3, used: 0, transfer: 1, personal: 1, adjust: 0 },
-      { operatorId: 'op-1', sale: 0, used: 2, transfer: 0, personal: 0, adjust: 1 },
+  it('por persona: vendió sale de ventas no anuladas; ajuste con signo', () => {
+    expect(exitsByPerson(rows, sales)).toEqual([
+      { operatorId: 'op-2', sale: 2, used: 0, transfer: 1, personal: 1, adjust: 2 },
+      { operatorId: 'op-1', sale: 0, used: 2, transfer: 0, personal: 0, adjust: -3 },
+      { operatorId: 'op-3', sale: 1, used: 0, transfer: 0, personal: 0, adjust: 0 },
     ])
+  })
+  it('quien solo vendió aparece; una venta anulada no suma', () => {
+    expect(exitsByPerson([], [sale({ operator_id: 'op-9', quantity: 3 })])).toEqual([
+      { operatorId: 'op-9', sale: 3, used: 0, transfer: 0, personal: 0, adjust: 0 },
+    ])
+    expect(exitsByPerson([], [sale({ voided_at: 'x', void_reason: 'e' })])).toEqual([])
   })
 })
 

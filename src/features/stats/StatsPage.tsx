@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { money } from '@/features/filaments/filaments'
+import { PAYMENT_METHOD_LABELS } from '@/lib/domain-constants'
 import { useOperator } from '@/features/operators/operator-context'
 import {
+  comparisonRange,
   deliveredSummary,
   exitsByPerson,
   exitsByReason,
   pctChange,
   periodRange,
-  previousRange,
   salesSummary,
   topColors,
   type PeriodKind,
@@ -45,12 +46,17 @@ function dayLabel(at: string, exact: boolean): string {
   return `${DAY.format(new Date(y, m - 1, d))} (prometida)`
 }
 
-function Change({ curr, prev }: { curr: number; prev: number }) {
+function signed(n: number): string {
+  return n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0'
+}
+
+function Change({ curr, prev, kind }: { curr: number; prev: number; kind: PeriodKind }) {
   const pct = pctChange(curr, prev)
   if (pct == null) return null
   return (
     <span className={`st-change${pct < 0 ? ' is-down' : ''}`}>
-      {pct >= 0 ? '▲' : '▼'} {Math.abs(pct)} % vs período anterior
+      {pct >= 0 ? '▲' : '▼'} {Math.abs(pct)} %{' '}
+      {kind === 'custom' ? 'vs período anterior' : 'vs mismo momento del período anterior'}
     </span>
   )
 }
@@ -61,19 +67,21 @@ function Tile({
   sub,
   curr,
   prev,
+  kind,
 }: {
   label: string
   value: string
   sub?: string
   curr: number
   prev: number
+  kind: PeriodKind
 }) {
   return (
     <div className="st-tile">
       <span className="st-tile__label">{label}</span>
       <span className="st-tile__value num">{value}</span>
       {sub && <span className="st-tile__sub">{sub}</span>}
-      <Change curr={curr} prev={prev} />
+      <Change curr={curr} prev={prev} kind={kind} />
     </div>
   )
 }
@@ -103,7 +111,7 @@ export default function StatsPage() {
     let alive = true
     setData(null)
     setError(null)
-    Promise.all([loadStats(range), loadStats(previousRange(kind, range))])
+    Promise.all([loadStats(range), loadStats(comparisonRange(kind, range, new Date()))])
       .then(([curr, prev]) => alive && setData({ curr, prev }))
       .catch((err) => alive && setError(err instanceof Error ? err.message : 'No se pudieron cargar las estadísticas.'))
     return () => {
@@ -165,7 +173,7 @@ export default function StatsPage() {
         </p>
       )}
       {!error && !data && <p className="st-quiet">Cargando…</p>}
-      {data && <Body data={data} name={name} />}
+      {data && <Body data={data} name={name} kind={kind} />}
     </div>
   )
 }
@@ -173,7 +181,9 @@ export default function StatsPage() {
 function Body({
   data,
   name,
+  kind,
 }: {
+  kind: PeriodKind
   data: { curr: StatsData; prev: StatsData }
   name: (id: string | null) => string
 }) {
@@ -183,7 +193,7 @@ function Body({
   const dl = deliveredSummary(curr.delivered)
   const dp = deliveredSummary(prev.delivered)
   const exits = exitsByReason(curr.log)
-  const people = exitsByPerson(curr.log)
+  const people = exitsByPerson(curr.log, curr.sales)
   const top = topColors(curr.sales)
 
   return (
@@ -195,18 +205,21 @@ function Body({
           sub={`${s.units} bobinas · ${s.count} ventas`}
           curr={s.total}
           prev={sp.total}
+          kind={kind}
         />
         <Tile
           label="Efectivo esperado"
           value={money(s.cash + dl.cash)}
           curr={s.cash + dl.cash}
           prev={sp.cash + dp.cash}
+          kind={kind}
         />
         <Tile
           label="Transferencias esperadas"
           value={money(s.transfer + dl.transfer)}
           curr={s.transfer + dl.transfer}
           prev={sp.transfer + dp.transfer}
+          kind={kind}
         />
         <Tile
           label="Pedidos entregados"
@@ -214,6 +227,7 @@ function Body({
           sub={money(dl.ordersAmount)}
           curr={dl.orders}
           prev={dp.orders}
+          kind={kind}
         />
         <Tile
           label="Ventas directas"
@@ -221,12 +235,18 @@ function Body({
           sub={money(dl.directAmount)}
           curr={dl.direct}
           prev={dp.direct}
+          kind={kind}
         />
       </div>
       <p className="st-hint">
-        Efectivo y transferencias suman ventas de filamento y ventas directas. Los pedidos no
-        tienen forma de cobro cargada.
+        Efectivo y transferencias suman ventas de filamento y ventas directas (Mercado Pago
+        cuenta como transferencia). Los pedidos no tienen forma de cobro cargada.
       </p>
+      {dl.other > 0 && (
+        <p className="st-hint">
+          Otros / sin forma de cobro: <strong className="num">{money(dl.other)}</strong>
+        </p>
+      )}
 
       <section className="st-section">
         <h2>Ventas de filamento</h2>
@@ -293,7 +313,7 @@ function Body({
                     <td>{r.customerName ?? ''}</td>
                     <td>{r.href ? <Link to={r.href}>{r.productLabel}</Link> : r.productLabel}</td>
                     <td className="num">{money(r.amount)}</td>
-                    <td>{r.method ? PAYMENT[r.method] : ''}</td>
+                    <td>{r.method ? PAYMENT_METHOD_LABELS[r.method] : ''}</td>
                   </tr>
                 ))}
               </tbody>
@@ -326,7 +346,9 @@ function Body({
                 <tr key={k}>
                   <td>{label}</td>
                   <td className="num">{exits[k].moves}</td>
-                  <td className="num">{exits[k].units}</td>
+                  <td className="num">
+                    {k === 'adjust' || k === 'count' ? signed(exits[k].units) : exits[k].units}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -359,7 +381,7 @@ function Body({
                     <td className="num">{p.used}</td>
                     <td className="num">{p.transfer}</td>
                     <td className="num">{p.personal}</td>
-                    <td className="num">{p.adjust}</td>
+                    <td className="num">{signed(p.adjust)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -30,6 +30,7 @@ const current = {
   delivered: [
     { id: 'o1', kind: 'order', at: '2026-10-07', exact: false, customerName: 'María', productLabel: 'Trofeo', amount: 55000, method: null, href: '/admin/orders/o1' },
     { id: 't1', kind: 'product', at: '2026-10-07T18:00:00Z', exact: true, customerName: null, productLabel: 'Llavero', amount: 8000, method: 'transfer', href: null },
+    { id: 't2', kind: 'product', at: '2026-10-07T19:00:00Z', exact: true, customerName: null, productLabel: 'Imán', amount: 2500, method: 'uala', href: null },
   ],
 }
 const empty = { sales: [], log: [], delivered: [] }
@@ -67,6 +68,22 @@ describe('StatsPage', () => {
     expect(within(tile('Efectivo esperado')).getByText('$24.000')).toBeInTheDocument()
     expect(within(tile('Transferencias esperadas')).getByText('$8.000')).toBeInTheDocument()
     expect(within(tile('Pedidos entregados')).getByText('1')).toBeInTheDocument()
+  })
+
+  it('muestra el monto de otros / sin forma de cobro y la etiqueta en la tabla', async () => {
+    await renderPage()
+    expect(screen.getByText(/Otros \/ sin forma de cobro/)).toHaveTextContent('$2.500')
+    const table = screen.getByRole('table', { name: 'Entregados' })
+    expect(within(table).getByText('Ualá')).toBeInTheDocument()
+  })
+
+  it('por persona no cuenta las ventas anuladas', async () => {
+    await renderPage()
+    const table = screen.getByRole('table', { name: 'Por persona' })
+    // nicolas only has a voided sale: must not appear; sabri sold 2.
+    expect(within(table).queryByText('nicolas')).not.toBeInTheDocument()
+    const row = within(table).getByText('sabri').closest('tr') as HTMLElement
+    expect(within(row).getAllByRole('cell')[1]).toHaveTextContent('2')
   })
 
   it('lista las ventas con persona, cobro y la anulada tachada', async () => {
