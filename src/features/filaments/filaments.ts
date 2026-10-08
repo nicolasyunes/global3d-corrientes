@@ -9,10 +9,19 @@ export interface FilamentLine extends FilamentLineRow {
 }
 
 export type Presentation = 'spool' | 'refill' | 'both'
-export type MovementKind = 'purchase' | 'used' | 'adjust'
+export type MovementKind =
+  | 'purchase'
+  | 'used'
+  | 'sale'
+  | 'transfer'
+  | 'personal'
+  | 'adjust'
+  | 'sale_void'
+  | 'count'
 export type LogKind =
   MovementKind | 'color_added' | 'color_removed' | 'line_added' | 'line_removed'
 export type FilamentLogRow = Tables['filament_log']['Row']
+export type FilamentSale = Tables['filament_sales']['Row']
 
 export const MATERIALS = ['PLA', 'PLA especial', 'PETG', 'TPU', 'Otro'] as const
 export const MATERIAL_TABS = ['PLA', 'PLA especial', 'PETG', 'TPU'] as const
@@ -322,8 +331,13 @@ export function optionLabel(o: Pick<ColorOption, 'line' | 'refill'>): string {
 
 export const KIND_TEXT: Record<MovementKind, string> = {
   purchase: 'compra',
-  used: 'se terminó en el taller',
+  used: 'a producción',
+  sale: 'venta',
+  transfer: 'a la otra sede',
+  personal: 'uso personal',
   adjust: 'ajuste',
+  sale_void: 'venta anulada',
+  count: 'ajuste por conteo',
 }
 
 export function signed(n: number): string {
@@ -357,8 +371,13 @@ export function moveWhen(stamp: string, now = new Date()): string {
 
 export const LOG_TEXT: Record<LogKind, string> = {
   purchase: 'Compra',
-  used: 'Se terminó en el taller',
+  used: 'A producción',
+  sale: 'Venta',
+  transfer: 'A la otra sede',
+  personal: 'Uso personal',
   adjust: 'Ajuste de stock',
+  sale_void: 'Venta anulada',
+  count: 'Ajuste por conteo',
   color_added: 'Color agregado',
   color_removed: 'Color borrado',
   line_added: 'Línea nueva',

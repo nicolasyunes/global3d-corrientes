@@ -18,7 +18,7 @@ import {
 import {
   deleteLine,
   listLineMovements,
-  moveFilament,
+  adjustFilament,
   saveLine,
   type ColorDraft,
   type RemovedColor,
@@ -70,7 +70,7 @@ export default function LineDrawer({
   line: FilamentLine | null
   position: number
   onClose: () => void
-  onSaved: () => void
+  onSaved: (warning?: string) => void
   onBuy: (line: FilamentLine) => void
 }) {
   const { current, byId } = useOperator()
@@ -211,8 +211,11 @@ export default function LineDrawer({
       )
       const opId = current?.id ?? null
       const adjust = (id: string, d: number, refill: boolean) =>
-        d === 0 ? null : moveFilament(id, d, 'adjust', opId, { refill })
-      await Promise.all(
+        d === 0
+          ? null
+          : adjustFilament(id, refill, d, opId, 'Corrección desde editar línea')
+      // The line is already saved: never leave the drawer retryable from here.
+      const results = await Promise.allSettled(
         rows.flatMap((r, i) => [
           adjust(colorIds[i], r.stock - r.was, false),
           both
@@ -224,7 +227,18 @@ export default function LineDrawer({
             : null,
         ]),
       )
-      onSaved()
+      const failed = results.find(
+        (x): x is PromiseRejectedResult => x.status === 'rejected',
+      )
+      if (failed) {
+        const reason: unknown = failed.reason
+        const msg = reason instanceof Error ? reason.message : String(reason)
+        onSaved(
+          `Línea guardada, pero no se pudo corregir el stock de algún color: ${msg}. Revisalo y volvé a corregirlo.`,
+        )
+      } else {
+        onSaved()
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar.')
       setBusy(false)

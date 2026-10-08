@@ -8,15 +8,16 @@ import ExportModal from './ExportModal'
 import LineCard, { type MoveHandler } from './LineCard'
 import LineDrawer from './LineDrawer'
 import PurchaseModal from './PurchaseModal'
+import TakeSheet from './TakeSheet'
 import {
   filterLines,
   MATERIAL_TABS,
   money,
-  signed,
   summarize,
+  type FilamentColor,
   type FilamentLine,
 } from './filaments'
-import { listLines, moveFilament } from './filaments.api'
+import { listLines } from './filaments.api'
 import '@/features/orders/taller.css'
 import './filaments.css'
 
@@ -33,7 +34,7 @@ function readView(): View {
 }
 
 export default function FilamentsPage() {
-  const { current } = useOperator()
+  const { isAdmin } = useOperator()
   const [toast, showToast] = useToast()
   const [lines, setLines] = useState<FilamentLine[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,6 +49,14 @@ export default function FilamentsPage() {
   // Bumps on every saved change so the activity list refetches.
   const [exporting, setExporting] = useState(false)
   const [changes, setChanges] = useState(0)
+  const [taking, setTaking] = useState<{
+    line: FilamentLine
+    color: FilamentColor
+    refill: boolean
+    direction: 'out' | 'in'
+  } | null>(null)
+  // An operator never lands on the activity tab, even if it was saved.
+  const shownView: View = view === 'activity' && !isAdmin ? 'brand' : view
 
   const reload = useCallback(async () => {
     try {
@@ -77,47 +86,11 @@ export default function FilamentsPage() {
     }
   }
 
-  // − means a spool ran out in the workshop; + is a correction. Both show at
-  // once and roll back if the database says no.
+  // − opens "Sacar" (why it leaves); + is an admin adjust. The stock only
+  // changes through the database, which logs who and when.
   const move: MoveHandler = (line, color, delta, refill) => {
-    const field = refill ? 'stock_refill' : 'stock'
-    const apply = (d: number) =>
-      setLines((prev) =>
-        prev.map((l) =>
-          l.id !== line.id
-            ? l
-            : {
-                ...l,
-                colors: l.colors.map((c) =>
-                  c.id === color.id
-                    ? { ...c, [field]: Math.max(0, (c[field] ?? 0) + d) }
-                    : c,
-                ),
-              },
-        ),
-      )
-    apply(delta)
-    moveFilament(
-      color.id,
-      delta,
-      delta < 0 ? 'used' : 'adjust',
-      current?.id ?? null,
-      {
-        refill,
-      },
-    )
-      .then(() => {
-        setChanges((n) => n + 1)
-        showToast(
-          `${color.name} · ${line.brand} ${line.name}: ${signed(delta)}${
-            delta < 0 ? ' (se terminó)' : ''
-          }`,
-        )
-      })
-      .catch(() => {
-        apply(-delta)
-        showToast('No se pudo guardar el cambio de stock.')
-      })
+    if (delta > 0 && !isAdmin) return
+    setTaking({ line, color, refill, direction: delta < 0 ? 'out' : 'in' })
   }
 
   const summary = summarize(lines)
@@ -131,14 +104,16 @@ export default function FilamentsPage() {
           <h1 className="page-title">Filamentos</h1>
         </div>
         <div className="fl-head__actions">
-          <button
-            type="button"
-            className="fl-btn"
-            onClick={() => setEditing(null)}
-          >
-            <Icon name="plus" size={16} />
-            Nueva línea
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              className="fl-btn"
+              onClick={() => setEditing(null)}
+            >
+              <Icon name="plus" size={16} />
+              Nueva línea
+            </button>
+          )}
           <button
             type="button"
             className="fl-btn"
@@ -148,15 +123,17 @@ export default function FilamentsPage() {
             <Icon name="download" size={16} />
             Exportar PDF
           </button>
-          <button
-            type="button"
-            className="fl-btn fl-btn--primary"
-            disabled={lines.length === 0}
-            onClick={() => setBuying({ lineId: null })}
-          >
-            <Icon name="cart" size={16} />
-            Registrar compra
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              className="fl-btn fl-btn--primary"
+              disabled={lines.length === 0}
+              onClick={() => setBuying({ lineId: null })}
+            >
+              <Icon name="cart" size={16} />
+              Registrar compra
+            </button>
+          )}
         </div>
       </header>
 
@@ -166,16 +143,18 @@ export default function FilamentsPage() {
         </p>
       )}
 
-      {view === 'brand' && (
+      {shownView === 'brand' && (
         <div className="fl-kpis">
           <div className="fl-kpi">
             <span>Bobinas de 1 kg en stock</span>
             <span className="fl-mono">{summary.spools}</span>
           </div>
-          <div className="fl-kpi">
-            <span>Valor del stock</span>
-            <span className="fl-mono">{money(summary.value)}</span>
-          </div>
+          {isAdmin && (
+            <div className="fl-kpi">
+              <span>Valor del stock</span>
+              <span className="fl-mono">{money(summary.value)}</span>
+            </div>
+          )}
           <div className="fl-kpi is-out">
             <span>Colores sin stock</span>
             <span className="fl-mono">
@@ -189,7 +168,7 @@ export default function FilamentsPage() {
         </div>
       )}
       <div className="fl-bar">
-        {view !== 'activity' && (
+        {shownView !== 'activity' && (
           <>
             <label className="fl-search">
               <Icon name="search" size={16} />
@@ -229,7 +208,7 @@ export default function FilamentsPage() {
         >
           <button
             type="button"
-            aria-pressed={view === 'brand'}
+            aria-pressed={shownView === 'brand'}
             onClick={() => setView('brand')}
           >
             <Icon name="list" size={15} />
@@ -237,32 +216,40 @@ export default function FilamentsPage() {
           </button>
           <button
             type="button"
-            aria-pressed={view === 'color'}
+            aria-pressed={shownView === 'color'}
             onClick={() => setView('color')}
           >
             <span className="fl-rainbow" aria-hidden="true" />
             Por color
           </button>
-          <button
-            type="button"
-            aria-pressed={view === 'activity'}
-            onClick={() => setView('activity')}
-          >
-            <Icon name="receipt" size={15} />
-            Actividad
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              aria-pressed={shownView === 'activity'}
+              onClick={() => setView('activity')}
+            >
+              <Icon name="receipt" size={15} />
+              Actividad
+            </button>
+          )}
         </div>
       </div>
 
-      {view === 'activity' ? (
-        <ActivityView reloadKey={changes} />
+      {shownView === 'activity' ? (
+        <ActivityView
+          reloadKey={changes}
+          onChanged={() => {
+            setChanges((n) => n + 1)
+            void reload()
+          }}
+        />
       ) : loading ? (
         <p className="fl-quiet">Cargando filamentos…</p>
       ) : lines.length === 0 ? (
         <div className="fl-empty">
           Todavía no hay filamentos cargados. Empezá con “Nueva línea”.
         </div>
-      ) : view === 'color' ? (
+      ) : shownView === 'color' ? (
         <ColorView lines={shown} />
       ) : shown.length === 0 ? (
         <p className="fl-empty">Nada coincide con la búsqueda.</p>
@@ -273,12 +260,29 @@ export default function FilamentsPage() {
               key={line.id}
               line={line}
               onMove={move}
-              onEdit={(l) => setEditing(lines.find((x) => x.id === l.id) ?? l)}
+              canAdd={isAdmin}
+              onEdit={
+                isAdmin
+                  ? (l) => setEditing(lines.find((x) => x.id === l.id) ?? l)
+                  : undefined
+              }
             />
           ))}
         </div>
       )}
 
+      {taking && (
+        <TakeSheet
+          {...taking}
+          onClose={() => setTaking(null)}
+          onDone={(message) => {
+            setTaking(null)
+            setChanges((n) => n + 1)
+            showToast(message)
+            void reload()
+          }}
+        />
+      )}
       {editing !== undefined && (
         <LineDrawer
           key={editing?.id ?? 'new'}
@@ -289,9 +293,9 @@ export default function FilamentsPage() {
             setEditing(undefined)
             setBuying({ lineId: l.id })
           }}
-          onSaved={() => {
+          onSaved={(warning) => {
             setEditing(undefined)
-            showToast('Línea guardada')
+            showToast(warning ?? 'Línea guardada')
             void reload()
           }}
         />

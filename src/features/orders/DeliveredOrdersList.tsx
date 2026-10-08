@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from '@/components/Icon'
+import { useOperator } from '@/features/operators/operator-context'
 import { listDeliveredOrders, type OrderWithCustomer } from './orders.api'
 import {
   deleteProductSale,
@@ -21,7 +22,15 @@ import './deliveredOrders.css'
 // How long the "Deshacer" option stays after a direct sale.
 const UNDO_WINDOW_MS = 5000
 
-function RowBody({ row, today }: { row: VentaRow; today: string }) {
+function RowBody({
+  row,
+  today,
+  showAmount,
+}: {
+  row: VentaRow
+  today: string
+  showAmount: boolean
+}) {
   return (
     <>
       <span className={`drow__icon drow__icon--${row.kind}`} aria-hidden="true">
@@ -38,7 +47,9 @@ function RowBody({ row, today }: { row: VentaRow; today: string }) {
         </span>
       </span>
       <span className="drow__side">
-        <span className="drow__amount num">{formatMoney(row.amount)}</span>
+        {showAmount && (
+          <span className="drow__amount num">{formatMoney(row.amount)}</span>
+        )}
         <span className="drow__date">{formatDueDate(row.date, today)}</span>
       </span>
     </>
@@ -48,6 +59,7 @@ function RowBody({ row, today }: { row: VentaRow; today: string }) {
 // `/admin/ventas-pedidos`: what was actually sold — delivered orders plus
 // direct sales of things already in stock ("Agregar venta"), by month.
 export default function DeliveredOrdersList() {
+  const { isAdmin } = useOperator()
   const [orders, setOrders] = useState<OrderWithCustomer[]>([])
   const [productSales, setProductSales] = useState<ProductSaleRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -164,10 +176,12 @@ export default function DeliveredOrdersList() {
       {!loading && !error && rows.length > 0 && (
         <>
           <div className="dstats">
-            <div className="dstat dstat--total">
-              <span className="dstat__label">Total vendido</span>
-              <span className="dstat__value num">{formatMoney(total)}</span>
-            </div>
+            {isAdmin && (
+              <div className="dstat dstat--total">
+                <span className="dstat__label">Total vendido</span>
+                <span className="dstat__value num">{formatMoney(total)}</span>
+              </div>
+            )}
             <div className="dstat">
               <span className="dstat__label">Pedidos entregados</span>
               <span className="dstat__value num">{orderCount}</span>
@@ -206,18 +220,20 @@ export default function DeliveredOrdersList() {
             <section key={group.month} className="dmonth">
               <header className="dmonth__head">
                 <h2>{group.label}</h2>
-                <span className="num">{formatMoney(group.total)}</span>
+                {isAdmin && (
+                  <span className="num">{formatMoney(group.total)}</span>
+                )}
               </header>
               <ul className="card drows">
                 {group.rows.map((row) => (
                   <li key={`${row.kind}-${row.id}`}>
                     {row.href ? (
                       <Link to={row.href} className="drow">
-                        <RowBody row={row} today={today} />
+                        <RowBody row={row} today={today} showAmount={isAdmin} />
                       </Link>
                     ) : (
                       <div className="drow">
-                        <RowBody row={row} today={today} />
+                        <RowBody row={row} today={today} showAmount={isAdmin} />
                       </div>
                     )}
                   </li>

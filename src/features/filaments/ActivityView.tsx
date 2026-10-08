@@ -14,6 +14,7 @@ import {
   type LogKind,
 } from './filaments'
 import { listLog } from './filaments.api'
+import SalesPanel from './SalesPanel'
 
 const PAGE = 100
 const FILTERS: [LogFilter, string][] = [
@@ -25,7 +26,13 @@ const FILTERS: [LogFilter, string][] = [
 
 // Everything that changed in the stock, newest first, with who and when.
 // It only reads: nothing here can be edited or erased.
-export default function ActivityView({ reloadKey }: { reloadKey: number }) {
+export default function ActivityView({
+  reloadKey,
+  onChanged,
+}: {
+  reloadKey: number
+  onChanged?: () => void
+}) {
   const { operators, byId } = useOperator()
   const [limit, setLimit] = useState(PAGE)
   const [rows, setRows] = useState<FilamentLogRow[] | null>(null)
@@ -74,6 +81,7 @@ export default function ActivityView({ reloadKey }: { reloadKey: number }) {
 
   return (
     <>
+      <SalesPanel reloadKey={reloadKey} onChanged={onChanged ?? (() => {})} />
       <p className="fl-hint">
         Registro de control: cada bobina que entra o sale y cada color o línea
         que se crea o se borra, con quién y a qué hora. No se puede editar ni
