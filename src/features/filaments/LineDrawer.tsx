@@ -18,7 +18,7 @@ import {
 import {
   deleteLine,
   listLineMovements,
-  moveFilament,
+  adjustFilament,
   saveLine,
   type ColorDraft,
   type RemovedColor,
@@ -211,7 +211,9 @@ export default function LineDrawer({
       )
       const opId = current?.id ?? null
       const adjust = (id: string, d: number, refill: boolean) =>
-        d === 0 ? null : moveFilament(id, d, 'adjust', opId, { refill })
+        d === 0
+          ? null
+          : adjustFilament(id, refill, d, opId, 'Corrección desde editar línea')
       await Promise.all(
         rows.flatMap((r, i) => [
           adjust(colorIds[i], r.stock - r.was, false),

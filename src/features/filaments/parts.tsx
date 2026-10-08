@@ -22,6 +22,7 @@ export function Stepper({
   min = 0,
   large = false,
   disabled = false,
+  canAdd = true,
 }: {
   value: number
   label: string
@@ -29,6 +30,7 @@ export function Stepper({
   min?: number
   large?: boolean
   disabled?: boolean
+  canAdd?: boolean
 }) {
   return (
     <span className={`fl-step${large ? ' fl-step--lg' : ''}`}>
@@ -41,14 +43,16 @@ export function Stepper({
         −
       </button>
       <span className={`fl-mono${value === 0 ? ' is-zero' : ''}`}>{value}</span>
-      <button
-        type="button"
-        aria-label={`Sumar bobina de ${label}`}
-        disabled={disabled}
-        onClick={() => onChange(1)}
-      >
-        +
-      </button>
+      {canAdd && (
+        <button
+          type="button"
+          aria-label={`Sumar bobina de ${label}`}
+          disabled={disabled}
+          onClick={() => onChange(1)}
+        >
+          +
+        </button>
+      )}
     </span>
   )
 }

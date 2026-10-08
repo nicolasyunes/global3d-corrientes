@@ -10,12 +10,18 @@ const mocks = vi.hoisted(() => ({
   listLineMovements: vi.fn(),
   deleteLine: vi.fn(),
   listLog: vi.fn(),
+  sellFilament: vi.fn(),
+  takeFilament: vi.fn(),
+  adjustFilament: vi.fn(),
+  listFilamentSales: vi.fn(),
 }))
+const operator = vi.hoisted(() => ({ isAdmin: true }))
 
 vi.mock('./filaments.api', () => mocks)
 vi.mock('@/features/operators/operator-context', () => ({
   useOperator: () => ({
     current: { id: 'op-1', name: 'nicolas' },
+    isAdmin: operator.isAdmin,
     operators: [
       { id: 'op-1', name: 'nicolas' },
       { id: 'op-2', name: 'sabri' },
@@ -33,6 +39,8 @@ describe('FilamentsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    operator.isAdmin = true
+    mocks.listFilamentSales.mockResolvedValue([])
     mocks.listLines.mockResolvedValue(designLines())
     mocks.moveFilament.mockResolvedValue({})
     mocks.listLineMovements.mockResolvedValue([])
@@ -70,45 +78,6 @@ describe('FilamentsPage', () => {
     expect(
       screen.getByRole('region', { name: 'Grilon3 PLA especial' }),
     ).toBeInTheDocument()
-  })
-
-  it('takes a spool out when one runs out', async () => {
-    await renderPage()
-    const card = screen.getByRole('region', { name: '3N3 PLA' })
-    await act(async () => {
-      fireEvent.click(
-        within(card).getByRole('button', { name: 'Restar bobina de Rojo' }),
-      )
-    })
-    expect(mocks.moveFilament).toHaveBeenCalledWith(
-      'l0c2',
-      -1,
-      'used',
-      'op-1',
-      {
-        refill: false,
-      },
-    )
-    expect(within(card).getByText('14')).toBeInTheDocument()
-  })
-
-  it('moves the refill stock on lines sold both ways', async () => {
-    await renderPage()
-    const card = screen.getByRole('region', { name: 'Bambu Lab PLA Lite' })
-    await act(async () => {
-      fireEvent.click(
-        within(card).getByRole('button', {
-          name: 'Sumar bobina de Blanco recarga',
-        }),
-      )
-    })
-    expect(mocks.moveFilament).toHaveBeenCalledWith(
-      expect.any(String),
-      1,
-      'adjust',
-      'op-1',
-      { refill: true },
-    )
   })
 
   it('switches to the view by color', async () => {
@@ -254,5 +223,53 @@ describe('FilamentsPage', () => {
     // 3N3 PLA has no blue in stock, so it is not listed under that line.
     const section = text.split('*3N3 PLA*')[1].split('*')[0]
     expect(section).not.toContain('Azul')
+  })
+})
+
+describe('FilamentsPage como operador', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+    operator.isAdmin = false
+    mocks.listFilamentSales.mockResolvedValue([])
+    mocks.listLines.mockResolvedValue(designLines())
+  })
+
+  it('restar abre la hoja Sacar en vez de mover el stock', async () => {
+    await renderPage()
+    fireEvent.click(screen.getAllByRole('button', { name: /^Restar bobina de/ })[0])
+    expect(screen.getByRole('dialog', { name: 'Sacar' })).toBeInTheDocument()
+    expect(mocks.moveFilament).not.toHaveBeenCalled()
+  })
+
+  it('no ve sumar, compra, nueva línea, editar ni actividad', async () => {
+    await renderPage()
+    expect(screen.queryByRole('button', { name: /^Sumar bobina de/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Registrar compra/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Nueva línea/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Editar / })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Actividad/ })).toBeNull()
+  })
+
+  it('si tenía guardada la vista Actividad, vuelve a Por marca', async () => {
+    localStorage.setItem('g3d.filamentsView', 'activity')
+    await renderPage()
+    expect(screen.queryByText(/Registro de control/)).toBeNull()
+  })
+})
+
+describe('FilamentsPage como admin', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+    operator.isAdmin = true
+    mocks.listFilamentSales.mockResolvedValue([])
+    mocks.listLines.mockResolvedValue(designLines())
+  })
+
+  it('sumar abre la hoja Sumar', async () => {
+    await renderPage()
+    fireEvent.click(screen.getAllByRole('button', { name: /^Sumar bobina de/ })[0])
+    expect(screen.getByRole('dialog', { name: 'Sumar' })).toBeInTheDocument()
   })
 })

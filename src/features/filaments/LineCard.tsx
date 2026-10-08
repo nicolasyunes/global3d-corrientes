@@ -24,10 +24,12 @@ export default function LineCard({
   line,
   onMove,
   onEdit,
+  canAdd,
 }: {
   line: FilamentLine
   onMove: MoveHandler
-  onEdit: (line: FilamentLine) => void
+  onEdit?: (line: FilamentLine) => void
+  canAdd: boolean
 }) {
   const both = isBoth(line)
   const title = `${line.brand} ${line.name}`
@@ -48,15 +50,17 @@ export default function LineCard({
           <span className="fl-mono">{lineSpools(line)} bob.</span>
           {!both && line.price != null && <span>{money(line.price)} c/u</span>}
         </span>
-        <button
-          type="button"
-          className="fl-icon"
-          aria-label={`Editar ${title}`}
-          title="Editar línea"
-          onClick={() => onEdit(line)}
-        >
-          <Icon name="edit" size={15} />
-        </button>
+        {onEdit && (
+          <button
+            type="button"
+            className="fl-icon"
+            aria-label={`Editar ${title}`}
+            title="Editar línea"
+            onClick={() => onEdit(line)}
+          >
+            <Icon name="edit" size={15} />
+          </button>
+        )}
       </header>
 
       {both ? (
@@ -82,6 +86,7 @@ export default function LineCard({
               </span>
               {c.spool_available ? (
                 <Stepper
+                  canAdd={canAdd}
                   value={c.stock}
                   label={`${c.name} con spool`}
                   onChange={(d) => onMove(line, c, d, false)}
@@ -93,6 +98,7 @@ export default function LineCard({
               )}
               {c.stock_refill != null ? (
                 <Stepper
+                  canAdd={canAdd}
                   value={c.stock_refill}
                   label={`${c.name} recarga`}
                   onChange={(d) => onMove(line, c, d, true)}
@@ -128,6 +134,7 @@ export default function LineCard({
                     : ''}
               </span>
               <Stepper
+                  canAdd={canAdd}
                 value={c.stock}
                 label={c.name}
                 onChange={(d) => onMove(line, c, d, false)}
