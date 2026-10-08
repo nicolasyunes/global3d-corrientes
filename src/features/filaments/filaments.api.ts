@@ -5,10 +5,12 @@ import type {
   FilamentLine,
   FilamentLineRow,
   FilamentLogRow,
+  FilamentSale,
   LogKind,
   FilamentMovement,
   MovementKind,
 } from './filaments'
+import type { Payment } from './take'
 
 type Tables = Database['public']['Tables']
 type LineInsert = Tables['filament_lines']['Insert']
@@ -51,6 +53,97 @@ export async function moveFilament(
   })
   if (error) throw error
   return data as FilamentColor
+}
+
+// Database errors carry a Spanish message meant for the screen.
+function fail(error: { message: string }): never {
+  throw new Error(error.message)
+}
+
+// A sale at list price: the database sets the price, takes the stock and
+// writes the sale and the log in one step.
+export async function sellFilament(
+  colorId: string,
+  refill: boolean,
+  qty: number,
+  payment: Payment,
+  operatorId: string | null,
+  customer: string,
+): Promise<FilamentSale> {
+  const { data, error } = await supabase.rpc('sell_filament', {
+    p_color: colorId,
+    p_refill: refill,
+    p_qty: qty,
+    p_payment: payment,
+    p_operator: operatorId as string, // the database accepts null
+    p_customer: customer,
+  })
+  if (error) fail(error)
+  return data as FilamentSale
+}
+
+// Spools leaving the shelf for a non-sale reason; fails if there aren't enough.
+export async function takeFilament(
+  colorId: string,
+  refill: boolean,
+  qty: number,
+  kind: 'used' | 'transfer' | 'personal',
+  operatorId: string | null,
+  note: string,
+): Promise<FilamentColor> {
+  const { data, error } = await supabase.rpc('take_filament', {
+    p_color: colorId,
+    p_refill: refill,
+    p_qty: qty,
+    p_kind: kind,
+    p_operator: operatorId as string, // the database accepts null
+    p_note: note,
+  })
+  if (error) fail(error)
+  return data as FilamentColor
+}
+
+export async function adjustFilament(
+  colorId: string,
+  refill: boolean,
+  delta: number,
+  operatorId: string | null,
+  note: string,
+): Promise<FilamentColor> {
+  const { data, error } = await supabase.rpc('adjust_filament', {
+    p_color: colorId,
+    p_refill: refill,
+    p_delta: delta,
+    p_operator: operatorId as string, // the database accepts null
+    p_note: note,
+  })
+  if (error) fail(error)
+  return data as FilamentColor
+}
+
+// Admin only (checked in the database); puts the stock back.
+export async function voidFilamentSale(
+  saleId: string,
+  operatorId: string | null,
+  reason: string,
+): Promise<FilamentSale> {
+  const { data, error } = await supabase.rpc('void_filament_sale', {
+    p_sale: saleId,
+    p_operator: operatorId as string, // the database accepts null
+    p_reason: reason,
+  })
+  if (error) fail(error)
+  return data as FilamentSale
+}
+
+export async function listFilamentSales(limit = 50): Promise<FilamentSale[]> {
+  const { data, error } = await supabase
+    .from('filament_sales')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) fail(error)
+  return data ?? []
 }
 
 export interface LogEntry {
