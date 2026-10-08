@@ -149,10 +149,12 @@ export default function FilamentsPage() {
             <span>Bobinas de 1 kg en stock</span>
             <span className="fl-mono">{summary.spools}</span>
           </div>
-          <div className="fl-kpi">
-            <span>Valor del stock</span>
-            <span className="fl-mono">{money(summary.value)}</span>
-          </div>
+          {isAdmin && (
+            <div className="fl-kpi">
+              <span>Valor del stock</span>
+              <span className="fl-mono">{money(summary.value)}</span>
+            </div>
+          )}
           <div className="fl-kpi is-out">
             <span>Colores sin stock</span>
             <span className="fl-mono">

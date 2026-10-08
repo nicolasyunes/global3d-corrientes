@@ -278,6 +278,12 @@ describe('FilamentsPage como operador', () => {
     expect(screen.queryByRole('button', { name: /Actividad/ })).toBeNull()
   })
 
+  it('no ve el valor del stock', async () => {
+    await renderPage()
+    expect(screen.queryByText('Valor del stock')).toBeNull()
+    expect(screen.getByText('Bobinas de 1 kg en stock')).toBeInTheDocument()
+  })
+
   it('si tenía guardada la vista Actividad, vuelve a Por marca', async () => {
     localStorage.setItem('g3d.filamentsView', 'activity')
     await renderPage()
