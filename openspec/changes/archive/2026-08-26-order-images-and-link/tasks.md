@@ -1,5 +1,7 @@
 # Tasks: order-images-and-link
 
+> **Estado al archivar (2026-10-08):** Implementado, aunque las casillas no se marcaron. Tabla `order_images` y columna `orders.reference_link` aplicadas; código en `orderImages.api.ts`, `OrderImages.tsx` y el campo de link en `OrderModal`. Las tareas nombran `OrderForm`/`OrderDetail`, que se reemplazaron en la Fase 1 (2026-09-29).
+
 ## Review Workload Forecast
 
 | Field | Value |

@@ -1,5 +1,7 @@
 # Tasks: sheets-mirror-sync
 
+> **Estado al archivar (2026-10-08):** Descartado. El taller dejó de usar la planilla y la migración `20260930100000_drop_sheet_sync_and_storefront.sql` eliminó triggers, funciones y `sheet_sync_config`.
+
 ## Review Workload Forecast
 
 | Field | Value |

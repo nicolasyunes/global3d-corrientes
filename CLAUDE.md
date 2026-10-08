@@ -4,6 +4,7 @@ Taller de impresión 3D Global3D (Corrientes). Admin en React + Vite + Supabase,
 
 - Producción: https://global3d-corrientes.vercel.app — Vercel despliega solo al mergear a `master`.
 - Supabase: proyecto `bukjmleercxlxbexekos` (Global-3D-Corrientes), vía conector MCP.
+- App solo interna (login del taller + PIN por persona). La tienda pública y el sync con Google Sheets se eliminaron en la Fase 1 (2026-09-29/30); no proponer trabajo sobre eso salvo que se reabra.
 - Idioma: respondé en español rioplatense.
 
 ## Reglas de trabajo
@@ -52,7 +53,7 @@ Páginas: `index`, `llavero`, `vaso`, `letra-caja` (la principal). Usan manifold
 ## Pendientes
 
 - Probar Imagen a SVG con logos reales (letras finas, degradés).
-- Panel de guardado de diseños para llavero y vaso.
+- Llavero y vaso: alcanza con que se puedan descargar; no hace falta panel de guardado por ahora.
 - Faltantes vs LetraMaker: pestaña externa, rebaje de pared externa, frente de acrílico en la curva, más plantillas de relieve, vista de camas, presets.
 - Plantilla de perforado para halo; acentos unidos a su letra.
 - Impresiones de prueba para calibrar tolerancias.

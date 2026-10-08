@@ -1,5 +1,7 @@
 # Tasks: order-items-and-supplies-sales
 
+> **Estado al archivar (2026-10-08):** Parcial. Ítems por pedido implementados (`order_items`, usados en `orderSave.api.ts`). El esquema de venta de insumos está aplicado (`consume_inventory()`, `transactions.inventory_id`, RLS para autenticados), pero la UI `/admin/ventas` nunca se hizo: la reventa quedó en pausa por decisión de la Fase 1.
+
 ## Review Workload Forecast
 
 | Field | Value |
