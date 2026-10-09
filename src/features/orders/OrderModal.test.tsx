@@ -225,4 +225,43 @@ describe('OrderModal — cobros y canal', () => {
       expect.stringContaining('no se pudo registrar la seña'),
     )
   })
+
+  it('al editar, bajar el total por debajo de la seña avisa en Total', async () => {
+    loadDraftMock.mockResolvedValue({
+      ...emptyDraft(),
+      customerName: 'Juan Pérez',
+      items: [{ ...emptyItem(), id: 'i1', product: 'Vaso Boca' }],
+      dueDate: '2026-12-01',
+      total: '5000',
+      deposit: '2000',
+    })
+    render(<OrderModal orderId="o1" onClose={vi.fn()} onSaved={vi.fn()} />)
+    fireEvent.change(await screen.findByLabelText('Total ($)'), {
+      target: { value: '1000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(
+      await screen.findByText(
+        'El total no puede ser menor a lo ya cobrado. Anulá un cobro desde el pedido si hace falta.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('La seña no puede superar el total.')).toBeNull()
+    expect(updateMock).not.toHaveBeenCalled()
+  })
+
+  it('junta el aviso de archivos y el de la seña con un espacio', async () => {
+    uploadMock.mockRejectedValue(new Error('down'))
+    createMock.mockResolvedValue({ id: 'o1', paymentWarning: 'AVISO-SENA.' })
+    const onSaved = vi.fn()
+    render(<OrderModal orderId={null} onClose={vi.fn()} onSaved={onSaved} />)
+    fillRequired()
+    fireEvent.change(screen.getByLabelText(/agregar archivo/i), {
+      target: { files: [new File(['x'], 'f.jpg', { type: 'image/jpeg' })] },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Guardar pedido/ }))
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
+    expect(onSaved.mock.calls[0][1]).toMatch(
+      /Subilo desde el pedido. AVISO-SENA.$/,
+    )
+  })
 })

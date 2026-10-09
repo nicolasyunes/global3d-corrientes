@@ -337,6 +337,12 @@ export default function OrderModal({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const found = validateDraft(draft, { creating: !editing })
+    // Editing: the deposit is locked, so the over-total error belongs on Total.
+    if (editing && found.deposit && !found.total) {
+      delete found.deposit
+      found.total =
+        'El total no puede ser menor a lo ya cobrado. Anulá un cobro desde el pedido si hace falta.'
+    }
     setErrors(found)
     if (Object.keys(found).length > 0) return
     setSaving(true)
