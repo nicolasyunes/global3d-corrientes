@@ -908,7 +908,16 @@
   padding: 0 22px 12px;
 }
 .fl-modal__panel .fl-drawer__foot {
+  flex-wrap: wrap;
   padding: 12px 22px;
+}
+.fl-modal__panel .fl-drawer__foot .fl-btn {
+  flex: 0 0 auto;
+}
+@media (max-width: 640px) {
+  .fl-modal__panel .fl-drawer__foot > .fl-total {
+    flex: 1 0 100%;
+  }
 }
 .fl-buy {
   list-style: none;
