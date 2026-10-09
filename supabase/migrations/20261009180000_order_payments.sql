@@ -83,6 +83,7 @@ begin
   ) then
     raise exception 'No se reconoce a la persona que cobra';
   end if;
+  p_amount := round(p_amount, 2);
   if p_amount is null or p_amount <= 0 then
     raise exception 'Escribí el monto que pagó';
   end if;
@@ -102,7 +103,10 @@ begin
     raise exception 'Cargá primero el total del pedido';
   end if;
 
-  v_paid := coalesce(v_order.deposit, 0);
+  v_paid := coalesce((
+    select sum(amount) from public.transactions
+    where order_id = p_order and type = '3d_service' and voided_at is null
+  ), 0);
   v_due := v_order.total_amount - v_paid;
   if p_amount > v_due then
     raise exception 'El cobro supera el saldo (queda %)', public.ars(v_due);
@@ -157,6 +161,7 @@ declare
   v_tx public.transactions;
   v_order public.orders;
   v_new numeric(12, 2);
+  v_order_id uuid;
 begin
   if not exists (
     select 1 from public.operators
@@ -168,6 +173,14 @@ begin
     raise exception 'Escribí el motivo de la anulación';
   end if;
 
+  select order_id into v_order_id from public.transactions
+    where id = p_tx and type = '3d_service' and order_id is not null;
+  if not found then
+    raise exception 'No se encontró el cobro';
+  end if;
+
+  select * into v_order from public.orders where id = v_order_id for update;
+
   select * into v_tx from public.transactions
     where id = p_tx and type = '3d_service' and order_id is not null for update;
   if not found then
@@ -177,17 +190,19 @@ begin
     raise exception 'El cobro ya está anulado';
   end if;
 
-  select * into v_order from public.orders where id = v_tx.order_id for update;
-  v_new := greatest(0, coalesce(v_order.deposit, 0) - v_tx.amount);
-
   update public.transactions
     set voided_at = now(), voided_by = p_operator, void_reason = trim(p_reason)
     where id = p_tx
     returning * into v_tx;
 
+  v_new := coalesce((
+    select sum(amount) from public.transactions
+    where order_id = v_tx.order_id and type = '3d_service' and voided_at is null
+  ), 0);
+
   update public.orders
     set deposit = v_new,
-        pending_balance = case when total_amount is null then pending_balance
+        pending_balance = case when total_amount is null then null
                                else total_amount - v_new end
     where id = v_tx.order_id;
 
