@@ -4,6 +4,7 @@ import { useToast } from '@/components/useToast'
 import { useOperator } from '@/features/operators/operator-context'
 import ActivityView from './ActivityView'
 import ColorView from './ColorView'
+import CountReminder from './CountReminder'
 import ExportModal from './ExportModal'
 import LineCard, { type MoveHandler } from './LineCard'
 import LineDrawer from './LineDrawer'
@@ -136,6 +137,7 @@ export default function FilamentsPage() {
           )}
         </div>
       </header>
+      <CountReminder reloadKey={changes} />
 
       {error && (
         <p className="fl-error" role="alert">

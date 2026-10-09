@@ -21,6 +21,7 @@ import CalculatorPage from '@/features/calculator/CalculatorPage'
 import NoticesPage from '@/features/notices/NoticesPage'
 import IdeasPage from '@/features/ideas/IdeasPage'
 import FilamentsPage from '@/features/filaments/FilamentsPage'
+import CountPage from '@/features/filaments/CountPage'
 import ResourcesPage from '@/features/resources/ResourcesPage'
 import AdminLayout from './AdminLayout'
 
@@ -73,6 +74,7 @@ export function Component() {
             }
           />
           <Route path="filamentos" element={<FilamentsPage />} />
+          <Route path="conteo" element={<CountPage />} />
           <Route path="orders" element={<OrdersList />} />
           <Route path="orders/:id" element={<OrderProduction />} />
           <Route path="ventas-pedidos" element={<DeliveredOrdersList />} />

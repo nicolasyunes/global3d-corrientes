@@ -86,6 +86,7 @@ describe('AdminLayout', () => {
     expect(screen.queryByText('Productos y stock')).not.toBeInTheDocument()
     expect(screen.queryByText('Personas')).not.toBeInTheDocument()
     expect(screen.queryByText('Estadísticas')).not.toBeInTheDocument()
+    expect(screen.getByText('Conteo')).toBeInTheDocument()
   })
 
   it('shows admin sections for admins', () => {
@@ -94,5 +95,6 @@ describe('AdminLayout', () => {
     expect(screen.getByText('Productos y stock')).toBeInTheDocument()
     expect(screen.getByText('Personas')).toBeInTheDocument()
     expect(screen.getByText('Estadísticas')).toBeInTheDocument()
+    expect(screen.getByText('Conteo')).toBeInTheDocument()
   })
 })

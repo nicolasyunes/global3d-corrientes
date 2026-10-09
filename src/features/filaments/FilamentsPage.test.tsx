@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import FilamentsPage from './FilamentsPage'
 import { designLines } from './fixtures'
@@ -15,9 +16,13 @@ const mocks = vi.hoisted(() => ({
   adjustFilament: vi.fn(),
   listFilamentSales: vi.fn(),
 }))
+const countApi = vi.hoisted(() => ({
+  listCountStatus: vi.fn().mockResolvedValue([]),
+}))
 const operator = vi.hoisted(() => ({ isAdmin: true }))
 
 vi.mock('./filaments.api', () => mocks)
+vi.mock('./stockCount.api', () => countApi)
 vi.mock('@/features/operators/operator-context', () => ({
   useOperator: () => ({
     current: { id: 'op-1', name: 'nicolas' },
@@ -31,7 +36,11 @@ vi.mock('@/features/operators/operator-context', () => ({
 }))
 
 async function renderPage() {
-  render(<FilamentsPage />)
+  render(
+    <MemoryRouter>
+      <FilamentsPage />
+    </MemoryRouter>,
+  )
   await act(async () => {})
 }
 
@@ -40,6 +49,7 @@ describe('FilamentsPage', () => {
     vi.clearAllMocks()
     localStorage.clear()
     operator.isAdmin = true
+    countApi.listCountStatus.mockResolvedValue([])
     mocks.listFilamentSales.mockResolvedValue([])
     mocks.listLines.mockResolvedValue(designLines())
     mocks.moveFilament.mockResolvedValue({})
@@ -276,6 +286,17 @@ describe('FilamentsPage como operador', () => {
     expect(screen.queryByRole('button', { name: /Nueva línea/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /^Editar / })).toBeNull()
     expect(screen.queryByRole('button', { name: /Actividad/ })).toBeNull()
+  })
+
+  it('avisa que no se hizo ningún conteo', async () => {
+    await renderPage()
+    expect(
+      screen.getByText('Todavía no se hizo ningún conteo del estante.'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ir al conteo' })).toHaveAttribute(
+      'href',
+      '/admin/conteo',
+    )
   })
 
   it('no ve el valor del stock', async () => {
