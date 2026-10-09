@@ -106,8 +106,8 @@ describe('CountPage', () => {
     })()
     expect(first).toBeDisabled()
     fireEvent.change(firstInput(), { target: { value: '4' } })
-    expect(JSON.parse(localStorage.getItem('g3d.countDraft')!)).toMatchObject({})
-    expect(Object.values(JSON.parse(localStorage.getItem('g3d.countDraft')!))).toContain('4')
+    expect(JSON.parse(localStorage.getItem('g3d.countDraft:op-1')!)).toMatchObject({})
+    expect(Object.values(JSON.parse(localStorage.getItem('g3d.countDraft:op-1')!))).toContain('4')
   })
 
   it('un error de la base se muestra y se conserva lo cargado', async () => {

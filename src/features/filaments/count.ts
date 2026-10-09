@@ -31,9 +31,10 @@ export interface CountGroup {
 
 export function countGroups(lines: readonly FilamentLine[]): CountGroup[] {
   return lines.map((line) => {
-    const both = line.presentation === 'both'
     const rows: CountRowSpec[] = []
     for (const c of line.colors) {
+      // same rule as the database: a refill row exists when its stock is not null
+      const both = c.stock_refill != null
       rows.push({
         key: countKey(c.id, false),
         colorId: c.id,
@@ -124,7 +125,8 @@ export function reminderText(
   isAdmin: boolean,
 ): string | null {
   const parts: string[] = []
-  if (info.days === null) parts.push('Todavía no se hizo ningún conteo del estante.')
+  if (info.days === null)
+    parts.push('Todavía no se hizo ningún conteo del estante.')
   else if (info.overdue)
     parts.push(`Hace ${info.days} días que no se cuenta el estante.`)
   if (isAdmin && info.pending > 0)

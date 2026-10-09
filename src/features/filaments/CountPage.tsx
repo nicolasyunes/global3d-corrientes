@@ -11,23 +11,24 @@ import '@/features/orders/taller.css'
 import './filaments.css'
 import './count.css'
 
-const DRAFT_KEY = 'g3d.countDraft'
+const draftKey = (operatorId: string | null | undefined) =>
+  `g3d.countDraft:${operatorId ?? 'anon'}`
 
 type Draft = Record<string, string>
 
-function loadDraft(): Draft {
+function loadDraft(key: string): Draft {
   try {
-    const raw = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? '{}')
+    const raw = JSON.parse(localStorage.getItem(key) ?? '{}')
     return raw && typeof raw === 'object' ? (raw as Draft) : {}
   } catch {
     return {}
   }
 }
 
-function saveDraft(draft: Draft) {
+function saveDraft(key: string, draft: Draft) {
   try {
-    if (Object.keys(draft).length === 0) localStorage.removeItem(DRAFT_KEY)
-    else localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+    if (Object.keys(draft).length === 0) localStorage.removeItem(key)
+    else localStorage.setItem(key, JSON.stringify(draft))
   } catch {
     // storage unavailable: the draft just does not survive a reload
   }
@@ -44,7 +45,8 @@ export default function CountPage() {
   const [toast, showToast] = useToast()
   const [lines, setLines] = useState<FilamentLine[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [draft, setDraft] = useState<Draft>(loadDraft)
+  const storageKey = draftKey(current?.id)
+  const [draft, setDraft] = useState<Draft>(() => loadDraft(storageKey))
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -98,7 +100,7 @@ export default function CountPage() {
       const next = { ...prev }
       if (value === '') delete next[key]
       else next[key] = value
-      saveDraft(next)
+      saveDraft(storageKey, next)
       return next
     })
   }
@@ -124,7 +126,7 @@ export default function CountPage() {
     setSaving(true)
     try {
       await submitStockCount(current?.id ?? null, items)
-      saveDraft({})
+      saveDraft(storageKey, {})
       setDraft({})
       showToast('Conteo enviado. Gracias.')
       setReloadKey((k) => k + 1)

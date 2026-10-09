@@ -34,6 +34,20 @@ describe('countGroups', () => {
     expect(plain.rows.every((r) => !r.refill && r.suffix === '')).toBe(true)
   })
 
+  it('una línea con ambas presentaciones sin stock de recarga en un color no pide Recarga', () => {
+    const lines = designLines()
+    const bothLine = lines.find((l) => l.presentation === 'both')!
+    bothLine.colors[0] = { ...bothLine.colors[0], stock_refill: null }
+    const g = countGroups(lines).find((x) => x.lineId === bothLine.id)!
+    const first = bothLine.colors[0].id
+    expect(g.rows.filter((r) => r.colorId === first)).toEqual([
+      expect.objectContaining({ refill: false, suffix: '' }),
+    ])
+    expect(
+      g.rows.filter((r) => r.colorId === bothLine.colors[1].id),
+    ).toHaveLength(2)
+  })
+
   it('la clave distingue spool de recarga y no expone el stock', () => {
     expect(countKey('c1', false)).toBe('c1:s')
     expect(countKey('c1', true)).toBe('c1:r')
@@ -83,7 +97,11 @@ describe('diferencias', () => {
 describe('countReminder', () => {
   const now = new Date('2026-10-20T12:00:00Z')
   it('sin conteos: vencido, sin días', () => {
-    expect(countReminder([], now)).toEqual({ days: null, overdue: true, pending: 0 })
+    expect(countReminder([], now)).toEqual({
+      days: null,
+      overdue: true,
+      pending: 0,
+    })
   })
   it('usa el último no descartado y cuenta los pendientes', () => {
     const r = countReminder(
@@ -99,7 +117,12 @@ describe('countReminder', () => {
   it('más de 7 días es vencido; justo 7 no', () => {
     const at = (d: number) =>
       countReminder(
-        [{ created_at: new Date(now.getTime() - d * 86_400_000).toISOString(), status: 'approved' }],
+        [
+          {
+            created_at: new Date(now.getTime() - d * 86_400_000).toISOString(),
+            status: 'approved',
+          },
+        ],
         now,
       )
     expect(COUNT_WARN_DAYS).toBe(7)
@@ -116,14 +139,18 @@ describe('reminderText', () => {
     expect(reminderText({ days: 9, overdue: true, pending: 0 }, false)).toBe(
       'Hace 9 días que no se cuenta el estante.',
     )
-    expect(reminderText({ days: 2, overdue: false, pending: 0 }, false)).toBeNull()
+    expect(
+      reminderText({ days: 2, overdue: false, pending: 0 }, false),
+    ).toBeNull()
     expect(reminderText({ days: 2, overdue: false, pending: 2 }, true)).toBe(
       '2 conteos esperan tu revisión.',
     )
     expect(reminderText({ days: 2, overdue: false, pending: 1 }, true)).toBe(
       '1 conteo espera tu revisión.',
     )
-    expect(reminderText({ days: 2, overdue: false, pending: 1 }, false)).toBeNull()
+    expect(
+      reminderText({ days: 2, overdue: false, pending: 1 }, false),
+    ).toBeNull()
     expect(reminderText({ days: 9, overdue: true, pending: 1 }, true)).toBe(
       'Hace 9 días que no se cuenta el estante. 1 conteo espera tu revisión.',
     )

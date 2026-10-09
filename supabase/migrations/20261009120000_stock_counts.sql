@@ -61,6 +61,9 @@ begin
   ) then
     raise exception 'No se reconoce a la persona que cuenta';
   end if;
+  if exists (select 1 from public.stock_counts where status = 'pending') then
+    raise exception 'Ya hay un conteo esperando revisión del dueño';
+  end if;
   if p_items is null or jsonb_typeof(p_items) <> 'array'
      or jsonb_array_length(p_items) = 0 then
     raise exception 'Contá al menos un color';

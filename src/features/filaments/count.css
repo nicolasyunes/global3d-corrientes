@@ -167,3 +167,9 @@
   color: #b3261e;
   font-weight: 700;
 }
+
+@media (max-width: 899px) {
+  .ct-foot {
+    bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+}
