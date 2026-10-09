@@ -28,8 +28,9 @@ function builder(table: string) {
   return q
 }
 
+const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('@/lib/supabase', () => ({
-  supabase: { from: (table: string) => builder(table) },
+  supabase: { from: (table: string) => builder(table), rpc },
 }))
 
 import { createOrderFromDraft, sameName } from './orderSave.api'
@@ -45,6 +46,8 @@ function draft(over: Partial<OrderDraft>): OrderDraft {
 
 beforeEach(() => {
   calls.length = 0
+  rpc.mockReset()
+  rpc.mockResolvedValue({ data: { id: 'p1' }, error: null })
   respond = (table, op) => {
     if (table === 'customers' && op === 'select')
       return [{ id: 'old', name: 'pelotin' }]
@@ -78,6 +81,34 @@ describe('createOrderFromDraft — nombre del cliente', () => {
     ).toBe(false)
     const order = calls.find((c) => c.table === 'orders')
     expect(order?.payload).toMatchObject({ customer_id: 'old' })
+  })
+})
+
+describe('createOrderFromDraft — seña como cobro', () => {
+  it('la seña no va en el pedido: se registra como cobro', async () => {
+    await createOrderFromDraft(
+      draft({ total: '10000', deposit: '3000', depositMethod: 'cash', channel: 'instagram' }),
+      'op1',
+    )
+    const orderInsert = calls.find((c) => c.table === 'orders' && c.op === 'insert')!
+    expect(orderInsert.payload).toMatchObject({ deposit: null, pending_balance: 10000 })
+    expect(rpc).toHaveBeenCalledWith('register_order_payment', expect.objectContaining({
+      p_amount: 3000, p_method: 'cash', p_operator: 'op1',
+    }))
+  })
+
+  it('sin seña no llama a la función de cobros', async () => {
+    await createOrderFromDraft(draft({ total: '10000', channel: 'local' }), 'op1')
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('si el cobro falla, el pedido igual se guarda y vuelve un aviso', async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: 'Cargá primero el total del pedido' } })
+    const r = await createOrderFromDraft(
+      draft({ total: '10000', deposit: '3000', depositMethod: 'cash' }),
+      'op1',
+    )
+    expect(r.paymentWarning).toContain('Cargá primero el total del pedido')
   })
 })
 

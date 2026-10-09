@@ -18,6 +18,7 @@ import { piecesForItem } from '@/features/products/parts'
 import { DEFAULT_WAITING_REASON, followUpFrom } from './orderFlow'
 import { toISODate } from './validation'
 import type { OrderRow } from './orders.api'
+import { registerOrderPayment } from './payments.api'
 
 export interface CustomerHit {
   id: string
@@ -161,7 +162,7 @@ async function insertPresetPieces(
 export async function createOrderFromDraft(
   draft: OrderDraft,
   operatorId: string | null = null,
-): Promise<OrderRow> {
+): Promise<OrderRow & { paymentWarning?: string }> {
   const customerId = await resolveCustomer(draft)
   const { data: order, error } = await supabase
     .from('orders')
@@ -169,6 +170,9 @@ export async function createOrderFromDraft(
       customer_id: customerId,
       product_type: 'other',
       ...orderFields(draft),
+      // The deposit is registered as a payment below, not stored on the order.
+      deposit: null,
+      pending_balance: balanceOf({ total: draft.total, deposit: '' }),
     })
     .select('*')
     .single()
@@ -194,7 +198,18 @@ export async function createOrderFromDraft(
     (inserted ?? []).map((row) => ({ id: row.id, item: filled[row.position] })),
     operatorId,
   )
-  return order
+  const deposit = parseMoney(draft.deposit)
+  let paymentWarning: string | undefined
+  if (deposit && !Number.isNaN(deposit) && deposit > 0 && draft.depositMethod) {
+    try {
+      await registerOrderPayment(order.id, deposit, draft.depositMethod, operatorId)
+    } catch (err) {
+      paymentWarning = `Pedido guardado, pero no se pudo registrar la seña: ${
+        err instanceof Error ? err.message : 'error desconocido'
+      }. Registrala desde el pedido.`
+    }
+  }
+  return { ...order, paymentWarning }
 }
 
 // Item-by-item upsert: replacing all items would cascade-delete the pieces
