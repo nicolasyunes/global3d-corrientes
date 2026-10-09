@@ -74,6 +74,12 @@ const SECONDARY: NavItem[] = [
     icon: 'layers',
     adminOnly: true,
   },
+  {
+    to: '/admin/estadisticas',
+    label: 'Estadísticas',
+    icon: 'spark',
+    adminOnly: true,
+  },
   { to: '/admin/personas', label: 'Personas', icon: 'users', adminOnly: true },
 ]
 
