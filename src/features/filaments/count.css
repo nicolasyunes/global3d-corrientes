@@ -160,3 +160,10 @@
   font-size: 0.8125rem;
   font-weight: 700;
 }
+.ct-form {
+  min-width: 0;
+}
+.ct-row__hint {
+  color: #b3261e;
+  font-weight: 700;
+}

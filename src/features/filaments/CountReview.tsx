@@ -26,7 +26,11 @@ export default function CountReview({
   useEffect(() => {
     let alive = true
     listStockCounts()
-      .then((c) => alive && setCounts(c))
+      .then((c) => {
+        if (!alive) return
+        setCounts(c)
+        setError(null)
+      })
       .catch(
         (err) =>
           alive &&

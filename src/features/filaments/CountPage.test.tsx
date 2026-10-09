@@ -90,13 +90,13 @@ describe('CountPage', () => {
   it('no cierra con cantidades inválidas', async () => {
     await renderPage()
     fireEvent.change(firstInput(), { target: { value: '2,5' } })
-    // el botón solo se habilita con al menos una fila válida
-    fireEvent.change(screen.getAllByRole('textbox', { name: /^Contados de / })[1], { target: { value: '3' } })
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cerrar conteo' }))
     })
     expect(mocks.submitStockCount).not.toHaveBeenCalled()
     expect(screen.getByRole('alert')).toHaveTextContent('solo números enteros')
+    expect(firstInput()).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getAllByText(/Solo números enteros/).length).toBeGreaterThan(0)
   })
 
   it('el botón queda apagado sin nada contado y el borrador sobrevive', async () => {

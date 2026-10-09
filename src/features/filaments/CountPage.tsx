@@ -57,7 +57,11 @@ export default function CountPage() {
       .catch(
         (err) =>
           alive &&
-          setLoadError(err instanceof Error ? err.message : 'No se pudieron cargar los filamentos.'),
+          setLoadError(
+            err instanceof Error
+              ? err.message
+              : 'No se pudieron cargar los filamentos.',
+          ),
       )
     return () => {
       alive = false
@@ -75,17 +79,21 @@ export default function CountPage() {
     return n !== null && n !== 'invalid'
   }).length
 
+  const hasEntries = [...allKeys].some((k) => (draft[k] ?? '').trim() !== '')
   const q = fold(query)
   const visible = groups
     .map((g) => ({
       ...g,
       rows: q
-        ? g.rows.filter((r) => fold(g.label).includes(q) || fold(r.colorLabel).includes(q))
+        ? g.rows.filter(
+            (r) => fold(g.label).includes(q) || fold(r.colorLabel).includes(q),
+          )
         : g.rows,
     }))
     .filter((g) => g.rows.length > 0)
 
   function setValue(key: string, value: string) {
+    setError(null)
     setDraft((prev) => {
       const next = { ...prev }
       if (value === '') delete next[key]
@@ -97,13 +105,20 @@ export default function CountPage() {
 
   async function close() {
     setError(null)
-    const known = Object.fromEntries(Object.entries(draft).filter(([k]) => allKeys.has(k)))
+    const known = Object.fromEntries(
+      Object.entries(draft).filter(([k]) => allKeys.has(k)),
+    )
     const { items, invalid } = draftToItems(known)
-    if (invalid.length > 0) return setError('Revisá las cantidades: solo números enteros.')
+    if (invalid.length > 0)
+      return setError('Revisá las cantidades: solo números enteros.')
     if (items.length === 0) return
     if (
       items.length < total &&
-      !window.confirm(`Faltan ${total - items.length} filas sin contar. ¿Cerrar igual?`)
+      !window.confirm(
+        total - items.length === 1
+          ? 'Falta 1 fila sin contar. ¿Cerrar igual?'
+          : `Faltan ${total - items.length} filas sin contar. ¿Cerrar igual?`,
+      )
     )
       return
     setSaving(true)
@@ -114,7 +129,9 @@ export default function CountPage() {
       showToast('Conteo enviado. Gracias.')
       setReloadKey((k) => k + 1)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo enviar el conteo.')
+      setError(
+        err instanceof Error ? err.message : 'No se pudo enviar el conteo.',
+      )
     } finally {
       setSaving(false)
     }
@@ -127,7 +144,8 @@ export default function CountPage() {
           <p className="eyebrow">Taller</p>
           <h1 className="page-title">Conteo de stock</h1>
           <p className="fl-quiet">
-            Contá los rollos cerrados que hay en el estante. No se muestra cuánto debería haber.
+            Contá los rollos cerrados que hay en el estante. No se muestra
+            cuánto debería haber.
           </p>
         </div>
       </header>
@@ -139,69 +157,88 @@ export default function CountPage() {
           {loadError}
         </p>
       )}
-      {lines == null && !loadError && <p className="fl-quiet">Cargando filamentos…</p>}
+      {lines == null && !loadError && (
+        <p className="fl-quiet">Cargando filamentos…</p>
+      )}
 
       {lines != null && (
         <>
-          <label className="fl-search ct-search">
-            <input
-              type="search"
-              aria-label="Buscar color o marca"
-              placeholder="Buscar color o marca"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </label>
+          <div className="ct-form">
+            <label className="fl-search ct-search">
+              <input
+                type="search"
+                aria-label="Buscar color o marca"
+                placeholder="Buscar color o marca"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
 
-          {visible.map((g) => (
-            <section key={g.lineId} className="ct-group" aria-label={g.label}>
-              <h2 className="ct-group__title">{g.label}</h2>
-              {g.rows.map((r) => {
-                const name = `${r.colorLabel}${r.suffix ? ' ' + r.suffix : ''}`
-                return (
-                  <div key={r.key} className="ct-row">
-                    <span className="ct-row__swatch" style={{ background: r.swatch }} aria-hidden="true" />
-                    <span className="ct-row__name">
-                      {r.colorLabel}
-                      {r.suffix && <small> {r.suffix}</small>}
-                    </span>
-                    <input
-                      className="ct-input"
-                      inputMode="numeric"
-                      aria-label={`Contados de ${name} — ${g.label}`}
-                      value={draft[r.key] ?? ''}
-                      onChange={(e) => setValue(r.key, e.target.value)}
-                    />
-                  </div>
-                )
-              })}
-            </section>
-          ))}
+            {visible.map((g) => (
+              <section key={g.lineId} className="ct-group" aria-label={g.label}>
+                <h2 className="ct-group__title">{g.label}</h2>
+                {g.rows.map((r) => {
+                  const bad = parseCounted(draft[r.key] ?? '') === 'invalid'
+                  const name = `${r.colorLabel}${r.suffix ? ' ' + r.suffix : ''}`
+                  return (
+                    <div key={r.key} className="ct-row">
+                      <span
+                        className="ct-row__swatch"
+                        style={{ background: r.swatch }}
+                        aria-hidden="true"
+                      />
+                      <span className="ct-row__name">
+                        {r.colorLabel}
+                        {r.suffix && <small> {r.suffix}</small>}
+                        {bad && (
+                          <small className="ct-row__hint">
+                            {' '}
+                            Solo números enteros
+                          </small>
+                        )}
+                      </span>
+                      <input
+                        className="ct-input"
+                        inputMode="numeric"
+                        aria-invalid={bad ? 'true' : undefined}
+                        aria-label={`Contados de ${name} — ${g.label}`}
+                        value={draft[r.key] ?? ''}
+                        onChange={(e) => setValue(r.key, e.target.value)}
+                      />
+                    </div>
+                  )
+                })}
+              </section>
+            ))}
 
-          {error && (
-            <p className="fl-error" role="alert">
-              {error}
-            </p>
-          )}
+            {error && (
+              <p className="fl-error" role="alert">
+                {error}
+              </p>
+            )}
 
-          <div className="ct-foot">
-            <span className="ct-foot__count">
-              Contados: {counted} de {total}
-            </span>
-            <button
-              type="button"
-              className="fl-btn fl-btn--primary"
-              disabled={counted === 0 || saving}
-              onClick={close}
-            >
-              Cerrar conteo
-            </button>
+            <div className="ct-foot">
+              <span className="ct-foot__count">
+                Contados: {counted} de {total}
+              </span>
+              <button
+                type="button"
+                className="fl-btn fl-btn--primary"
+                disabled={!hasEntries || saving}
+                onClick={close}
+              >
+                Cerrar conteo
+              </button>
+            </div>
           </div>
         </>
       )}
 
       {isAdmin && (
-        <CountReview reloadKey={reloadKey} onResolved={() => setReloadKey((k) => k + 1)} />
+        <CountReview
+          reloadKey={reloadKey}
+          onResolved={() => setReloadKey((k) => k + 1)}
+        />
       )}
       {toast}
     </div>
