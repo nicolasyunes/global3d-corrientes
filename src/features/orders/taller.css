@@ -2008,3 +2008,39 @@
 .od .osum2__link {
   font-size: 0.875rem;
 }
+
+/* Cobros del pedido */
+.opay {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px dashed var(--line-strong);
+  list-style: none;
+  font-size: 0.8125rem;
+}
+.opay__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.opay__line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  min-width: 0;
+}
+.opay__date,
+.opay__method,
+.opay__tag,
+.opay__void {
+  color: var(--text-3);
+}
+.opay__amount {
+  font-weight: 700;
+}
+.opay__tag,
+.opay__void {
+  font-size: 0.75rem;
+}

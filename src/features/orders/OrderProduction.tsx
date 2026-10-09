@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import Icon from '@/components/Icon'
 import {
   ORDER_STATUS_LABELS,
+  type PaymentMethod,
   ORIGIN_CHANNEL_LABELS,
   type OrderStatus,
   type OriginChannel,
@@ -18,7 +19,7 @@ import {
   type PieceRow,
 } from '@/features/production/production.api'
 import { logOrderEvent } from '@/features/production/workshop.api'
-import { formatDueDate, formatMoney } from './format'
+import { formatDueDate } from './format'
 import OrderImages from './OrderImages'
 import OrderDesigns from '@/features/designs/OrderDesigns'
 import { useOrderModal } from './order-modal-context'
@@ -32,6 +33,7 @@ import {
   type OrderWithCustomer,
 } from './orders.api'
 import { createOrderFromDraft, loadDraft } from './orderSave.api'
+import { registerOrderPayment } from './payments.api'
 import OrderSummary from './OrderSummary'
 import { nextStepHint, type PostFields } from './stage'
 import { nextOrderStatus, ORDER_STATUS_FLOW } from './status'
@@ -104,6 +106,7 @@ export default function OrderProduction() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [activityKey, setActivityKey] = useState(0)
   const [piecesKey, setPiecesKey] = useState(0)
+  const [paymentsKey, setPaymentsKey] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const { openEdit } = useOrderModal()
@@ -266,19 +269,42 @@ export default function OrderProduction() {
     }
   }
 
-  async function registerPayment(amount: number): Promise<boolean> {
+  // The database function checks the balance, keeps deposit / pending balance
+  // in step and logs the payment; here we only re-read the order.
+  async function refreshAfterPayment() {
+    if (!order) return
+    const fresh = await getOrder(order.id)
+    if (fresh) setOrder(fresh)
+    setPaymentsKey((k) => k + 1)
+    setActivityKey((k) => k + 1)
+  }
+
+  async function registerPayment(
+    amount: number,
+    method: PaymentMethod,
+  ): Promise<boolean> {
     if (!order) return false
-    const balance = order.pending_balance ?? 0
-    return patchOrder(
-      {
-        deposit: (order.deposit ?? 0) + amount,
-        pending_balance: Math.max(0, balance - amount),
-      },
-      {
-        kind: 'payment',
-        label: formatMoney(amount),
-        delta: Math.round(amount),
-      },
+    setBusy(true)
+    setActionError(null)
+    try {
+      await registerOrderPayment(order.id, amount, method, operatorId)
+      await refreshAfterPayment()
+      return true
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'No se pudo registrar el pago.',
+      )
+      return false
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function handlePaymentVoided() {
+    void refreshAfterPayment().catch((err) =>
+      setActionError(
+        err instanceof Error ? err.message : 'No se pudo actualizar el pedido.',
+      ),
     )
   }
 
@@ -631,6 +657,8 @@ export default function OrderProduction() {
             today={today}
             channel={channel}
             onPay={registerPayment}
+            paymentsKey={paymentsKey}
+            onPaymentVoided={handlePaymentVoided}
           />
 
           <section className="card">
