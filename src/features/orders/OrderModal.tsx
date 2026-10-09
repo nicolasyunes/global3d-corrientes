@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import Icon from '@/components/Icon'
-import { ORIGIN_CHANNEL, ORIGIN_CHANNEL_LABELS } from '@/lib/domain-constants'
+import {
+  ORIGIN_CHANNEL,
+  ORIGIN_CHANNEL_LABELS,
+  PAYMENT_METHOD,
+  PAYMENT_METHOD_LABELS,
+} from '@/lib/domain-constants'
 import { addDaysISO } from './list'
 import { formatMoney } from './format'
 import {
@@ -9,6 +14,7 @@ import {
   buildTitle,
   emptyDraft,
   emptyItem,
+  parseMoney,
   qtyOf,
   validateDraft,
   type DraftErrors,
@@ -330,7 +336,7 @@ export default function OrderModal({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const found = validateDraft(draft)
+    const found = validateDraft(draft, { creating: !editing })
     setErrors(found)
     if (Object.keys(found).length > 0) return
     setSaving(true)
@@ -349,11 +355,14 @@ export default function OrderModal({
           failed.push(pending.file.name)
         }
       }
+      const uploadWarning = failed.length
+        ? `Pedido guardado, pero no se pudo subir: ${failed.join(', ')}. Subilo desde el pedido.`
+        : undefined
+      const paymentWarning =
+        'paymentWarning' in order ? order.paymentWarning : undefined
       onSaved(
         order,
-        failed.length
-          ? `Pedido guardado, pero no se pudo subir: ${failed.join(', ')}. Subilo desde el pedido.`
-          : undefined,
+        [uploadWarning, paymentWarning].filter(Boolean).join(' ') || undefined,
       )
     } catch (err) {
       setSaveError(
@@ -796,8 +805,41 @@ export default function OrderModal({
                     className="input"
                     inputMode="decimal"
                     value={draft.deposit}
+                    disabled={editing}
                     onChange={(e) => set('deposit', e.target.value)}
                   />
+                  {editing && (
+                    <p className="omodal__hint">
+                      Los cobros se registran desde el pedido.
+                    </p>
+                  )}
+                  {!editing && (parseMoney(draft.deposit) ?? 0) > 0 && (
+                    <div
+                      className="chips"
+                      role="group"
+                      aria-label="Medio de la seña"
+                    >
+                      {PAYMENT_METHOD.map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          className="chip"
+                          aria-pressed={draft.depositMethod === m}
+                          onClick={() =>
+                            set(
+                              'depositMethod',
+                              draft.depositMethod === m ? null : m,
+                            )
+                          }
+                        >
+                          {PAYMENT_METHOD_LABELS[m]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {errors.depositMethod && (
+                    <p className="omodal__err">{errors.depositMethod}</p>
+                  )}
                   {errors.deposit && (
                     <p className="omodal__err">{errors.deposit}</p>
                   )}
@@ -815,6 +857,9 @@ export default function OrderModal({
               <h3 className="omodal__step">
                 <span>4</span>Canal y notas
               </h3>
+              <span className="field-label">
+                {editing ? 'Canal' : 'Canal (obligatorio)'}
+              </span>
               <div className="chips" role="group" aria-label="Canal">
                 {ORIGIN_CHANNEL.map((ch) => (
                   <button
@@ -830,6 +875,9 @@ export default function OrderModal({
                   </button>
                 ))}
               </div>
+              {errors.channel && (
+                <p className="omodal__err">{errors.channel}</p>
+              )}
               <label className="field-label" htmlFor="om-link">
                 Link de referencia (opcional)
               </label>
