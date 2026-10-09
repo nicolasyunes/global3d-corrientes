@@ -2,14 +2,12 @@ import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/database.types'
 import type { PartLine, ProductTemplate } from './parts'
 
-// Thin typed helpers over Supabase, same shape as orders.api.ts / sales.api.ts
-// — no repository layer, RLS is the security boundary (products_all is
-// admin-only, see 20260825120000_product_stock_images.sql).
+// Thin typed helpers over Supabase — no repository layer, RLS is the security
+// boundary (everyone reads products; only admin writes them).
 
 export type ProductRow = Database['public']['Tables']['products']['Row']
 export type ProductInsert = Database['public']['Tables']['products']['Insert']
 export type ProductUpdate = Database['public']['Tables']['products']['Update']
-export type CategoryRow = Database['public']['Tables']['categories']['Row']
 export type ProductImageRow =
   Database['public']['Tables']['product_images']['Row']
 
@@ -136,24 +134,6 @@ export async function listProductTemplates(): Promise<ProductTemplate[]> {
     imageUrl: p.image_url,
     parts: parts[p.id] ?? [],
   }))
-}
-
-export async function listCategories(): Promise<CategoryRow[]> {
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .order('position', { ascending: true })
-  if (error) throw error
-  return data ?? []
-}
-
-export async function bulkUpdateProducts(
-  ids: string[],
-  patch: ProductUpdate,
-): Promise<void> {
-  if (ids.length === 0) return
-  const { error } = await supabase.from('products').update(patch).in('id', ids)
-  if (error) throw error
 }
 
 const PRODUCT_IMAGES_BUCKET = 'product-images'

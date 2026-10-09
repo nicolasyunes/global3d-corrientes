@@ -1,7 +1,9 @@
-import type { ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import LoginPage from '@/features/auth/LoginPage'
+import RecoveryRedirect from '@/features/auth/RecoveryRedirect'
+import ResetPasswordPage from '@/features/auth/ResetPasswordPage'
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import { OperatorProvider } from '@/features/operators/OperatorProvider'
 import OperatorGate from '@/features/operators/OperatorGate'
@@ -10,15 +12,23 @@ import PeoplePage from '@/features/operators/PeoplePage'
 import OrdersList from '@/features/orders/OrdersList'
 import OrderProduction from '@/features/orders/OrderProduction'
 import DeliveredOrdersList from '@/features/orders/DeliveredOrdersList'
-import SalesForm from '@/features/sales/SalesForm'
-import SalesList from '@/features/sales/SalesList'
-import InsumosList from '@/features/insumos/InsumosList'
 import ProductForm from '@/features/products/ProductForm'
 import ProductsList from '@/features/products/ProductsList'
 import TodayPage from '@/features/production/TodayPage'
-import PrintQueuePage from '@/features/production/PrintQueuePage'
+import WeekPage from '@/features/production/WeekPage'
+import WorkshopPage from '@/features/production/WorkshopPage'
 import CalculatorPage from '@/features/calculator/CalculatorPage'
+import NoticesPage from '@/features/notices/NoticesPage'
+import IdeasPage from '@/features/ideas/IdeasPage'
+import FilamentsPage from '@/features/filaments/FilamentsPage'
+import CountPage from '@/features/filaments/CountPage'
+import ResourcesPage from '@/features/resources/ResourcesPage'
 import AdminLayout from './AdminLayout'
+
+// The QR and vectorizer libraries are only needed on this page: keep them out
+// of the bundle every admin screen loads.
+const ToolsPage = lazy(() => import('@/features/tools/ToolsPage'))
+const StatsPage = lazy(() => import('@/features/stats/StatsPage'))
 
 function OperatorAdminOnly({ children }: { children: ReactNode }) {
   const { isAdmin } = useOperator()
@@ -30,8 +40,10 @@ function OperatorAdminOnly({ children }: { children: ReactNode }) {
 export function Component() {
   return (
     <AuthProvider>
+      <RecoveryRedirect />
       <Routes>
         <Route path="login" element={<LoginPage />} />
+        <Route path="nueva-clave" element={<ResetPasswordPage />} />
         <Route
           element={
             <ProtectedRoute>
@@ -44,15 +56,29 @@ export function Component() {
           }
         >
           <Route path="hoy" element={<TodayPage />} />
-          <Route path="imprimir" element={<PrintQueuePage />} />
+          <Route path="semana" element={<WeekPage />} />
+          <Route path="taller" element={<WorkshopPage />} />
+          <Route
+            path="imprimir"
+            element={<Navigate to="/admin/taller" replace />}
+          />
+          <Route path="avisos" element={<NoticesPage />} />
+          <Route path="ideas" element={<IdeasPage />} />
+          <Route path="recursos" element={<ResourcesPage />} />
+          <Route
+            path="herramientas"
+            element={
+              <Suspense fallback={null}>
+                <ToolsPage />
+              </Suspense>
+            }
+          />
+          <Route path="filamentos" element={<FilamentsPage />} />
+          <Route path="conteo" element={<CountPage />} />
           <Route path="orders" element={<OrdersList />} />
           <Route path="orders/:id" element={<OrderProduction />} />
           <Route path="ventas-pedidos" element={<DeliveredOrdersList />} />
           <Route path="calculadora" element={<CalculatorPage />} />
-          {/* Reventa (etapa posterior): rutas vivas pero fuera del menú. */}
-          <Route path="ventas" element={<SalesList />} />
-          <Route path="ventas/new" element={<SalesForm />} />
-          <Route path="insumos" element={<InsumosList />} />
           <Route
             path="productos"
             element={
@@ -74,6 +100,16 @@ export function Component() {
             element={
               <OperatorAdminOnly>
                 <ProductForm />
+              </OperatorAdminOnly>
+            }
+          />
+          <Route
+            path="estadisticas"
+            element={
+              <OperatorAdminOnly>
+                <Suspense fallback={null}>
+                  <StatsPage />
+                </Suspense>
               </OperatorAdminOnly>
             }
           />

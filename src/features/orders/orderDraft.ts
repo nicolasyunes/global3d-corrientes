@@ -23,6 +23,17 @@ export interface OrderDraft {
   channel: OriginChannel | null
   referenceLink: string
   notes: string
+  // "En espera": not confirmed yet; reason + when to check again.
+  waiting: boolean
+  waitingReason: string
+  followUpOn: string
+  // "Sin apuro": the due date is only a guide.
+  flexible: boolean
+  // "Urgente": pinned above everything else, whatever its date.
+  urgent: boolean
+  // Postprocess for the whole order, once everything is printed.
+  ppSand: boolean
+  ppPaint: boolean
 }
 
 export type DraftErrors = Partial<
@@ -45,6 +56,13 @@ export function emptyDraft(): OrderDraft {
     channel: null,
     referenceLink: '',
     notes: '',
+    waiting: false,
+    waitingReason: '',
+    followUpOn: '',
+    flexible: false,
+    urgent: false,
+    ppSand: false,
+    ppPaint: false,
   }
 }
 
@@ -108,7 +126,9 @@ export function validateDraft(draft: OrderDraft): DraftErrors {
     errors.customerName = 'Poné el nombre del cliente.'
   if (filledItems(draft.items).length === 0)
     errors.items = 'Agregá al menos un producto.'
-  if (!draft.dueDate) errors.dueDate = 'Elegí la fecha de entrega.'
+  // A waiting order may not have a date yet.
+  if (!draft.dueDate && !draft.waiting)
+    errors.dueDate = 'Elegí la fecha de entrega.'
   const total = parseMoney(draft.total)
   const deposit = parseMoney(draft.deposit)
   if (Number.isNaN(total) || (total !== null && total < 0))
