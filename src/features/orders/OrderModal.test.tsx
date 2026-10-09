@@ -1,15 +1,25 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createMock, uploadMock } = vi.hoisted(() => ({
-  createMock: vi.fn(),
-  uploadMock: vi.fn(),
-}))
+const { createMock, uploadMock, updateMock, loadDraftMock } = vi.hoisted(
+  () => ({
+    createMock: vi.fn(),
+    uploadMock: vi.fn(),
+    updateMock: vi.fn(),
+    loadDraftMock: vi.fn(),
+  }),
+)
 
 vi.mock('./orderSave.api', () => ({
   createOrderFromDraft: createMock,
-  updateOrderFromDraft: vi.fn(),
-  loadDraft: vi.fn(),
+  updateOrderFromDraft: updateMock,
+  loadDraft: loadDraftMock,
   listProductSuggestions: vi.fn().mockResolvedValue([]),
   searchCustomers: vi.fn().mockResolvedValue([]),
 }))
@@ -34,6 +44,7 @@ vi.mock('@/features/operators/operator-context', () => ({
 }))
 
 import OrderModal from './OrderModal'
+import { emptyDraft, emptyItem } from './orderDraft'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -42,6 +53,21 @@ beforeEach(() => {
 })
 
 function fillRequired() {
+  fireEvent.change(screen.getByLabelText('Nombre'), {
+    target: { value: 'Juan Pérez' },
+  })
+  fireEvent.change(screen.getByLabelText('Producto'), {
+    target: { value: 'Vaso Boca' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Mañana' }))
+  fireEvent.click(
+    within(screen.getByRole('group', { name: 'Canal' })).getByRole('button', {
+      name: 'WhatsApp negocio',
+    }),
+  )
+}
+
+function fillWithoutChannel() {
   fireEvent.change(screen.getByLabelText('Nombre'), {
     target: { value: 'Juan Pérez' },
   })
@@ -107,5 +133,135 @@ describe('OrderModal — archivos', () => {
     expect(
       screen.getByText('Solo imágenes (JPG, PNG, WEBP…) o PDF.'),
     ).toBeInTheDocument()
+  })
+})
+
+describe('OrderModal — cobros y canal', () => {
+  const save = () =>
+    fireEvent.click(screen.getByRole('button', { name: /^Guardar pedido/ }))
+
+  it('al crear, no deja guardar sin canal', async () => {
+    render(<OrderModal orderId={null} onClose={vi.fn()} onSaved={vi.fn()} />)
+    fillWithoutChannel()
+    expect(screen.getByText('Canal (obligatorio)')).toBeInTheDocument()
+    save()
+    expect(await screen.findByText('Elegí el canal.')).toBeInTheDocument()
+    expect(createMock).not.toHaveBeenCalled()
+  })
+
+  it('con seña pide el medio de pago', async () => {
+    render(<OrderModal orderId={null} onClose={vi.fn()} onSaved={vi.fn()} />)
+    fillRequired()
+    fireEvent.change(screen.getByLabelText('Total ($)'), {
+      target: { value: '10000' },
+    })
+    fireEvent.change(screen.getByLabelText('Seña ($)'), {
+      target: { value: '3000' },
+    })
+    save()
+    expect(
+      await screen.findByText('Elegí cómo pagó la seña.'),
+    ).toBeInTheDocument()
+    expect(createMock).not.toHaveBeenCalled()
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Medio de la seña' })).getByRole(
+        'button',
+        { name: 'Efectivo' },
+      ),
+    )
+    save()
+    await waitFor(() => expect(createMock).toHaveBeenCalled())
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deposit: '3000',
+        depositMethod: 'cash',
+        channel: expect.any(String),
+      }),
+      expect.anything(),
+    )
+  })
+
+  it('el grupo de medios no aparece sin seña', () => {
+    render(<OrderModal orderId={null} onClose={vi.fn()} onSaved={vi.fn()} />)
+    expect(screen.queryByRole('group', { name: 'Medio de la seña' })).toBeNull()
+  })
+
+  it('al editar, la seña no se puede cambiar y no pide canal', async () => {
+    loadDraftMock.mockResolvedValue({
+      ...emptyDraft(),
+      customerName: 'Juan Pérez',
+      items: [{ ...emptyItem(), id: 'i1', product: 'Vaso Boca' }],
+      dueDate: '2026-12-01',
+      total: '5000',
+      deposit: '2000',
+      channel: null,
+    })
+    updateMock.mockResolvedValue({ id: 'o1' })
+    render(<OrderModal orderId="o1" onClose={vi.fn()} onSaved={vi.fn()} />)
+    const deposit = await screen.findByLabelText('Seña ($)')
+    expect(deposit).toBeDisabled()
+    expect(
+      screen.getByText('Los cobros se registran desde el pedido.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Medio de la seña' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(updateMock).toHaveBeenCalled())
+    expect(screen.queryByText('Elegí el canal.')).toBeNull()
+  })
+
+  it('muestra el aviso si la seña no se pudo registrar', async () => {
+    createMock.mockResolvedValue({
+      id: 'o1',
+      paymentWarning:
+        'Pedido guardado, pero no se pudo registrar la seña: x. Registrala desde el pedido.',
+    })
+    const onSaved = vi.fn()
+    render(<OrderModal orderId={null} onClose={vi.fn()} onSaved={onSaved} />)
+    fillRequired()
+    save()
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
+    expect(onSaved).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.stringContaining('no se pudo registrar la seña'),
+    )
+  })
+
+  it('al editar, bajar el total por debajo de la seña avisa en Total', async () => {
+    loadDraftMock.mockResolvedValue({
+      ...emptyDraft(),
+      customerName: 'Juan Pérez',
+      items: [{ ...emptyItem(), id: 'i1', product: 'Vaso Boca' }],
+      dueDate: '2026-12-01',
+      total: '5000',
+      deposit: '2000',
+    })
+    render(<OrderModal orderId="o1" onClose={vi.fn()} onSaved={vi.fn()} />)
+    fireEvent.change(await screen.findByLabelText('Total ($)'), {
+      target: { value: '1000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(
+      await screen.findByText(
+        'El total no puede ser menor a lo ya cobrado. Anulá un cobro desde el pedido si hace falta.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('La seña no puede superar el total.')).toBeNull()
+    expect(updateMock).not.toHaveBeenCalled()
+  })
+
+  it('junta el aviso de archivos y el de la seña con un espacio', async () => {
+    uploadMock.mockRejectedValue(new Error('down'))
+    createMock.mockResolvedValue({ id: 'o1', paymentWarning: 'AVISO-SENA.' })
+    const onSaved = vi.fn()
+    render(<OrderModal orderId={null} onClose={vi.fn()} onSaved={onSaved} />)
+    fillRequired()
+    fireEvent.change(screen.getByLabelText(/agregar archivo/i), {
+      target: { files: [new File(['x'], 'f.jpg', { type: 'image/jpeg' })] },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Guardar pedido/ }))
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
+    expect(onSaved.mock.calls[0][1]).toMatch(
+      /Subilo desde el pedido. AVISO-SENA.$/,
+    )
   })
 })

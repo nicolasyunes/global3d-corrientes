@@ -29,8 +29,25 @@ vi.mock('./orderSave.api', () => ({
   loadDraft: vi.fn(),
   createOrderFromDraft: vi.fn(),
 }))
+const { operatorState } = vi.hoisted(() => ({
+  operatorState: { isAdmin: false },
+}))
 vi.mock('@/features/operators/operator-context', () => ({
-  useOperator: () => ({ current: { id: 'op-1' } }),
+  useOperator: () => ({
+    current: { id: 'op-1' },
+    isAdmin: operatorState.isAdmin,
+  }),
+}))
+const { registerOrderPaymentMock, voidOrderPaymentMock, listOrderPaymentsMock } =
+  vi.hoisted(() => ({
+    registerOrderPaymentMock: vi.fn(),
+    voidOrderPaymentMock: vi.fn(),
+    listOrderPaymentsMock: vi.fn(),
+  }))
+vi.mock('./payments.api', () => ({
+  registerOrderPayment: registerOrderPaymentMock,
+  voidOrderPayment: voidOrderPaymentMock,
+  listOrderPayments: listOrderPaymentsMock,
 }))
 vi.mock('./OrderImages', () => ({ default: () => <div>IMAGES</div> }))
 vi.mock('@/features/production/OrderPieces', () => ({
@@ -99,7 +116,28 @@ beforeEach(() => {
   listOrderItemsMock.mockResolvedValue([])
   listPiecesMock.mockResolvedValue([])
   updateOrderMock.mockResolvedValue(order({ status: 'post_processing' }))
+  operatorState.isAdmin = false
+  registerOrderPaymentMock.mockResolvedValue({ id: 'p9' })
+  voidOrderPaymentMock.mockResolvedValue({ id: 'p1' })
+  listOrderPaymentsMock.mockResolvedValue([])
 })
+
+function payment(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'p1',
+    type: '3d_service',
+    order_id: 'order-1',
+    amount: 2000,
+    method: 'cash',
+    note: null,
+    transacted_at: '2026-01-02T12:00:00Z',
+    payment_kind: 'deposit',
+    voided_at: null,
+    voided_by: null,
+    void_reason: null,
+    ...overrides,
+  }
+}
 
 describe('OrderProduction', () => {
   it('keeps the production spec: colours, measurements, engraving text', async () => {
@@ -221,19 +259,170 @@ describe('OrderProduction', () => {
     })
   })
 
-  it('registers a payment against the balance', async () => {
+  it('registrar un pago pide el medio y llama a la base', async () => {
     await renderAt()
     fireEvent.click(screen.getByRole('button', { name: 'Registrar pago' }))
     fireEvent.change(screen.getByLabelText('¿Cuánto pagó?'), {
       target: { value: '1000' },
     })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar pago' }))
+    expect(await screen.findByText('Elegí cómo pagó.')).toBeInTheDocument()
+    expect(registerOrderPaymentMock).not.toHaveBeenCalled()
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Medio de pago' })).getByRole(
+        'button',
+        { name: 'Transferencia' },
+      ),
+    )
     await act(async () => {
-      screen.getByRole('button', { name: 'Guardar pago' }).click()
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar pago' }))
     })
-    expect(updateOrderMock).toHaveBeenCalledWith('order-1', {
-      deposit: 3000,
-      pending_balance: 2000,
+    expect(registerOrderPaymentMock).toHaveBeenCalledWith(
+      'order-1',
+      1000,
+      'transfer',
+      'op-1',
+    )
+    expect(updateOrderMock).not.toHaveBeenCalled()
+    expect(getOrderMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('muestra el error de la base si el cobro falla', async () => {
+    registerOrderPaymentMock.mockRejectedValue(
+      new Error('El cobro supera el saldo.'),
+    )
+    await renderAt()
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar pago' }))
+    fireEvent.change(screen.getByLabelText('¿Cuánto pagó?'), {
+      target: { value: '1000' },
     })
+    fireEvent.click(screen.getByRole('button', { name: 'Efectivo' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar pago' }))
+    })
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'El cobro supera el saldo.',
+    )
+    expect(
+      screen.queryByText('No se pudo registrar el pago.'),
+    ).toBeNull()
+  })
+
+  it('un doble toque no crea dos cobros', async () => {
+    let release: (v: unknown) => void = () => undefined
+    registerOrderPaymentMock.mockReturnValue(
+      new Promise((r) => {
+        release = r
+      }),
+    )
+    await renderAt()
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar pago' }))
+    fireEvent.change(screen.getByLabelText('¿Cuánto pagó?'), {
+      target: { value: '1000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Efectivo' }))
+    const form = screen.getByLabelText('¿Cuánto pagó?').closest('form')!
+    await act(async () => {
+      fireEvent.submit(form)
+      fireEvent.submit(form)
+    })
+    expect(registerOrderPaymentMock).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      release({ id: 'p9' })
+    })
+  })
+
+  it('si falla la relectura el cobro igual cuenta como guardado', async () => {
+    await renderAt()
+    getOrderMock.mockRejectedValue(new Error('red'))
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar pago' }))
+    fireEvent.change(screen.getByLabelText('¿Cuánto pagó?'), {
+      target: { value: '1000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Efectivo' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar pago' }))
+    })
+    expect(registerOrderPaymentMock).toHaveBeenCalledTimes(1)
+    expect(screen.queryByLabelText('¿Cuánto pagó?')).toBeNull()
+    expect(screen.queryByText('No se pudo registrar el pago.')).toBeNull()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'El cobro se registró pero no se pudo actualizar la pantalla',
+    )
+  })
+
+  it('un pedido entregado con saldo todavía deja registrar el cobro', async () => {
+    getOrderMock.mockResolvedValue(order({ status: 'delivered' }))
+    await renderAt()
+    expect(
+      screen.getByRole('button', { name: 'Registrar pago' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Entregado con saldo pendiente'),
+    ).toBeInTheDocument()
+  })
+
+  it('un pedido cancelado no deja registrar cobros', async () => {
+    getOrderMock.mockResolvedValue(order({ status: 'cancelled' }))
+    await renderAt()
+    expect(screen.queryByRole('button', { name: 'Registrar pago' })).toBeNull()
+  })
+
+  it('lista los cobros con fecha, tipo y medio; los anulados van tachados', async () => {
+    listOrderPaymentsMock.mockResolvedValue([
+      payment({ note: 'migrado' }),
+      payment({
+        id: 'p2',
+        amount: 3000,
+        method: 'transfer',
+        payment_kind: 'balance',
+        voided_at: '2026-01-03T00:00:00Z',
+        void_reason: 'error',
+      }),
+    ])
+    await renderAt()
+    const list = await screen.findByRole('list', { name: 'Cobros' })
+    expect(within(list).getByText('Seña')).toBeInTheDocument()
+    expect(within(list).getByText('Efectivo')).toBeInTheDocument()
+    expect(within(list).getByText('migrado')).toBeInTheDocument()
+    expect(within(list).getByText(/Anulado: error/)).toBeInTheDocument()
+    expect(within(list).getByText(/Transferencia/).closest('s')).not.toBeNull()
+  })
+
+  it('sin cobros no muestra la lista', async () => {
+    await renderAt()
+    expect(screen.queryByRole('list', { name: 'Cobros' })).toBeNull()
+  })
+
+  it('el operador no ve Anular', async () => {
+    listOrderPaymentsMock.mockResolvedValue([payment()])
+    await renderAt()
+    await screen.findByRole('list', { name: 'Cobros' })
+    expect(screen.queryByRole('button', { name: 'Anular' })).toBeNull()
+  })
+
+  it('el admin anula pidiendo el motivo', async () => {
+    operatorState.isAdmin = true
+    listOrderPaymentsMock.mockResolvedValue([payment()])
+    await renderAt()
+    fireEvent.click(await screen.findByRole('button', { name: 'Anular' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    expect(
+      await screen.findByText('Escribí el motivo de la anulación.'),
+    ).toBeInTheDocument()
+    expect(voidOrderPaymentMock).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByLabelText('Motivo de la anulación'), {
+      target: { value: 'error de carga' },
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    })
+    expect(voidOrderPaymentMock).toHaveBeenCalledWith(
+      'p1',
+      'op-1',
+      'error de carga',
+    )
+    expect(getOrderMock).toHaveBeenCalledTimes(2)
   })
 
   it('cancels from the more menu, asking first', async () => {

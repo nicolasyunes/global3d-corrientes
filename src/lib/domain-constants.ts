@@ -46,6 +46,7 @@ export const ORIGIN_CHANNEL = [
   'facebook',
   'local',
   'web',
+  'mercadolibre',
   'other',
 ] as const
 export type OriginChannel = (typeof ORIGIN_CHANNEL)[number]
@@ -94,6 +95,7 @@ export const ORIGIN_CHANNEL_LABELS: Record<OriginChannel, string> = {
   facebook: 'Facebook',
   local: 'En el local',
   web: 'Web',
+  mercadolibre: 'Mercado Libre',
   other: 'Otro',
 }
 
