@@ -312,6 +312,7 @@ export async function loadDraft(orderId: string): Promise<OrderDraft> {
     total: money(order.total_amount),
     deposit: money(order.deposit),
     channel: (order.origin_channel as OriginChannel | null) ?? null,
+    depositMethod: null,
     referenceLink: order.reference_link ?? '',
     notes: order.observations ?? '',
     waiting: Boolean(order.waiting_reason),
