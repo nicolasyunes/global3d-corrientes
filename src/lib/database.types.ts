@@ -421,6 +421,96 @@ export type Database = {
           },
         ]
       }
+      stock_counts: {
+        Row: {
+          created_at: string
+          id: string
+          operator_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          operator_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          operator_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'stock_counts_operator_id_fkey'
+            columns: ['operator_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'stock_counts_resolved_by_fkey'
+            columns: ['resolved_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      stock_count_items: {
+        Row: {
+          color_id: string | null
+          color_label: string
+          count_id: string
+          counted: number
+          expected: number
+          id: string
+          line_label: string
+          refill: boolean
+        }
+        Insert: {
+          color_id?: string | null
+          color_label: string
+          count_id: string
+          counted: number
+          expected: number
+          id?: string
+          line_label: string
+          refill?: boolean
+        }
+        Update: {
+          color_id?: string | null
+          color_label?: string
+          count_id?: string
+          counted?: number
+          expected?: number
+          id?: string
+          line_label?: string
+          refill?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'stock_count_items_count_id_fkey'
+            columns: ['count_id']
+            isOneToOne: false
+            referencedRelation: 'stock_counts'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'stock_count_items_color_id_fkey'
+            columns: ['color_id']
+            isOneToOne: false
+            referencedRelation: 'filament_colors'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       idea_files: {
         Row: {
           id: string
@@ -1435,6 +1525,14 @@ export type Database = {
       void_filament_sale: {
         Args: { p_operator: string; p_reason: string; p_sale: string }
         Returns: Database['public']['Tables']['filament_sales']['Row']
+      }
+      submit_stock_count: {
+        Args: { p_operator: string; p_items: Json }
+        Returns: Database['public']['Tables']['stock_counts']['Row']
+      }
+      resolve_stock_count: {
+        Args: { p_count: string; p_operator: string; p_approve: boolean }
+        Returns: Database['public']['Tables']['stock_counts']['Row']
       }
       increment_task: {
         Args: { p_task: string; p_delta: number; p_operator: string | null }
