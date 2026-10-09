@@ -282,22 +282,34 @@ export default function OrderProduction() {
   async function registerPayment(
     amount: number,
     method: PaymentMethod,
-  ): Promise<boolean> {
-    if (!order) return false
+  ): Promise<{ ok: true } | { ok: false; message: string }> {
+    if (!order) return { ok: false, message: 'Pedido no cargado.' }
+    if (busy) return { ok: false, message: 'Hay otra acción en curso.' }
     setBusy(true)
     setActionError(null)
     try {
       await registerOrderPayment(order.id, amount, method, operatorId)
-      await refreshAfterPayment()
-      return true
     } catch (err) {
+      setBusy(false)
+      return {
+        ok: false,
+        message:
+          err instanceof Error ? err.message : 'No se pudo registrar el pago.',
+      }
+    }
+    // The cobro is saved: a failed refresh must not read as a failed payment.
+    try {
+      await refreshAfterPayment()
+    } catch {
+      setPaymentsKey((k) => k + 1)
+      setActivityKey((k) => k + 1)
       setActionError(
-        err instanceof Error ? err.message : 'No se pudo registrar el pago.',
+        'El cobro se registró pero no se pudo actualizar la pantalla. Recargá.',
       )
-      return false
     } finally {
       setBusy(false)
     }
+    return { ok: true }
   }
 
   function handlePaymentVoided() {

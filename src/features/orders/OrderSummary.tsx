@@ -53,7 +53,10 @@ export default function OrderSummary({
   items: OrderItemRow[]
   today: string
   channel: string | null
-  onPay: (amount: number, method: PaymentMethod) => Promise<boolean>
+  onPay: (
+    amount: number,
+    method: PaymentMethod,
+  ) => Promise<{ ok: true } | { ok: false; message: string }>
   paymentsKey: number
   onPaymentVoided: () => void
 }) {
@@ -108,6 +111,7 @@ export default function OrderSummary({
 
   async function submitPay(e: FormEvent) {
     e.preventDefault()
+    if (saving) return
     const problem = validatePayment({ amount, method, balance })
     if (problem || !method) {
       setPayError(problem)
@@ -116,13 +120,13 @@ export default function OrderSummary({
     const value = parseMoney(amount) as number
     setSaving(true)
     setPayError(null)
-    const ok = await onPay(value, method)
+    const result = await onPay(value, method)
     setSaving(false)
-    if (ok) {
+    if (result.ok) {
       setAmount('')
       setMethod(null)
       setPaying(false)
-    } else setPayError('No se pudo registrar el pago.')
+    } else setPayError(result.message)
   }
 
   return (
@@ -239,7 +243,11 @@ export default function OrderSummary({
                 </button>
               ))}
             </div>
-            {payError && <p className="omodal__err">{payError}</p>}
+            {payError && (
+              <p className="omodal__err" role="alert">
+                {payError}
+              </p>
+            )}
             <div className="osum2__pay-row">
               <button
                 type="submit"

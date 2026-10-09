@@ -300,11 +300,56 @@ describe('OrderProduction', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Guardar pago' }))
     })
-    expect(
-      screen.getByText('No se pudo registrar el pago.'),
-    ).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent(
       'El cobro supera el saldo.',
+    )
+    expect(
+      screen.queryByText('No se pudo registrar el pago.'),
+    ).toBeNull()
+  })
+
+  it('un doble toque no crea dos cobros', async () => {
+    let release: (v: unknown) => void = () => undefined
+    registerOrderPaymentMock.mockReturnValue(
+      new Promise((r) => {
+        release = r
+      }),
+    )
+    await renderAt()
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar pago' }))
+    fireEvent.change(screen.getByLabelText('¿Cuánto pagó?'), {
+      target: { value: '1000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Efectivo' }))
+    const form = screen.getByLabelText('¿Cuánto pagó?').closest('form')!
+    await act(async () => {
+      fireEvent.submit(form)
+    })
+    await act(async () => {
+      fireEvent.submit(form)
+    })
+    expect(registerOrderPaymentMock).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      release({ id: 'p9' })
+    })
+  })
+
+  it('si falla la relectura el cobro igual cuenta como guardado', async () => {
+    await renderAt()
+    getOrderMock.mockRejectedValue(new Error('red'))
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar pago' }))
+    fireEvent.change(screen.getByLabelText('¿Cuánto pagó?'), {
+      target: { value: '1000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Efectivo' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar pago' }))
+    })
+    expect(registerOrderPaymentMock).toHaveBeenCalledTimes(1)
+    expect(screen.queryByLabelText('¿Cuánto pagó?')).toBeNull()
+    expect(screen.queryByText('No se pudo registrar el pago.')).toBeNull()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'El cobro se registró pero no se pudo actualizar la pantalla',
     )
   })
 
