@@ -324,8 +324,6 @@ describe('OrderProduction', () => {
     const form = screen.getByLabelText('¿Cuánto pagó?').closest('form')!
     await act(async () => {
       fireEvent.submit(form)
-    })
-    await act(async () => {
       fireEvent.submit(form)
     })
     expect(registerOrderPaymentMock).toHaveBeenCalledTimes(1)

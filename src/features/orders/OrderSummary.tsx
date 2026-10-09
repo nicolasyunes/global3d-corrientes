@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import Icon from '@/components/Icon'
 import { daysBetween } from '@/features/production/due'
 import { colorSpecEntries, swatchFor } from './colorSpec'
@@ -65,6 +65,7 @@ export default function OrderSummary({
   const [method, setMethod] = useState<PaymentMethod | null>(null)
   const [payError, setPayError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const submitting = useRef(false)
 
   const stage = stageOf(order)
   const closed = stage === 'delivered' || stage === 'cancelled'
@@ -111,22 +112,27 @@ export default function OrderSummary({
 
   async function submitPay(e: FormEvent) {
     e.preventDefault()
-    if (saving) return
+    if (saving || submitting.current) return
     const problem = validatePayment({ amount, method, balance })
     if (problem || !method) {
       setPayError(problem)
       return
     }
     const value = parseMoney(amount) as number
+    submitting.current = true
     setSaving(true)
     setPayError(null)
-    const result = await onPay(value, method)
-    setSaving(false)
-    if (result.ok) {
-      setAmount('')
-      setMethod(null)
-      setPaying(false)
-    } else setPayError(result.message)
+    try {
+      const result = await onPay(value, method)
+      if (result.ok) {
+        setAmount('')
+        setMethod(null)
+        setPaying(false)
+      } else setPayError(result.message)
+    } finally {
+      submitting.current = false
+      setSaving(false)
+    }
   }
 
   return (

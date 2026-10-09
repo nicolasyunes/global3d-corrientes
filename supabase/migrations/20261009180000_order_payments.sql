@@ -219,3 +219,25 @@ revoke execute on function public.register_order_payment(uuid, numeric, text, uu
 revoke execute on function public.void_order_payment(uuid, uuid, text) from public, anon;
 grant execute on function public.register_order_payment(uuid, numeric, text, uuid, text) to authenticated;
 grant execute on function public.void_order_payment(uuid, uuid, text) to authenticated;
+
+-- Si cambia el total del pedido, el saldo se recalcula a partir de la seña
+-- ya cobrada (la seña y el saldo no se escriben desde la edición del pedido).
+create or replace function public.orders_sync_balance_on_total()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.pending_balance := case
+    when new.total_amount is null then null
+    else greatest(0, new.total_amount - coalesce(new.deposit, 0))
+  end;
+  return new;
+end;
+$$;
+
+create trigger orders_sync_balance_on_total
+  before update of total_amount on public.orders
+  for each row
+  when (new.total_amount is distinct from old.total_amount)
+  execute function public.orders_sync_balance_on_total();

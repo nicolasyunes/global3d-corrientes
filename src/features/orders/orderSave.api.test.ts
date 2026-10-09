@@ -33,7 +33,11 @@ vi.mock('@/lib/supabase', () => ({
   supabase: { from: (table: string) => builder(table), rpc },
 }))
 
-import { createOrderFromDraft, sameName } from './orderSave.api'
+import {
+  createOrderFromDraft,
+  sameName,
+  updateOrderFromDraft,
+} from './orderSave.api'
 
 function draft(over: Partial<OrderDraft>): OrderDraft {
   return {
@@ -109,6 +113,20 @@ describe('createOrderFromDraft — seña como cobro', () => {
       'op1',
     )
     expect(r.paymentWarning).toContain('Cargá primero el total del pedido')
+  })
+})
+
+describe('updateOrderFromDraft', () => {
+  it('no escribe seña ni saldo: los maneja el libro de cobros', async () => {
+    respond = (table) => (table === 'order_items' ? [] : { id: 'o1' })
+    await updateOrderFromDraft(
+      'o1',
+      draft({ total: '10000', deposit: '3000', customerId: 'c1', customerName: 'Ada' }),
+    )
+    const upd = calls.find((c) => c.table === 'orders' && c.op === 'update')!
+    expect(upd.payload).not.toHaveProperty('deposit')
+    expect(upd.payload).not.toHaveProperty('pending_balance')
+    expect(upd.payload).toMatchObject({ total_amount: 10000 })
   })
 })
 

@@ -59,6 +59,9 @@ export async function listProductSuggestions(): Promise<string[]> {
   return [...new Set(names)].slice(0, 200)
 }
 
+// Deposit and pending balance are not here on purpose: they come from the
+// payments ledger (created below on insert; kept in step by the database on
+// update), so editing an order can never overwrite a cobro made meanwhile.
 function orderFields(draft: OrderDraft) {
   const items = filledItems(draft.items)
   return {
@@ -69,8 +72,6 @@ function orderFields(draft: OrderDraft) {
     // two weeks out (it's replaced when the order is confirmed).
     due_date: draft.dueDate || followUpFrom(toISODate(new Date()), 14),
     total_amount: parseMoney(draft.total),
-    deposit: parseMoney(draft.deposit),
-    pending_balance: balanceOf(draft),
     origin_channel: draft.channel,
     reference_link: draft.referenceLink.trim() || null,
     waiting_reason: draft.waiting
