@@ -10,8 +10,8 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id']
 
-// Owner-only numbers. The tab lives in the URL (?tab=); each tab keeps its
-// own period.
+// Owner-only numbers. The tab lives in the URL (?tab=). Tabs unmount when you
+// switch, so each one starts again from its default period.
 export default function StatsPage() {
   const [params, setParams] = useSearchParams()
   const tab: TabId = params.get('tab') === 'caja' ? 'caja' : 'resumen'

@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import type { FilamentLogRow, FilamentSale } from '@/features/filaments/filaments'
 import { listDeliveredOrders } from '@/features/orders/orders.api'
 import { listProductSales } from '@/features/orders/productSales.api'
+import { pageAll } from './paging'
 import { inRange, toDeliveredRows, type DeliveredRow, type Range } from './stats'
 
 export const STATS_LOG_KINDS = ['sale', 'used', 'transfer', 'personal', 'adjust', 'count']
@@ -14,14 +15,18 @@ export interface StatsData {
 
 // The latest move to "Entregado" per order (an order can be re-delivered).
 export async function deliveredMoments(): Promise<Map<string, string>> {
-  const { data, error } = await supabase
-    .from('production_events')
-    .select('order_id, created_at')
-    .eq('kind', 'stage')
-    .eq('to_status', 'delivered')
-  if (error) throw new Error(error.message)
+  const data = await pageAll((from, to) =>
+    supabase
+      .from('production_events')
+      .select('order_id, created_at')
+      .eq('kind', 'stage')
+      .eq('to_status', 'delivered')
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, to),
+  )
   const map = new Map<string, string>()
-  for (const e of data ?? []) {
+  for (const e of data) {
     const prev = map.get(e.order_id)
     if (!prev || e.created_at > prev) map.set(e.order_id, e.created_at)
   }

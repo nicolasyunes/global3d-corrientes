@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { deliveredMoments } from './stats.api'
+import { pageAll } from './paging'
 import type { Range } from './stats'
 import type { SummaryOrder, SummaryPayment } from './summary'
 
@@ -9,29 +10,31 @@ export interface SummaryData {
   deliveredAt: Map<string, string>
 }
 
-const PAGE = 1000
+type OrderRow = Omit<SummaryOrder, 'quantity'> & {
+  order_items: { quantity: number }[] | null
+}
 
-// PostgREST caps a response at 1000 rows: read the orders page by page.
+// PostgREST caps a response at 1000 rows: every list is read page by page with
+// a stable order.
 async function allOrders(): Promise<SummaryOrder[]> {
-  const out: SummaryOrder[] = []
-  for (let offset = 0; ; offset += PAGE) {
-    const { data, error } = await supabase
-      .from('orders')
-      .select(
-        'id, customer_id, created_at, due_date, status, total_amount, pending_balance, flexible, origin_channel, order_items(quantity)',
-      )
-      .order('created_at', { ascending: true })
-      .order('id', { ascending: true })
-      .range(offset, offset + PAGE - 1)
-    if (error) throw new Error(error.message)
-    const rows = (data ?? []) as unknown as (Omit<SummaryOrder, 'quantity'> & {
-      order_items: { quantity: number }[] | null
-    })[]
-    for (const { order_items, ...o } of rows) {
-      out.push({ ...o, quantity: (order_items ?? []).reduce((s, i) => s + (i.quantity ?? 0), 0) })
-    }
-    if (rows.length < PAGE) return out
-  }
+  const rows = await pageAll<OrderRow>(
+    (from, to) =>
+      supabase
+        .from('orders')
+        .select(
+          'id, customer_id, created_at, due_date, status, total_amount, pending_balance, flexible, origin_channel, order_items(quantity)',
+        )
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to) as unknown as PromiseLike<{
+        data: OrderRow[] | null
+        error: { message: string } | null
+      }>,
+  )
+  return rows.map(({ order_items, ...o }) => ({
+    ...o,
+    quantity: (order_items ?? []).reduce((s, i) => s + (i.quantity ?? 0), 0),
+  }))
 }
 
 // Orders are read whole (tens a month; "Por cobrar" and "clientes nuevos" need
@@ -42,27 +45,29 @@ export async function loadSummary(range: Range, cmp: Range | null): Promise<Summ
 
   const [orders, tx, filament, deliveredAt] = await Promise.all([
     allOrders(),
-    supabase
-      .from('transactions')
-      .select('id, type, amount, method, transacted_at')
-      .in('type', ['3d_service', 'product_sale'])
-      .is('voided_at', null)
-      .gte('transacted_at', since)
-      .lt('transacted_at', until)
-      .then(({ data, error }) => {
-        if (error) throw new Error(error.message)
-        return data ?? []
-      }),
-    supabase
-      .from('filament_sales')
-      .select('id, total, payment, created_at')
-      .is('voided_at', null)
-      .gte('created_at', since)
-      .lt('created_at', until)
-      .then(({ data, error }) => {
-        if (error) throw new Error(error.message)
-        return data ?? []
-      }),
+    pageAll((from, to) =>
+      supabase
+        .from('transactions')
+        .select('id, type, amount, method, transacted_at')
+        .in('type', ['3d_service', 'product_sale'])
+        .is('voided_at', null)
+        .gte('transacted_at', since)
+        .lt('transacted_at', until)
+        .order('transacted_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to),
+    ),
+    pageAll((from, to) =>
+      supabase
+        .from('filament_sales')
+        .select('id, total, payment, created_at')
+        .is('voided_at', null)
+        .gte('created_at', since)
+        .lt('created_at', until)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to),
+    ),
     deliveredMoments(),
   ])
 

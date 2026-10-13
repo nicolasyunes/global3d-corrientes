@@ -72,7 +72,7 @@ export function previousRange(kind: PeriodKind, r: Range): Range {
   if (kind === 'year') {
     return { from: new Date(r.from.getFullYear() - 1, 0, 1), to: r.from }
   }
-  const days =Math.round((r.to.getTime() - r.from.getTime()) / DAY)
+  const days = Math.round((r.to.getTime() - r.from.getTime()) / DAY)
   return { from: addDays(r.from, -days), to: r.from }
 }
 

@@ -132,8 +132,9 @@ describe('comparisonFor', () => {
     const nov = new Date(2026, 10, 10, 12)
     const cmp = comparisonFor({ kind: 'month', start: day(2026, 11, 1) }, nov)
     expect(cmp?.from).toEqual(day(2026, 10, 1))
-    // 9 días transcurridos (1 a 10 de noviembre a las 12:00) sobre el 1 de octubre.
-    expect(cmp?.to.getTime()).toBeLessThan(day(2026, 11, 1).getTime())
+    // 9 días y medio transcurridos (1 de noviembre 00:00 a 10 de noviembre 12:00)
+    // sobre el 1 de octubre: 10 de octubre a las 12:00.
+    expect(cmp?.to).toEqual(new Date(2026, 9, 10, 12))
   })
 
   it('período cerrado: el anterior completo', () => {

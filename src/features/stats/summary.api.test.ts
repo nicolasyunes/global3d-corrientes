@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const h = vi.hoisted(() => {
   const calls: { table: string; filters: unknown[][] }[] = []
   const data: Record<string, unknown[]> = {}
+  const errors: Record<string, string> = {}
   function from(table: string) {
     const entry = { table, filters: [] as unknown[][] }
     calls.push(entry)
+    let slice: [number, number] | null = null
     const q = {
       select: () => q,
       in: (...a: unknown[]) => (entry.filters.push(['in', ...a]), q),
@@ -13,12 +15,16 @@ const h = vi.hoisted(() => {
       gte: (...a: unknown[]) => (entry.filters.push(['gte', ...a]), q),
       lt: (...a: unknown[]) => (entry.filters.push(['lt', ...a]), q),
       order: () => q,
-      range: () => q,
-      then: (resolve: (v: unknown) => void) => resolve({ data: data[table] ?? [], error: null }),
+      range: (a: number, b: number) => ((slice = [a, b]), q),
+      then: (resolve: (v: unknown) => void) => {
+        if (errors[table]) return resolve({ data: null, error: { message: errors[table] } })
+        const rows = data[table] ?? []
+        resolve({ data: slice ? rows.slice(slice[0], slice[1] + 1) : rows, error: null })
+      },
     }
     return q
   }
-  return { calls, data, from }
+  return { calls, data, errors, from }
 })
 
 vi.mock('@/lib/supabase', () => ({ supabase: { from: h.from } }))
@@ -35,6 +41,7 @@ describe('loadSummary', () => {
   beforeEach(() => {
     h.calls.length = 0
     for (const k of Object.keys(h.data)) delete h.data[k]
+    for (const k of Object.keys(h.errors)) delete h.errors[k]
   })
 
   it('suma las unidades de los ítems de cada pedido', async () => {
@@ -91,5 +98,20 @@ describe('loadSummary', () => {
   it('devuelve las entregas reales', async () => {
     const out = await loadSummary(RANGE, null)
     expect(out.deliveredAt.get('o1')).toBe('2026-10-08T12:00:00Z')
+  })
+
+  it('pagina los cobros: 1001 transacciones llegan completas', async () => {
+    h.data.transactions = Array.from({ length: 1001 }, (_, i) => ({
+      id: `t${i}`, type: '3d_service', amount: 1, method: 'cash', transacted_at: '2026-10-02T10:00:00Z',
+    }))
+    const out = await loadSummary(RANGE, null)
+    expect(out.payments).toHaveLength(1001)
+    expect(out.payments[1000].id).toBe('t1000')
+    expect(h.calls.filter((c) => c.table === 'transactions')).toHaveLength(2)
+  })
+
+  it('un error de la base rechaza con su mensaje', async () => {
+    h.errors.transactions = 'boom'
+    await expect(loadSummary(RANGE, null)).rejects.toThrow('boom')
   })
 })
