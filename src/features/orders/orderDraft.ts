@@ -1,4 +1,4 @@
-import type { OriginChannel } from '@/lib/domain-constants'
+import type { OriginChannel, PaymentMethod } from '@/lib/domain-constants'
 import type { PartLine } from '@/features/products/parts'
 
 export interface ItemDraft {
@@ -21,6 +21,8 @@ export interface OrderDraft {
   total: string
   deposit: string
   channel: OriginChannel | null
+  // How the deposit was paid; only asked when creating
+  depositMethod: PaymentMethod | null
   referenceLink: string
   notes: string
   // "En espera": not confirmed yet; reason + when to check again.
@@ -37,7 +39,16 @@ export interface OrderDraft {
 }
 
 export type DraftErrors = Partial<
-  Record<'customerName' | 'items' | 'dueDate' | 'total' | 'deposit', string>
+  Record<
+    | 'customerName'
+    | 'items'
+    | 'dueDate'
+    | 'total'
+    | 'deposit'
+    | 'channel'
+    | 'depositMethod',
+    string
+  >
 >
 
 export function emptyItem(): ItemDraft {
@@ -54,6 +65,7 @@ export function emptyDraft(): OrderDraft {
     total: '',
     deposit: '',
     channel: null,
+    depositMethod: null,
     referenceLink: '',
     notes: '',
     waiting: false,
@@ -120,7 +132,10 @@ export function balanceOf(
   return Number.isNaN(deposit) ? null : Math.max(total - deposit, 0)
 }
 
-export function validateDraft(draft: OrderDraft): DraftErrors {
+export function validateDraft(
+  draft: OrderDraft,
+  opts: { creating?: boolean } = {},
+): DraftErrors {
   const errors: DraftErrors = {}
   if (!draft.customerName.trim())
     errors.customerName = 'Poné el nombre del cliente.'
@@ -142,5 +157,14 @@ export function validateDraft(draft: OrderDraft): DraftErrors {
     deposit > total
   )
     errors.deposit = 'La seña no puede superar el total.'
+  if (opts.creating) {
+    if (!draft.channel) errors.channel = 'Elegí el canal.'
+    if (deposit !== null && !Number.isNaN(deposit) && deposit > 0) {
+      if (!draft.depositMethod)
+        errors.depositMethod = 'Elegí cómo pagó la seña.'
+      if (total === null)
+        errors.total ??= 'Poné el total para registrar la seña.'
+    }
+  }
   return errors
 }

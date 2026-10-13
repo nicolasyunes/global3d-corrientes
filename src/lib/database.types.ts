@@ -1379,6 +1379,11 @@ export type Database = {
           product_id: string | null
           quantity: number | null
           customer_id: string | null
+          payment_kind: string | null
+          operator_id: string | null
+          voided_at: string | null
+          voided_by: string | null
+          void_reason: string | null
         }
         Insert: {
           id?: string
@@ -1396,6 +1401,11 @@ export type Database = {
           product_id?: string | null
           quantity?: number | null
           customer_id?: string | null
+          payment_kind?: string | null
+          operator_id?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          void_reason?: string | null
         }
         Update: {
           id?: string
@@ -1413,6 +1423,11 @@ export type Database = {
           product_id?: string | null
           quantity?: number | null
           customer_id?: string | null
+          payment_kind?: string | null
+          operator_id?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          void_reason?: string | null
         }
         Relationships: [
           {
@@ -1430,6 +1445,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'transactions_operator_id_fkey'
+            columns: ['operator_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+          {
             foreignKeyName: 'transactions_order_id_fkey'
             columns: ['order_id']
             isOneToOne: false
@@ -1441,6 +1463,13 @@ export type Database = {
             columns: ['product_id']
             isOneToOne: false
             referencedRelation: 'products'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'transactions_voided_by_fkey'
+            columns: ['voided_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
             referencedColumns: ['id']
           },
         ]
@@ -1521,6 +1550,20 @@ export type Database = {
           p_refill: boolean
         }
         Returns: Database['public']['Tables']['filament_colors']['Row']
+      }
+      register_order_payment: {
+        Args: {
+          p_order: string
+          p_amount: number
+          p_method: string
+          p_operator: string
+          p_note?: string | null
+        }
+        Returns: Database['public']['Tables']['transactions']['Row']
+      }
+      void_order_payment: {
+        Args: { p_tx: string; p_operator: string; p_reason: string }
+        Returns: Database['public']['Tables']['transactions']['Row']
       }
       void_filament_sale: {
         Args: { p_operator: string; p_reason: string; p_sale: string }
