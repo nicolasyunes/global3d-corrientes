@@ -85,6 +85,11 @@ describe('periodRange', () => {
       to: d(2026, 9, 16),
     })
   })
+  it('año: del 1 de enero al 1 de enero siguiente', () => {
+    const r = periodRange('year', NOW)
+    expect(r.from).toEqual(d(2026, 1, 1))
+    expect(r.to).toEqual(d(2027, 1, 1))
+  })
 })
 
 describe('comparisonRange', () => {
@@ -132,6 +137,10 @@ describe('previousRange', () => {
   it('rango libre: misma cantidad de días justo antes', () => {
     const r = periodRange('custom', NOW, { from: '2026-09-11', to: '2026-09-20' })
     expect(previousRange('custom', r)).toEqual({ from: d(2026, 9, 1), to: d(2026, 9, 11) })
+  })
+  it('año: es el año anterior completo', () => {
+    const r = periodRange('year', NOW)
+    expect(previousRange('year', r)).toEqual({ from: d(2025, 1, 1), to: d(2026, 1, 1) })
   })
 })
 

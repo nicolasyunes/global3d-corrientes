@@ -7,7 +7,7 @@ import {
 import type { OrderWithCustomer } from '@/features/orders/orders.api'
 import type { ProductSaleRow } from '@/features/orders/productSales.api'
 
-export type PeriodKind = 'today' | 'week' | 'month' | 'custom'
+export type PeriodKind = 'today' | 'week' | 'month' | 'year' | 'custom'
 
 // Half-open interval [from, to) in local time.
 export interface Range {
@@ -49,6 +49,12 @@ export function periodRange(
       to: new Date(today.getFullYear(), today.getMonth() + 1, 1),
     }
   }
+  if (kind === 'year') {
+    return {
+      from: new Date(today.getFullYear(), 0, 1),
+      to: new Date(today.getFullYear() + 1, 0, 1),
+    }
+  }
   let a = custom ? parseDay(custom.from) : today
   let b = custom ? parseDay(custom.to) : today
   // Reversed dates are swapped so the range is never empty.
@@ -63,7 +69,10 @@ export function previousRange(kind: PeriodKind, r: Range): Range {
       to: r.from,
     }
   }
-  const days = Math.round((r.to.getTime() - r.from.getTime()) / DAY)
+  if (kind === 'year') {
+    return { from: new Date(r.from.getFullYear() - 1, 0, 1), to: r.from }
+  }
+  const days =Math.round((r.to.getTime() - r.from.getTime()) / DAY)
   return { from: addDays(r.from, -days), to: r.from }
 }
 
