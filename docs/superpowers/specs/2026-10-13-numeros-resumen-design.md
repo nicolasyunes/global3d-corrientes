@@ -60,7 +60,7 @@ Vive en la URL con `useSearchParams` (patrón de `IdeasPage.tsx` y `ToolsPage.ts
 | **Ticket promedio** | Vendido ÷ pedidos (de los que tienen monto). |
 | **Entregados a tiempo** | Entre los pedidos cuyo evento de entrega (`production_events`, `kind = 'stage'`, `to_status = 'delivered'`, el último por pedido) cae en el período: % con fecha de entrega ≤ `due_date`. Excluye `flexible` y los que no tienen evento. Subtítulo: "N con atraso" y "sobre M con fecha real". Con M = 0 muestra "—". |
 | **Clientes nuevos** | Clientes cuyo **primer** pedido (menor `created_at`, sin contar cancelados) cae en el período. Subtítulo: "de N en total" = clientes con al menos un pedido hasta el fin del período. |
-| **Por canal** | `origin_channel`; `whatsapp` + `whatsapp_personal` se agrupan como "WhatsApp"; `null` = "Sin canal"; `local` = "Local"; `mercadolibre` = "Mercado Libre". |
+| **Por canal** | `origin_channel`; `whatsapp` + `whatsapp_personal` se agrupan como "WhatsApp"; `null` = "Sin canal"; `local` = "En el local"; `mercadolibre` = "Mercado Libre". |
 | **Por medio** | `transactions.method` de lo cobrado; `null` = "Sin medio" (las señas migradas). Se ordena por monto. |
 
 Comparación: `compare(curr, prev)` devuelve variación % en montos y conteos, puntos (pt) en
@@ -83,12 +83,14 @@ porcentajes y diferencia absoluta en "Clientes nuevos". Sin período anterior co
 Cada tarjeta tiene un texto de ayuda con su regla (title/aria) para que Vendido, Cobrado y
 Entregado no se confundan.
 
-### Gráficos (SVG propio; no se agrega librería; con tabla alternativa accesible)
+### Gráficos (propios, sin librería)
 
 1. **Pedidos por semana**: 8 semanas lunes a domingo que terminan en la semana del final del
    período elegido. La última, si está en curso, más clara. Número sobre cada barra.
 2. **De dónde vienen los pedidos**: barras horizontales por canal con cantidad y %.
 3. **Cobrado por medio**: lista de barras (efectivo, transferencia, Mercado Pago, otros, sin medio).
+
+Pedidos por semana es un SVG con tabla alternativa oculta; las otras dos son listas con barra CSS que siempre escriben el valor y el porcentaje.
 
 Colores: azul `#2f5fd0` (ventas) y `#c2500e` (resto). El texto nunca va en color de serie.
 Formato `es-AR` con `money()` de `filaments.ts`.
@@ -96,7 +98,8 @@ Formato `es-AR` con `money()` de `filaments.ts`.
 ### Estados
 
 - **Cargando / error:** igual que la pantalla actual (mensaje en español, sin pantalla en blanco).
-- **Período vacío:** tarjetas en 0 y gráficos con "Sin datos en este período".
+- **Período vacío:** tarjetas en 0; el gráfico semanal dice "Sin pedidos en estas semanas." y las listas "Sin datos en este período.".
+- **Por cobrar, pedidos anteriores:** la línea "N pedidos anteriores con saldo sin confirmar" muestra el monto y no tiene lista (ver §7, D-A).
 - **Septiembre 2026** (mes de migración): banner "Datos de la planilla, incompletos: 50 pedidos
   se cargaron juntos el 29/09" y **sin comparación** ni en ese mes ni en octubre (que lo tendría
   de base). Regla general: si el período contra el que se compararía empieza antes de
@@ -128,7 +131,7 @@ due_date, origin_channel`). No hay migraciones ni tablas nuevas.
 
 | # | Decisión | Default | Si está mal |
 |---|---|---|---|
-| D-A | **Por cobrar** y los saldos viejos. La F1 no toca los saldos de pedidos anteriores a la migración (hay ~29 entregados con saldo > 0 sin confirmar si se cobraron) y el spec del 09/10 (D9) dejaba abierta qué hacer. | Por cobrar cuenta solo pedidos dados de alta desde `2026-09-30`. Debajo, una línea "N pedidos anteriores con saldo sin confirmar" que abre la lista. | Si todos esos saldos sí se deben, Por cobrar queda corto hasta que se registre cada cobro. |
+| D-A | **Por cobrar** y los saldos viejos. La F1 no toca los saldos de pedidos anteriores a la migración (hay ~29 entregados con saldo > 0 sin confirmar si se cobraron) y el spec del 09/10 (D9) dejaba abierta qué hacer. | Por cobrar cuenta solo pedidos dados de alta desde `2026-09-30`. Debajo, una línea "N pedidos anteriores con saldo sin confirmar" con el monto (sin lista por ahora: abrir la lista queda para una entrega siguiente, pide mostrar cliente y título del pedido). | Si todos esos saldos sí se deben, Por cobrar queda corto hasta que se registre cada cobro. |
 | D-B | "Vendido" por alta del pedido (`created_at`), no por entrega. | Alta del pedido (spec F2). | "Entregado" sigue visible en Caja y filamento. |
 | D-C | Fecha de corte de migración. | `2026-09-30` (constante única). | Se cambia en un lugar. |
 | D-D | Semana de lunes a domingo, "mismo tramo" en el período en curso. | Como hoy. | — |
