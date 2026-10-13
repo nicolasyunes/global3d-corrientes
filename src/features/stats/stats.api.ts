@@ -13,7 +13,7 @@ export interface StatsData {
 }
 
 // The latest move to "Entregado" per order (an order can be re-delivered).
-async function deliveredMoments(): Promise<Map<string, string>> {
+export async function deliveredMoments(): Promise<Map<string, string>> {
   const { data, error } = await supabase
     .from('production_events')
     .select('order_id, created_at')
