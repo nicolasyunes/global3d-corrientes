@@ -660,6 +660,41 @@ export type Database = {
           },
         ]
       }
+      notice_images: {
+        Row: {
+          id: string
+          notice_id: string
+          storage_path: string
+          note: string | null
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          notice_id: string
+          storage_path: string
+          note?: string | null
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          notice_id?: string
+          storage_path?: string
+          note?: string | null
+          position?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notice_images_notice_id_fkey'
+            columns: ['notice_id']
+            isOneToOne: false
+            referencedRelation: 'notices'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       order_images: {
         Row: {
           id: string
