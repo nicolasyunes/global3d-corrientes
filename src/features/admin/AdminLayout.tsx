@@ -77,7 +77,7 @@ const SECONDARY: NavItem[] = [
   },
   {
     to: '/admin/estadisticas',
-    label: 'Estadísticas',
+    label: 'Números',
     icon: 'spark',
     adminOnly: true,
   },

@@ -85,7 +85,7 @@ describe('AdminLayout', () => {
     renderAdminLayout()
     expect(screen.queryByText('Productos y stock')).not.toBeInTheDocument()
     expect(screen.queryByText('Personas')).not.toBeInTheDocument()
-    expect(screen.queryByText('Estadísticas')).not.toBeInTheDocument()
+    expect(screen.queryByText('Números')).not.toBeInTheDocument()
     expect(screen.getByText('Conteo')).toBeInTheDocument()
   })
 
@@ -94,7 +94,7 @@ describe('AdminLayout', () => {
     renderAdminLayout()
     expect(screen.getByText('Productos y stock')).toBeInTheDocument()
     expect(screen.getByText('Personas')).toBeInTheDocument()
-    expect(screen.getByText('Estadísticas')).toBeInTheDocument()
+    expect(screen.getByText('Números')).toBeInTheDocument()
     expect(screen.getByText('Conteo')).toBeInTheDocument()
   })
 })
