@@ -1,183 +1,198 @@
 import { Link } from 'react-router-dom'
-import { ORDER_STATUS_LABELS, type OrderStatus } from '@/lib/domain-constants'
-import { useOperator } from '@/features/operators/operator-context'
-import { dueInfo } from '@/features/production/due'
+import Icon from '@/components/Icon'
 import { orderTitle } from '@/features/production/OrderRow'
 import type { OrderProgress } from '@/features/production/production.api'
 import { formatMoney } from './format'
-import { groupOrdersByStatus } from './list'
-import type { OrderWithCustomer } from './orders.api'
-import { nextOrderStatus } from './status'
+import type { OrderUpdate, OrderWithCustomer } from './orders.api'
+import { whatsappLink } from './OrderSummary'
+import { urgentFirst } from './orderFlow'
+import { stageOf, type Stage } from './stage'
+import { dueText, PartsBar, PostMarks, UrgentBadge } from './stage-ui'
 
-const LANES: readonly OrderStatus[] = [
-  'new',
-  'printing',
-  'post_processing',
-  'finished',
+type Lane = 'on_hold' | 'printing' | 'post_processing' | 'finished'
+
+const LANES: { key: Lane; title: string }[] = [
+  { key: 'on_hold', title: 'En espera' },
+  { key: 'printing', title: 'Imprimiendo' },
+  { key: 'post_processing', title: 'Posprocesado' },
+  { key: 'finished', title: 'Listo para avisar' },
 ]
-const CLOSED: readonly OrderStatus[] = ['delivered', 'cancelled']
 
-const LANE_TITLE: Partial<Record<OrderStatus, string>> = {
-  new: 'Nuevo / diseño',
-  finished: 'Listo para avisar',
-}
+// Orders that haven't started printing wait in the same lane as the ones
+// that have: both are "in the printers' hands". Delivered orders live in
+// "Entregados".
+const laneOf = (stage: Stage): Lane | null =>
+  stage === 'new'
+    ? 'printing'
+    : stage === 'cancelled' || stage === 'delivered'
+      ? null
+      : stage
 
-const LANE_COLOR: Record<string, string> = {
-  new: 'var(--status-amber)',
-  printing: 'var(--color-orange)',
-  post_processing: 'var(--status-violet)',
-  finished: 'var(--color-teal)',
-}
-
-const SEGMENTS = 8
-
-function Segments({
-  progress,
-  done,
-}: {
-  progress?: OrderProgress
-  done: boolean
-}) {
-  const filled =
-    progress && progress.total > 0
-      ? Math.round((progress.done / progress.total) * SEGMENTS)
-      : 0
-  return (
-    <div className={`segs${done ? ' segs--done' : ''}`} aria-hidden="true">
-      {Array.from({ length: SEGMENTS }, (_, i) => (
-        <i
-          key={i}
-          className={i < (done ? SEGMENTS : filled) ? 'is-on' : undefined}
-        />
-      ))}
-    </div>
-  )
-}
+const READY_TEXT = encodeURIComponent(
+  '¡Hola! Tu pedido de Global3D ya está listo para retirar.',
+)
 
 interface OrdersBoardProps {
   orders: readonly OrderWithCustomer[]
   today: string
   progress: Record<string, OrderProgress>
   itemCounts: Record<string, number>
-  advancingId: string | null
-  onAdvance: (order: OrderWithCustomer) => void
+  busyId: string | null
+  onPatch: (
+    order: OrderWithCustomer,
+    fields: OrderUpdate,
+    event: string,
+  ) => void
 }
 
+// The board is read-mostly: cards sit in the lane their pieces put them in
+// and are never dragged. Each lane offers the one thing you do there.
 export default function OrdersBoard({
   orders,
   today,
   progress,
   itemCounts,
-  advancingId,
-  onAdvance,
+  busyId,
+  onPatch,
 }: OrdersBoardProps) {
-  const { byId } = useOperator()
-  const normalized = orders.map((o) =>
-    o.status === 'in_queue' ? { ...o, status: 'new' as const } : o,
+  const lanes: Record<Lane, OrderWithCustomer[]> = {
+    on_hold: [],
+    printing: [],
+    post_processing: [],
+    finished: [],
+  }
+  const sorted = [...orders].sort(
+    urgentFirst((a, b) => a.due_date.localeCompare(b.due_date)),
   )
-  const columns = groupOrdersByStatus(normalized, [...LANES, ...CLOSED])
-  const closedCount = CLOSED.reduce((n, s) => n + columns[s].length, 0)
+  for (const order of sorted) {
+    const lane = laneOf(stageOf(order))
+    if (!lane) continue
+    lanes[lane].push(order)
+  }
 
-  function card(order: OrderWithCustomer) {
-    const due = dueInfo(order.due_date, today)
+  function card(order: OrderWithCustomer, lane: Lane) {
     const prog = progress[order.id]
-    const who = byId(prog?.lastOperatorId)
-    const next = nextOrderStatus(order.status)
-    const done = order.status === 'finished' || order.status === 'delivered'
+    const busy = busyId === order.id
+    const due = dueText(order, today, {
+      short: true,
+      closed: lane === 'on_hold',
+    })
+    const wa = whatsappLink(order.customers?.phone)
+    const balance = order.pending_balance ?? 0
     return (
-      <li key={order.id} className="bcard">
-        <Link to={`/admin/orders/${order.id}`} className="bcard__link">
-          <p className="bcard__title">
-            {orderTitle(order, itemCounts[order.id])}
-          </p>
-          <p className="bcard__sub">
-            {order.customers?.name ?? 'Sin cliente'}
-            {prog ? ` · ${prog.done}/${prog.total} piezas` : ''}
-            {order.status === 'finished' && (order.pending_balance ?? 0) > 0
-              ? ` · saldo ${formatMoney(order.pending_balance)}`
-              : ''}
-          </p>
-          <Segments progress={prog} done={done} />
-          <div className="bcard__meta">
-            <span className={`due due--${done ? 'ok' : due.tone}`}>
-              {due.label}
-            </span>
-            {who && (
-              <span
-                className="avatar avatar--sm"
-                style={{ background: who.color }}
-                title={who.name}
+      <li key={order.id} className="wk-card">
+        <div className="wk-card__top">
+          {order.urgent && <UrgentBadge />}
+          <span className={`wk-due${due.late ? ' is-late' : ''}`}>
+            {due.label}
+          </span>
+        </div>
+        <Link to={`/admin/orders/${order.id}`} className="wk-card__title">
+          {order.customers?.name ?? 'Sin cliente'}
+        </Link>
+        <p className="wk-card__sub">
+          {orderTitle(order, itemCounts[order.id])}
+        </p>
+        {lane === 'on_hold' && (
+          <p className="wk-card__note">{order.waiting_reason}</p>
+        )}
+        {lane === 'printing' && (
+          <>
+            {(order.pp_sand || order.pp_paint) && <PostMarks order={order} />}
+            <PartsBar printed={prog?.done ?? 0} total={prog?.total ?? 0} />
+          </>
+        )}
+        {lane === 'post_processing' && (
+          <div className="wk-card__actions">
+            {order.pp_sand && (
+              <button
+                type="button"
+                className="wk-toggle"
+                aria-pressed={order.sand_done}
+                disabled={busy}
+                onClick={() =>
+                  onPatch(
+                    order,
+                    { sand_done: !order.sand_done },
+                    order.sand_done ? 'Lijado (desmarcado)' : 'Lijado',
+                  )
+                }
               >
-                {who.initials}
-              </span>
+                <Icon name={order.sand_done ? 'check' : 'sand'} size={16} />
+                Lijado
+              </button>
+            )}
+            {order.pp_paint && (
+              <button
+                type="button"
+                className="wk-toggle"
+                aria-pressed={order.paint_done}
+                disabled={busy}
+                onClick={() =>
+                  onPatch(
+                    order,
+                    { paint_done: !order.paint_done },
+                    order.paint_done ? 'Pintado (desmarcado)' : 'Pintado',
+                  )
+                }
+              >
+                <Icon name={order.paint_done ? 'check' : 'brush'} size={16} />
+                Pintado
+              </button>
             )}
           </div>
-        </Link>
-        {next && (
-          <button
-            type="button"
-            className="btn btn--ghost btn--sm bcard__advance"
-            disabled={advancingId === order.id}
-            onClick={() => onAdvance(order)}
-          >
-            {advancingId === order.id
-              ? 'Actualizando…'
-              : `Avanzar a ${ORDER_STATUS_LABELS[next]} →`}
-          </button>
+        )}
+        {lane === 'finished' && (
+          <>
+            <p className="wk-card__money num">
+              {balance > 0 ? `Saldo ${formatMoney(balance)}` : 'Pagado'}
+            </p>
+            <div className="wk-card__actions">
+              {wa && (
+                <a
+                  className="wk-toggle"
+                  href={`${wa}?text=${READY_TEXT}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Icon name="chat" size={16} />
+                  Avisar
+                </a>
+              )}
+              <button
+                type="button"
+                className="wk-act wk-act--finish"
+                disabled={busy}
+                onClick={() =>
+                  onPatch(order, { status: 'delivered' }, 'delivered')
+                }
+              >
+                <Icon name="check" size={16} />
+                Entregado
+              </button>
+            </div>
+          </>
         )}
       </li>
     )
   }
 
   return (
-    <>
-      <div className="board" role="group" aria-label="Tablero de pedidos">
-        {LANES.map((status) => (
-          <section
-            key={status}
-            className="lane"
-            aria-label={ORDER_STATUS_LABELS[status]}
-          >
-            <h2 className="lane__head">
-              <span
-                className="lane__dot"
-                style={{ background: LANE_COLOR[status] }}
-              />
-              {LANE_TITLE[status] ?? ORDER_STATUS_LABELS[status]}
-              <span className="lane__count num">{columns[status].length}</span>
-            </h2>
-            {columns[status].length === 0 ? (
-              <p className="lane__empty">Sin pedidos</p>
-            ) : (
-              <ul style={{ listStyle: 'none' }}>{columns[status].map(card)}</ul>
-            )}
-          </section>
-        ))}
-      </div>
-      {closedCount > 0 && (
-        <details className="board-closed">
-          <summary>Entregados y cancelados ({closedCount})</summary>
-          <div className="board" style={{ marginTop: 12 }}>
-            {CLOSED.map((status) => (
-              <section
-                key={status}
-                className="lane"
-                aria-label={ORDER_STATUS_LABELS[status]}
-              >
-                <h2 className="lane__head">
-                  {ORDER_STATUS_LABELS[status]}
-                  <span className="lane__count num">
-                    {columns[status].length}
-                  </span>
-                </h2>
-                <ul style={{ listStyle: 'none' }}>
-                  {columns[status].slice(-20).map(card)}
-                </ul>
-              </section>
-            ))}
-          </div>
-        </details>
-      )}
-    </>
+    <div className="wk-board" role="group" aria-label="Tablero">
+      {LANES.map(({ key, title }) => (
+        <section key={key} className="wk-col" aria-label={title}>
+          <h2 className="wk-col__head">
+            <i className={`stage-dot stage-dot--${key}`} aria-hidden="true" />
+            {title}
+            <span className="num">{lanes[key].length}</span>
+          </h2>
+          {lanes[key].length === 0 ? (
+            <p className="wk-col__empty">Sin pedidos</p>
+          ) : (
+            <ul className="wk-cards">{lanes[key].map((o) => card(o, key))}</ul>
+          )}
+        </section>
+      ))}
+    </div>
   )
 }

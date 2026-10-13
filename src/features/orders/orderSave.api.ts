@@ -15,7 +15,10 @@ import {
   type OrderDraft,
 } from './orderDraft'
 import { piecesForItem } from '@/features/products/parts'
+import { DEFAULT_WAITING_REASON, followUpFrom } from './orderFlow'
+import { toISODate } from './validation'
 import type { OrderRow } from './orders.api'
+import { registerOrderPayment } from './payments.api'
 
 export interface CustomerHit {
   id: string
@@ -56,19 +59,43 @@ export async function listProductSuggestions(): Promise<string[]> {
   return [...new Set(names)].slice(0, 200)
 }
 
+// Deposit and pending balance are not here on purpose: they come from the
+// payments ledger (created below on insert; kept in step by the database on
+// update), so editing an order can never overwrite a cobro made meanwhile.
 function orderFields(draft: OrderDraft) {
   const items = filledItems(draft.items)
   return {
     title: buildTitle(items),
     description: buildDescription(items, draft.notes) || null,
     observations: draft.notes.trim() || null,
-    due_date: draft.dueDate,
+    // due_date is required; a waiting order without one gets a placeholder
+    // two weeks out (it's replaced when the order is confirmed).
+    due_date: draft.dueDate || followUpFrom(toISODate(new Date()), 14),
     total_amount: parseMoney(draft.total),
-    deposit: parseMoney(draft.deposit),
-    pending_balance: balanceOf(draft),
     origin_channel: draft.channel,
     reference_link: draft.referenceLink.trim() || null,
+    waiting_reason: draft.waiting
+      ? draft.waitingReason.trim() || DEFAULT_WAITING_REASON
+      : null,
+    follow_up_on: draft.waiting
+      ? draft.followUpOn || followUpFrom(toISODate(new Date()))
+      : null,
+    flexible: draft.flexible,
+    urgent: draft.urgent && !draft.waiting,
+    pp_sand: draft.ppSand,
+    pp_paint: draft.ppPaint,
   }
+}
+
+export function sameName(a: string, b: string): boolean {
+  const norm = (s: string) =>
+    s
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/\s+/g, ' ')
+  return norm(a) === norm(b)
 }
 
 async function resolveCustomer(draft: OrderDraft): Promise<string> {
@@ -82,13 +109,15 @@ async function resolveCustomer(draft: OrderDraft): Promise<string> {
     if (error) throw error
     return draft.customerId
   }
+  // Reuse a customer by phone only when the name also matches: the name typed
+  // in the modal must always be the one saved on the order.
   if (phone) {
     const { data } = await supabase
       .from('customers')
-      .select('id')
+      .select('id, name')
       .eq('phone', phone)
-      .maybeSingle()
-    if (data) return data.id
+    const same = (data ?? []).find((c) => sameName(c.name, name))
+    if (same) return same.id
   }
   const { data, error } = await supabase
     .from('customers')
@@ -134,7 +163,7 @@ async function insertPresetPieces(
 export async function createOrderFromDraft(
   draft: OrderDraft,
   operatorId: string | null = null,
-): Promise<OrderRow> {
+): Promise<OrderRow & { paymentWarning?: string }> {
   const customerId = await resolveCustomer(draft)
   const { data: order, error } = await supabase
     .from('orders')
@@ -142,6 +171,9 @@ export async function createOrderFromDraft(
       customer_id: customerId,
       product_type: 'other',
       ...orderFields(draft),
+      // The deposit is registered as a payment below, not stored on the order.
+      deposit: null,
+      pending_balance: balanceOf({ total: draft.total, deposit: '' }),
     })
     .select('*')
     .single()
@@ -167,7 +199,18 @@ export async function createOrderFromDraft(
     (inserted ?? []).map((row) => ({ id: row.id, item: filled[row.position] })),
     operatorId,
   )
-  return order
+  const deposit = parseMoney(draft.deposit)
+  let paymentWarning: string | undefined
+  if (deposit && !Number.isNaN(deposit) && deposit > 0 && draft.depositMethod) {
+    try {
+      await registerOrderPayment(order.id, deposit, draft.depositMethod, operatorId)
+    } catch (err) {
+      paymentWarning = `Pedido guardado, pero no se pudo registrar la seña: ${
+        err instanceof Error ? err.message : 'error desconocido'
+      }. Registrala desde el pedido.`
+    }
+  }
+  return { ...order, paymentWarning }
 }
 
 // Item-by-item upsert: replacing all items would cascade-delete the pieces
@@ -285,7 +328,15 @@ export async function loadDraft(orderId: string): Promise<OrderDraft> {
     total: money(order.total_amount),
     deposit: money(order.deposit),
     channel: (order.origin_channel as OriginChannel | null) ?? null,
+    depositMethod: null,
     referenceLink: order.reference_link ?? '',
     notes: order.observations ?? '',
+    waiting: Boolean(order.waiting_reason),
+    waitingReason: order.waiting_reason ?? '',
+    followUpOn: order.follow_up_on ?? '',
+    flexible: order.flexible ?? false,
+    urgent: order.urgent ?? false,
+    ppSand: order.pp_sand ?? false,
+    ppPaint: order.pp_paint ?? false,
   }
 }
