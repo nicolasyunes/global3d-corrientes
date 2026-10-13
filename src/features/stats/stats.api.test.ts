@@ -13,6 +13,7 @@ const h = vi.hoisted(() => {
       eq: (...a: unknown[]) => (entry.filters.push(['eq', ...a]), q),
       in: (...a: unknown[]) => (entry.filters.push(['in', ...a]), q),
       order: () => q,
+      range: () => q,
       then: (resolve: (v: unknown) => void) =>
         resolve({ data: data[table] ?? [], error: null }),
     }
