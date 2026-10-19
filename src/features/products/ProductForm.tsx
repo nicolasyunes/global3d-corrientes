@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Icon from '@/components/Icon'
+import { useOperator } from '@/features/operators/operator-context'
 import { parseMoney } from '@/features/orders/orderDraft'
 import { colorSwatch } from '@/features/production/pieces'
 import {
@@ -171,6 +172,7 @@ export default function ProductForm() {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
   const navigate = useNavigate()
+  const { current, isAdmin } = useOperator()
 
   const [draft, setDraft] = useState<ProductDraft>(emptyProductDraft())
   const [parts, setParts] = useState<PartDraft[]>([])
@@ -282,12 +284,14 @@ export default function ProductForm() {
     setSubmitting(true)
     setSubmitError(null)
     try {
+      // El precio de lista es del admin: el resto del equipo ni lo ve ni lo toca.
       const patch = {
         name: draft.name.trim(),
         description: draft.description.trim() || null,
-        base_price: parseMoney(draft.basePrice),
+        ...(isAdmin ? { base_price: parseMoney(draft.basePrice) } : {}),
         stock_quantity: parseNonNegativeInt(draft.stockQuantity) ?? 0,
         active: draft.active,
+        updated_by: current?.id ?? null,
       }
       const saved =
         isEdit && id
@@ -382,23 +386,25 @@ export default function ProductForm() {
             )}
 
             <div className="pform__row">
-              <div>
-                <label className="field-label" htmlFor="product-price">
-                  Precio de lista ($)
-                </label>
-                <input
-                  id="product-price"
-                  className="input num"
-                  inputMode="decimal"
-                  placeholder="0"
-                  value={draft.basePrice}
-                  onChange={(e) => setField('basePrice', e.target.value)}
-                  aria-invalid={Boolean(errors.basePrice)}
-                />
-                {errors.basePrice && (
-                  <p className="pform__err">{errors.basePrice}</p>
-                )}
-              </div>
+              {isAdmin && (
+                <div>
+                  <label className="field-label" htmlFor="product-price">
+                    Precio de lista ($)
+                  </label>
+                  <input
+                    id="product-price"
+                    className="input num"
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={draft.basePrice}
+                    onChange={(e) => setField('basePrice', e.target.value)}
+                    aria-invalid={Boolean(errors.basePrice)}
+                  />
+                  {errors.basePrice && (
+                    <p className="pform__err">{errors.basePrice}</p>
+                  )}
+                </div>
+              )}
               <div>
                 <label className="field-label" htmlFor="product-stock">
                   Stock armado

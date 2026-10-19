@@ -18,6 +18,10 @@ vi.mock('./productSales.api', () => ({
   createProductSale: createProductSaleMock,
 }))
 
+vi.mock('@/features/operators/operator-context', () => ({
+  useOperator: () => ({ current: { id: 'op-1' } }),
+}))
+
 vi.mock('./orders.api', () => ({
   upsertCustomer: upsertCustomerMock,
 }))
@@ -32,6 +36,7 @@ const PRODUCT: ProductRow = {
   active: true,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
+  updated_by: null,
 }
 
 function createdRow(overrides = {}) {
@@ -136,6 +141,7 @@ describe('ProductSaleSheet', () => {
         quantity: 2,
         amount: 3000,
         productName: null,
+        operatorId: 'op-1',
       }),
     )
     expect(onCreated).toHaveBeenCalledWith(

@@ -3,18 +3,22 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProductRow } from './products.api'
 
-const { listProductsMock, listAllPartsMock, updateProductMock } = vi.hoisted(
-  () => ({
+const { listProductsMock, listAllPartsMock, moveProductStockMock, operator } =
+  vi.hoisted(() => ({
     listProductsMock: vi.fn(),
     listAllPartsMock: vi.fn(),
-    updateProductMock: vi.fn(),
-  }),
-)
+    moveProductStockMock: vi.fn(),
+    operator: { isAdmin: false },
+  }))
 
 vi.mock('./products.api', () => ({
   listProducts: listProductsMock,
   listAllParts: listAllPartsMock,
-  updateProduct: updateProductMock,
+  moveProductStock: moveProductStockMock,
+}))
+
+vi.mock('@/features/operators/operator-context', () => ({
+  useOperator: () => ({ current: { id: 'op-1' }, isAdmin: operator.isAdmin }),
 }))
 
 import ProductsList from './ProductsList'
@@ -30,6 +34,7 @@ function row(over: Partial<ProductRow> = {}): ProductRow {
     active: true,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
+    updated_by: null,
     ...over,
   }
 }
@@ -46,7 +51,8 @@ beforeEach(() => {
       { label: 'ojos', color: 'negro', quantity: 2 },
     ],
   })
-  updateProductMock.mockResolvedValue(row())
+  operator.isAdmin = false
+  moveProductStockMock.mockResolvedValue(row({ stock_quantity: 3 }))
 })
 
 function renderList() {
@@ -73,7 +79,7 @@ describe('ProductsList', () => {
     expect(screen.queryByText('Vaso milkshake Spiderman')).toBeNull()
   })
 
-  it('suma stock desde la fila', async () => {
+  it('suma stock desde la fila, a nombre de quien está trabajando', async () => {
     renderList()
     fireEvent.click(
       await screen.findByRole('button', {
@@ -81,9 +87,22 @@ describe('ProductsList', () => {
       }),
     )
     await waitFor(() =>
-      expect(updateProductMock).toHaveBeenCalledWith('p1', {
-        stock_quantity: 3,
-      }),
+      expect(moveProductStockMock).toHaveBeenCalledWith('p1', 1, 'op-1'),
     )
+  })
+
+  it('a quien no es admin no le muestra precios ni movimientos', async () => {
+    renderList()
+    await screen.findByText('Llavero Zelda')
+    expect(screen.queryByText(/15\.000/)).toBeNull()
+    expect(screen.queryByText('Movimientos')).toBeNull()
+  })
+
+  it('al admin le muestra precios y el link a movimientos', async () => {
+    operator.isAdmin = true
+    renderList()
+    await screen.findByText('Llavero Zelda')
+    expect(screen.getAllByText(/15\.000/).length).toBeGreaterThan(0)
+    expect(screen.getByText('Movimientos')).toBeVisible()
   })
 })

@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useOperator } from '@/features/operators/operator-context'
 import type { ProductRow } from '@/features/products/products.api'
 import { upsertCustomer } from './orders.api'
 import { createProductSale, type ProductSaleRow } from './productSales.api'
@@ -35,6 +36,7 @@ export interface UseProductSaleDraftResult {
 export function useProductSaleDraft(
   products: ProductRow[],
 ): UseProductSaleDraftResult {
+  const { current } = useOperator()
   const [draft, setDraft] = useState<ProductSaleDraft>(() =>
     emptyProductSaleDraft(),
   )
@@ -96,6 +98,7 @@ export function useProductSaleDraft(
         amount: parsePositiveDecimal(draft.amount) ?? 0,
         method: draft.method || null,
         customerId,
+        operatorId: current?.id ?? null,
       })
 
       reset()
@@ -115,7 +118,7 @@ export function useProductSaleDraft(
     } finally {
       setSubmitting(false)
     }
-  }, [draft, products, reset])
+  }, [current?.id, draft, products, reset])
 
   return { draft, errors, submitting, submitError, setField, reset, submit }
 }

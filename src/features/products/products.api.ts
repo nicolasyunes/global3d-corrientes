@@ -215,3 +215,45 @@ export async function reorderProductImages(
   }
   await syncCoverImage(productId)
 }
+
+export type ProductLogKind =
+  'created' | 'in' | 'out' | 'adjust' | 'sale' | 'edited'
+
+export type ProductLogRow = Omit<
+  Database['public']['Tables']['product_log']['Row'],
+  'kind'
+> & { kind: ProductLogKind }
+
+// Suma o resta stock en un solo paso y deja la fila en el registro. Es la
+// única forma de mover stock desde los botones +/−: así dos personas tocando
+// a la vez no se pisan.
+export async function moveProductStock(
+  productId: string,
+  delta: number,
+  operatorId: string,
+  note: string | null = null,
+): Promise<ProductRow> {
+  const { data, error } = await supabase.rpc('move_product_stock', {
+    p_product: productId,
+    p_delta: delta,
+    p_operator: operatorId,
+    p_note: note,
+  })
+  if (error) throw error
+  return data as ProductRow
+}
+
+// Solo un admin puede leer el registro (la base lo valida con la persona).
+export async function listProductLog(
+  operatorId: string,
+  before: string | null = null,
+  limit = 100,
+): Promise<ProductLogRow[]> {
+  const { data, error } = await supabase.rpc('list_product_log', {
+    p_operator: operatorId,
+    p_before: before,
+    p_limit: limit,
+  })
+  if (error) throw error
+  return (data ?? []) as ProductLogRow[]
+}

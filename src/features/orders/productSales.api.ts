@@ -32,6 +32,7 @@ export interface ProductSaleInput {
   amount: number
   method: string | null
   customerId: string | null
+  operatorId?: string | null // quién la hizo: queda en el registro de productos
 }
 
 // Inserts a `product_sale` transaction. When `productId` + `quantity` are set,
@@ -49,6 +50,7 @@ export async function createProductSale(
     amount: input.amount,
     method: input.method,
     note: input.productName,
+    operator_id: input.operatorId ?? null,
   }
   const { data, error } = await supabase
     .from('transactions')
