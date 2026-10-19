@@ -83,7 +83,7 @@ describe('AdminLayout', () => {
 
   it('hides admin sections for regular operators', () => {
     renderAdminLayout()
-    expect(screen.queryByText('Productos y stock')).not.toBeInTheDocument()
+    expect(screen.getByText('Productos y stock')).toBeInTheDocument()
     expect(screen.queryByText('Personas')).not.toBeInTheDocument()
     expect(screen.queryByText('Números')).not.toBeInTheDocument()
     expect(screen.getByText('Conteo')).toBeInTheDocument()

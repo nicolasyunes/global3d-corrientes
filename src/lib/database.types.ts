@@ -1272,6 +1272,22 @@ export type Database = {
           },
         ]
       }
+      product_log: {
+        Row: {
+          id: string
+          created_at: string
+          operator_id: string | null
+          kind: string
+          product_id: string | null
+          product_label: string
+          delta: number | null
+          stock_after: number | null
+          note: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       products: {
         Row: {
           id: string
@@ -1283,6 +1299,7 @@ export type Database = {
           active: boolean
           created_at: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           id?: string
@@ -1294,6 +1311,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           id?: string
@@ -1305,6 +1323,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -1542,6 +1561,23 @@ export type Database = {
           p_admin_pin: string
         }
         Returns: undefined
+      }
+      move_product_stock: {
+        Args: {
+          p_product: string
+          p_delta: number
+          p_operator: string
+          p_note?: string | null
+        }
+        Returns: Database['public']['Tables']['products']['Row']
+      }
+      list_product_log: {
+        Args: {
+          p_operator: string
+          p_before?: string | null
+          p_limit?: number
+        }
+        Returns: Database['public']['Tables']['product_log']['Row'][]
       }
       move_filament: {
         Args: {

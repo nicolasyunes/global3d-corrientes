@@ -40,6 +40,9 @@ vi.mock('@/features/calculator/CalculatorPage', () => ({
   default: () => <div>CALC</div>,
 }))
 vi.mock('@/features/products/ProductForm', () => ({ default: () => <div /> }))
+vi.mock('@/features/products/MovementsPage', () => ({
+  default: () => <div>MOVIMIENTOS</div>,
+}))
 vi.mock('@/features/products/ProductsList', () => ({ default: () => <div /> }))
 vi.mock('@/features/operators/OperatorProvider', () => ({
   OperatorProvider: ({ children }: { children: React.ReactNode }) => (
@@ -135,6 +138,12 @@ describe('admin routing table', () => {
   it('keeps admin-only pages away from regular operators', () => {
     renderAt('/admin/personas')
     expect(screen.queryByText('PEOPLE')).not.toBeInTheDocument()
+    expect(screen.getByText('TODAY')).toBeInTheDocument()
+  })
+
+  it('keeps the product movements away from regular operators', () => {
+    renderAt('/admin/productos/movimientos')
+    expect(screen.queryByText('MOVIMIENTOS')).not.toBeInTheDocument()
     expect(screen.getByText('TODAY')).toBeInTheDocument()
   })
 })

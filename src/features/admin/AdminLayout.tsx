@@ -73,7 +73,6 @@ const SECONDARY: NavItem[] = [
     to: '/admin/productos',
     label: 'Productos y stock',
     icon: 'layers',
-    adminOnly: true,
   },
   {
     to: '/admin/estadisticas',

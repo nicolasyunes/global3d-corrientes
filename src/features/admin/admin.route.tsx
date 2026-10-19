@@ -14,6 +14,7 @@ import OrderProduction from '@/features/orders/OrderProduction'
 import DeliveredOrdersList from '@/features/orders/DeliveredOrdersList'
 import ProductForm from '@/features/products/ProductForm'
 import ProductsList from '@/features/products/ProductsList'
+import MovementsPage from '@/features/products/MovementsPage'
 import TodayPage from '@/features/production/TodayPage'
 import WeekPage from '@/features/production/WeekPage'
 import WorkshopPage from '@/features/production/WorkshopPage'
@@ -79,30 +80,17 @@ export function Component() {
           <Route path="orders/:id" element={<OrderProduction />} />
           <Route path="ventas-pedidos" element={<DeliveredOrdersList />} />
           <Route path="calculadora" element={<CalculatorPage />} />
+          <Route path="productos" element={<ProductsList />} />
+          <Route path="productos/nuevo" element={<ProductForm />} />
           <Route
-            path="productos"
+            path="productos/movimientos"
             element={
               <OperatorAdminOnly>
-                <ProductsList />
+                <MovementsPage />
               </OperatorAdminOnly>
             }
           />
-          <Route
-            path="productos/nuevo"
-            element={
-              <OperatorAdminOnly>
-                <ProductForm />
-              </OperatorAdminOnly>
-            }
-          />
-          <Route
-            path="productos/:id"
-            element={
-              <OperatorAdminOnly>
-                <ProductForm />
-              </OperatorAdminOnly>
-            }
-          />
+          <Route path="productos/:id" element={<ProductForm />} />
           <Route
             path="estadisticas"
             element={
