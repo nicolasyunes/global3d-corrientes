@@ -3,6 +3,7 @@ import { Navigate, useLocation, type Location } from 'react-router-dom'
 import Icon from '@/components/Icon'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from './useAuth'
+import { RESET_PATH } from './ResetPasswordPage'
 import '@/features/operators/operators.css'
 
 // Workshop account sign-in (email + password). Opened once per device; after
@@ -17,9 +18,94 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [forgot, setForgot] = useState(false)
+  const [sent, setSent] = useState(false)
 
   if (loading) return null
   if (session) return <Navigate to={fromPath} replace />
+
+  async function handleForgot(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!email.trim()) {
+      setError('Escribí el email de la cuenta del taller.')
+      return
+    }
+    setBusy(true)
+    setError(null)
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email.trim(),
+      { redirectTo: `${window.location.origin}${RESET_PATH}` },
+    )
+    setBusy(false)
+    if (resetError) setError(resetError.message)
+    else setSent(true)
+  }
+
+  if (forgot) {
+    return (
+      <main className="gate">
+        <div className="gate__orb gate__orb--a" aria-hidden="true" />
+        <div className="gate__orb gate__orb--b" aria-hidden="true" />
+        <form
+          className="gate__box gate__card"
+          onSubmit={handleForgot}
+          noValidate
+        >
+          <h1 className="gate__title gate__title--sm">Recuperar contraseña</h1>
+          {sent ? (
+            <p className="gate__sub" role="status">
+              Listo. Te mandamos un mail a <strong>{email.trim()}</strong> con
+              un link para elegir una contraseña nueva. Abrilo desde este
+              dispositivo.
+            </p>
+          ) : (
+            <>
+              <p className="gate__sub">
+                Te mandamos un link al email de la cuenta del taller para elegir
+                una contraseña nueva.
+              </p>
+              <label className="field-label" htmlFor="forgot-email">
+                Email
+              </label>
+              <input
+                id="forgot-email"
+                className="input"
+                type="email"
+                inputMode="email"
+                autoComplete="username"
+                autoCapitalize="none"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              {error && (
+                <p className="banner banner--error" role="alert">
+                  {error}
+                </p>
+              )}
+              <button
+                type="submit"
+                className="btn btn--primary btn--block"
+                disabled={busy}
+              >
+                {busy ? 'Enviando…' : 'Enviar link'}
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            className="btn btn--ghost btn--block"
+            onClick={() => {
+              setForgot(false)
+              setSent(false)
+              setError(null)
+            }}
+          >
+            Volver al ingreso
+          </button>
+        </form>
+      </main>
+    )
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -99,6 +185,16 @@ export default function LoginPage() {
           disabled={busy}
         >
           {busy ? 'Ingresando…' : 'Ingresar'}
+        </button>
+        <button
+          type="button"
+          className="btn btn--ghost btn--block"
+          onClick={() => {
+            setForgot(true)
+            setError(null)
+          }}
+        >
+          ¿Olvidaste la contraseña?
         </button>
       </form>
     </main>

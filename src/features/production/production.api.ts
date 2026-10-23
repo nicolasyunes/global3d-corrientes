@@ -130,12 +130,18 @@ export interface QueuePiece extends PieceRow {
   customer_name: string
   item_label: string | null
   item_position: number | null
+  flexible: boolean
+  urgent: boolean
+  order_created_at: string
 }
 
 type QueueRaw = PieceRow & {
   orders: {
     due_date: string
     status: string
+    flexible: boolean
+    urgent: boolean
+    created_at: string
     customer_id: string
     customers: { name: string } | null
   } | null
@@ -150,10 +156,12 @@ export async function listOpenPieces(): Promise<QueuePiece[]> {
   const { data, error } = await supabase
     .from('order_production_tasks')
     .select(
-      '*, orders!inner(due_date, status, customer_id, customers(name)), order_items(description, position)',
+      '*, orders!inner(due_date, status, flexible, urgent, created_at, customer_id, customers(name)), order_items(description, position)',
     )
     .neq('status', 'done')
     .not('orders.status', 'in', CLOSED_ORDER_STATUSES)
+    // "En espera" orders aren't confirmed: nothing of theirs gets printed.
+    .is('orders.waiting_reason', null)
   if (error) throw error
   return ((data ?? []) as unknown as QueueRaw[])
     .filter((row) => row.orders)
@@ -162,6 +170,9 @@ export async function listOpenPieces(): Promise<QueuePiece[]> {
       due_date: orders!.due_date,
       order_status: orders!.status,
       customer_id: orders!.customer_id,
+      flexible: orders!.flexible ?? false,
+      urgent: orders!.urgent ?? false,
+      order_created_at: orders!.created_at,
       customer_name: orders!.customers?.name ?? 'Sin nombre',
       item_label: order_items?.description ?? null,
       item_position: order_items?.position ?? null,
@@ -202,4 +213,37 @@ export async function listOrderProgress(): Promise<
     }
   }
   return out
+}
+
+export interface PieceEdit {
+  label: string
+  color: string | null
+  quantityTotal: number
+  // Left out = keep it; null = no filament chosen.
+  filamentColorId?: string | null
+}
+
+// Rename / recolor / re-count a piece. The database keeps the done count and
+// the status coherent when the total changes.
+export async function updatePiece(
+  id: string,
+  edit: PieceEdit,
+  operatorId: string | null,
+): Promise<PieceRow> {
+  const { data, error } = await supabase
+    .from('order_production_tasks')
+    .update({
+      label: edit.label,
+      color: edit.color,
+      quantity_total: edit.quantityTotal,
+      ...(edit.filamentColorId !== undefined && {
+        filament_color_id: edit.filamentColorId,
+      }),
+      updated_by: operatorId,
+    })
+    .eq('id', id)
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
 }

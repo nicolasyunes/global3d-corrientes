@@ -18,16 +18,15 @@ export function stockLevel(
 export interface ProductFilter {
   query: string
   activeOnly: boolean
-  categoryId?: string // '' o ausente = todas
 }
 
 export function emptyProductFilter(): ProductFilter {
-  return { query: '', activeOnly: false, categoryId: '' }
+  return { query: '', activeOnly: false }
 }
 
-// Client-side filter over the already-loaded catalog — the list is small
-// enough (a workshop's own products) that a server-side search isn't worth
-// the round trip. Matches name/description case-insensitively.
+// Client-side filter over the already-loaded list — a workshop's own products
+// are few enough that a server-side search isn't worth the round trip.
+// Matches name/description case-insensitively.
 export function filterProducts(
   products: readonly ProductRow[],
   filter: ProductFilter,
@@ -36,11 +35,6 @@ export function filterProducts(
 
   return products.filter((product) => {
     if (filter.activeOnly && !product.active) return false
-    if (
-      (filter.categoryId ?? '') !== '' &&
-      product.category_id !== filter.categoryId
-    )
-      return false
     if (query === '') return true
     return (
       product.name.toLowerCase().includes(query) ||

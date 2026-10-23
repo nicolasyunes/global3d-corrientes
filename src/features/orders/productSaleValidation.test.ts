@@ -22,14 +22,6 @@ function product(overrides: Partial<ProductRow> = {}): ProductRow {
     active: true,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
-    slug: null,
-    sku: null,
-    compare_at_price: null,
-    custom_on_request: false,
-    personalizable: false,
-    weight_grams: null,
-    category_id: null,
-    subcategory: null,
     ...overrides,
   }
 }

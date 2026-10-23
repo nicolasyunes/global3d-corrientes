@@ -6,7 +6,8 @@ import {
 } from '@/lib/domain-constants'
 import type { OrderWithCustomer } from '@/features/orders/orders.api'
 import StatusBadge from '@/features/orders/StatusBadge'
-import { formatMoney } from '@/features/orders/format'
+import { formatDueDate, formatMoney } from '@/features/orders/format'
+import { isWaiting, needsReview } from '@/features/orders/orderFlow'
 import { dueInfo } from './due'
 import type { OrderProgress } from './production.api'
 
@@ -46,7 +47,17 @@ export default function OrderRow({
   progress,
   itemCount,
 }: OrderRowProps) {
-  const due = dueInfo(order.due_date, today)
+  const due = isWaiting(order)
+    ? {
+        label: `En espera · revisar ${formatDueDate(order.follow_up_on ?? today)}`,
+        tone: needsReview(order, today) ? ('soon' as const) : ('ok' as const),
+      }
+    : order.flexible
+      ? {
+          label: `Sin apuro · ${formatDueDate(order.due_date)}`,
+          tone: 'ok' as const,
+        }
+      : dueInfo(order.due_date, today)
   const status = order.status as OrderStatus
   const pct =
     progress && progress.total > 0
@@ -56,14 +67,22 @@ export default function OrderRow({
 
   return (
     <li>
-      <Link to={`/admin/orders/${order.id}`} className="orow">
+      <Link
+        to={`/admin/orders/${order.id}`}
+        className={`orow${order.urgent && !finished ? ' orow--urgent' : ''}`}
+      >
         <span className="orow__thumb" aria-hidden="true">
           {order.title?.trim()
             ? markFrom(order.title)
             : (TYPE_MARK[order.product_type] ?? '3D')}
         </span>
         <div style={{ minWidth: 0 }}>
-          <p className="orow__title">{orderTitle(order, itemCount)}</p>
+          <p className="orow__title">
+            {order.urgent && !finished && (
+              <span className="urgent-tag">Urgente</span>
+            )}
+            {orderTitle(order, itemCount)}
+          </p>
           <p className="orow__sub">
             {order.customers?.name ?? 'Sin cliente'}
             <StatusBadge status={status} />

@@ -9,7 +9,9 @@ const {
   listProductImagesMock,
   listProductPartsMock,
   saveProductPartsMock,
+  uploadProductImageMock,
 } = vi.hoisted(() => ({
+  uploadProductImageMock: vi.fn(),
   getProductMock: vi.fn(),
   createProductMock: vi.fn(),
   updateProductMock: vi.fn(),
@@ -25,7 +27,7 @@ vi.mock('./products.api', () => ({
   listProductImages: listProductImagesMock,
   listProductParts: listProductPartsMock,
   saveProductParts: saveProductPartsMock,
-  uploadProductImage: vi.fn(),
+  uploadProductImage: uploadProductImageMock,
   deleteProductImage: vi.fn(),
   reorderProductImages: vi.fn(),
 }))
@@ -63,7 +65,7 @@ describe('ProductForm', () => {
 
   it('crea el producto con sus piezas y colores', async () => {
     renderAt('/admin/productos/nuevo')
-    fireEvent.change(await screen.findByLabelText('Nombre'), {
+    fireEvent.change(await screen.findByLabelText('Nombre del producto'), {
       target: { value: 'Vaso milkshake Spiderman' },
     })
     fireEvent.change(screen.getByLabelText('Precio de lista ($)'), {
@@ -124,5 +126,22 @@ describe('ProductForm', () => {
     expect(
       screen.getByLabelText('Cantidad por unidad de la pieza 1'),
     ).toHaveValue(2)
+  })
+
+  it('sube las fotos elegidas después de crear el producto', async () => {
+    renderAt('/admin/productos/nuevo')
+    fireEvent.change(await screen.findByLabelText('Nombre del producto'), {
+      target: { value: 'Vasos buddy' },
+    })
+    const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
+    fireEvent.change(screen.getByLabelText(/agregar fotos/i), {
+      target: { files: [file] },
+    })
+    expect(await screen.findByText('Portada')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /guardar producto/i }))
+    await waitFor(() =>
+      expect(uploadProductImageMock).toHaveBeenCalledWith('new-1', file, 0),
+    )
+    expect(await screen.findByText('lista')).toBeInTheDocument()
   })
 })

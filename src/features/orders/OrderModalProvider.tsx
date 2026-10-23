@@ -33,17 +33,14 @@ export function OrderModalProvider({ children }: { children: ReactNode }) {
     [openNew, openEdit],
   )
 
-  function handleSaved(order: OrderRow) {
+  function handleSaved(order: OrderRow, warning?: string) {
     if (!state.open) return
     const editing = state.orderId !== null
     state.onSaved?.(order)
     setState({ open: false })
-    if (editing) {
-      showToast('Pedido actualizado')
-    } else {
-      showToast('Pedido cargado. Sumale las piezas que lleva.')
-      navigate(`/admin/orders/${order.id}`)
-    }
+    if (warning) showToast(warning)
+    else showToast(editing ? 'Pedido actualizado' : 'Pedido cargado')
+    if (!editing) navigate(`/admin/orders/${order.id}`)
   }
 
   return (
