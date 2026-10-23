@@ -180,6 +180,77 @@
   margin-top: 14px;
 }
 
+/* Láminas multicolor */
+.laminas {
+  display: grid;
+  gap: 16px;
+}
+.laminas__products {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  margin-top: 12px;
+}
+.laminas__product {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--color-carbon-line);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-carbon);
+  text-align: left;
+  cursor: pointer;
+}
+.laminas__product span {
+  font-size: 0.8125rem;
+  color: var(--color-carbon-muted);
+}
+.laminas__product[aria-pressed='true'] {
+  border-color: var(--color-orange);
+  background: var(--color-accent-50);
+}
+.laminas__crop {
+  position: relative;
+  height: 340px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-bg-deep);
+}
+.laminas__canvas {
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+.laminas__zones {
+  display: grid;
+  gap: 8px;
+}
+.laminas__zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.laminas__prompt {
+  margin-top: 16px;
+}
+.laminas__prompt summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.laminas__promptText {
+  white-space: pre-wrap;
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
 /* Generadores 3D: accesos a /herramientas */
 .tools__gens {
   display: grid;

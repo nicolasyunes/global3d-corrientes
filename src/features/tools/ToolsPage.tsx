@@ -1,10 +1,12 @@
 import { useSearchParams } from 'react-router-dom'
+import LaminasTool from './LaminasTool'
 import QrTool from './QrTool'
 import VectorizeTool from './VectorizeTool'
 import './tools.css'
 
 const TABS = [
   { id: 'svg', label: 'Imagen a SVG' },
+  { id: 'laminas', label: 'Láminas multicolor' },
   { id: 'qr', label: 'Generador de QR' },
   { id: '3d', label: 'Generadores 3D' },
 ] as const
@@ -35,7 +37,7 @@ type TabId = (typeof TABS)[number]['id']
 export default function ToolsPage() {
   const [params, setParams] = useSearchParams()
   const h = params.get('h')
-  const tab: TabId = h === 'qr' || h === '3d' ? h : 'svg'
+  const tab: TabId = TABS.some((t) => t.id === h) ? (h as TabId) : 'svg'
 
   return (
     <>
@@ -63,6 +65,8 @@ export default function ToolsPage() {
       </div>
       {tab === 'qr' ? (
         <QrTool />
+      ) : tab === 'laminas' ? (
+        <LaminasTool />
       ) : tab === '3d' ? (
         <div className="tools__gens">
           {GENERADORES.map((g) => (
