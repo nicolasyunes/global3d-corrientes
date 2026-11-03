@@ -20,5 +20,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "apps/herramientas/src"]
+  "include": ["src", "apps/herramientas/src", "apps/tienda/src"]
 }

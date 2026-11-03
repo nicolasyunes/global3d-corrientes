@@ -1,7 +1,24 @@
 {
   "rewrites": [
-    { "source": "/herramientas", "destination": "/herramientas/index.html" },
-    { "source": "/herramientas/", "destination": "/herramientas/index.html" },
-    { "source": "/((?!herramientas/).*)", "destination": "/index.html" }
+    {
+      "source": "/herramientas",
+      "destination": "/herramientas/index.html"
+    },
+    {
+      "source": "/herramientas/",
+      "destination": "/herramientas/index.html"
+    },
+    {
+      "source": "/tienda",
+      "destination": "/tienda/index.html"
+    },
+    {
+      "source": "/tienda/(.*)",
+      "destination": "/tienda/index.html"
+    },
+    {
+      "source": "/((?!herramientas/|tienda/).*)",
+      "destination": "/index.html"
+    }
   ]
 }

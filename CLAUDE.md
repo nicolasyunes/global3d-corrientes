@@ -4,7 +4,7 @@ Taller de impresión 3D Global3D (Corrientes). Admin en React + Vite + Supabase,
 
 - Producción: https://global3d-corrientes.vercel.app — Vercel despliega solo al mergear a `master`.
 - Supabase: proyecto `bukjmleercxlxbexekos` (Global-3D-Corrientes), vía conector MCP.
-- App solo interna (login del taller + PIN por persona). La tienda pública y el sync con Google Sheets se eliminaron en la Fase 1 (2026-09-29/30); no proponer trabajo sobre eso salvo que se reabra.
+- Admin solo interno (login del taller + PIN por persona). El sync con Google Sheets se eliminó en la Fase 1 (2026-09-29/30). La tienda pública se reabrió en noviembre 2026 como app nueva en `apps/tienda` (ver abajo).
 - Idioma: respondé en español rioplatense.
 
 ## Reglas de trabajo
@@ -42,6 +42,14 @@ Páginas: `index`, `llavero`, `vaso`, `letra-caja` (la principal). Usan manifold
 - Tabla `designs` (RLS para autenticados) y bucket `design-files` (lectura pública, máx. 50 MB). Migración: `supabase/migrations/20261006165031_designs.sql`.
 - Panel en letra-caja: `apps/herramientas/src/disenos.ts` — vincula diseño a pedido; guardar, guardar como nuevo, abrir, borrar. Acepta `?diseno=` y `?pedido=`. Comparte sesión con el admin y lee el operador de `localStorage` (`g3d.operator`).
 - Admin: `src/features/designs/` (`designs.api.ts`, `OrderDesigns.tsx`) = tarjeta "Diseños 3D" del pedido. Admin → Herramientas → pestaña "Generadores 3D".
+
+## Tienda pública (`apps/tienda/`, servida en `/tienda`)
+
+- Vite + React aparte (`npm run dev:tienda`, puerto 5300; build a `dist/tienda`). Router con basename `/tienda`. Rewrites en `vercel.json`.
+- Catálogo → carrito (localStorage `g3d.tienda.cart.v1`) → checkout → `/pedido/:token` con datos de transferencia y botón que abre WhatsApp con el pedido escrito. Modo claro/oscuro.
+- Supabase: migraciones `20261103192959_shop_storefront.sql` y `20261103193215_shop_families_seed.sql`. Tablas `shop_families`, `shop_family_products`, `shop_settings`, `shop_orders` (RLS solo autenticados). El rol anon solo usa RPC SECURITY DEFINER: `shop_catalog`, `shop_filaments`, `shop_settings`, `shop_create_order` (precios desde la base, límite de pedidos por WhatsApp) y `shop_order_status`.
+- Los pedidos web entran a `orders` con estado `new` y `origin_channel = 'web'`, así aparecen en el admin.
+- Datos del local, WhatsApp, alias/CBU y % de seña se editan en `shop_settings`; familias/variantes en `shop_families` y `shop_family_products`.
 
 ## Imagen a SVG (`src/features/tools/vectorize.ts`)
 
