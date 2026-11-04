@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Img } from '../components/bits'
 import { IconPin, IconTruck, IconWhatsApp } from '../components/Icons'
+import { InstagramFeed } from '../components/InstagramFeed'
 import { ProductCard } from '../components/ProductCard'
 import {
   CATEGORIES,
@@ -288,6 +289,8 @@ export function Home() {
           </div>
         </div>
       </section>
+
+      <InstagramFeed handle={settings.instagram} />
 
       <section className="section" aria-labelledby="faq-title">
         <div className="container faq">

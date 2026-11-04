@@ -5,6 +5,7 @@ import type {
   CreateOrderResult,
   Family,
   FilamentLine,
+  InstagramPost,
   OrderStatusResult,
   ShopSettings,
 } from './types'
@@ -56,4 +57,12 @@ export const api = {
     rpc<CreateOrderResult>('shop_create_order', { p: input }),
   orderStatus: (token: string) =>
     rpc<OrderStatusResult | null>('shop_order_status', { p_token: token }),
+  // Edge function con caché; si algo falla devuelve [] y la sección no se ve.
+  instagram: async (): Promise<InstagramPost[]> => {
+    const { data, error } = await supabase.functions.invoke<{
+      posts: InstagramPost[]
+    }>('instagram-feed', { method: 'GET' })
+    if (error || !data) return []
+    return data.posts ?? []
+  },
 }

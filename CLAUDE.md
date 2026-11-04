@@ -50,6 +50,8 @@ Páginas: `index`, `llavero`, `vaso`, `letra-caja` (la principal). Usan manifold
 - Supabase: migraciones `20261103192959_shop_storefront.sql` y `20261103193215_shop_families_seed.sql`. Tablas `shop_families`, `shop_family_products`, `shop_settings`, `shop_orders` (RLS solo autenticados). El rol anon solo usa RPC SECURITY DEFINER: `shop_catalog`, `shop_filaments`, `shop_settings`, `shop_create_order` (precios desde la base, límite de pedidos por WhatsApp) y `shop_order_status`.
 - Los pedidos web entran a `orders` con estado `new` y `origin_channel = 'web'`, así aparecen en el admin.
 - Datos del local, WhatsApp, alias/CBU y % de seña se editan en `shop_settings`; familias/variantes en `shop_families` y `shop_family_products`.
+- Instagram: edge function `instagram-feed` (Instagram API with Instagram Login) con caché de 30 min en `shop_instagram` (sin acceso para anon ni authenticated). El token inicial va en el secret `INSTAGRAM_TOKEN`; la función lo renueva sola y guarda el nuevo en la tabla. Sin token o con error, la sección no se muestra.
+- Fotos en producción: `/_vercel/image` (`images` en `vercel.json`), con fallback a la original.
 
 ## Imagen a SVG (`src/features/tools/vectorize.ts`)
 

@@ -71,6 +71,15 @@ export interface ShopSettings {
   envios: { corrientes: string; pais: string }
 }
 
+export interface InstagramPost {
+  id: string
+  url: string
+  image: string
+  isVideo: boolean
+  caption: string
+  date: string
+}
+
 export type DeliveryMode = 'retiro' | 'corrientes' | 'pais'
 export type PaymentMode = 'sena' | 'total'
 export type PaymentMethod = 'transfer' | 'cash'

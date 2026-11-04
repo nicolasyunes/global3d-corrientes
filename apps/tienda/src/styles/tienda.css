@@ -859,6 +859,56 @@ p {
   }
 }
 
+/* Instagram */
+.ig-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.ig-grid a {
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.ig-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.ig-grid a:hover img {
+  transform: scale(1.04);
+}
+.ig-play {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  color: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+@media (prefers-reduced-motion: reduce) {
+  .ig-grid img {
+    transition: none;
+  }
+}
+@media (min-width: 900px) {
+  .ig-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .ig-grid a {
+    border-radius: 18px;
+  }
+}
+
 /* Preguntas frecuentes */
 .faq-list {
   max-width: 860px;
