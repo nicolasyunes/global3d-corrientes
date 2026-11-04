@@ -999,11 +999,47 @@ p {
 }
 
 /* Preguntas frecuentes */
-.faq-list {
-  max-width: 860px;
+/* Preguntas a la izquierda y mapa a la derecha, del mismo alto; en mobile,
+   uno arriba del otro. */
+.faq {
+  display: grid;
+  gap: 32px;
 }
 .faq h2 {
   margin: 0 0 12px;
+}
+.faq-map {
+  display: flex;
+  flex-direction: column;
+}
+.faq-map iframe {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 300px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.faq-map p {
+  margin: 12px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.faq-map p span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.faq-map p a {
+  font-weight: 800;
+  margin-left: auto;
+}
+@media (min-width: 900px) {
+  .faq {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 48px;
+  }
 }
 .faq-list details {
   border-bottom: 1px solid var(--line-strong);
