@@ -16,6 +16,7 @@
   "include": [
     "vite.config.ts",
     "vitest.config.ts",
-    "apps/tienda/vite.config.ts"
+    "apps/tienda/vite.config.ts",
+    "api"
   ]
 }
