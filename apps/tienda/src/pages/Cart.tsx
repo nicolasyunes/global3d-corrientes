@@ -69,7 +69,7 @@ export function Cart() {
                 className="media"
                 aria-label={i.name}
               >
-                <Img src={i.image} alt="" label="3D" />
+                <Img src={i.image} alt="" label="3D" size="thumb" />
               </Link>
               <div>
                 <div className="li-top">

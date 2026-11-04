@@ -9,6 +9,7 @@ import {
 import { Link } from 'react-router-dom'
 import type { Availability } from '../lib/catalog'
 import { businessDays } from '../lib/format'
+import { optimizedSrc, type ImgSize } from '../lib/img'
 
 export function AvailabilityBadge({
   a,
@@ -36,13 +37,21 @@ export function Img({
   src,
   alt,
   label,
+  size = 'card',
+  eager = false,
 }: {
   src: string | null
   alt: string
   label?: string
+  size?: ImgSize
+  eager?: boolean
 }) {
-  const [failed, setFailed] = useState(false)
-  if (!src || failed)
+  // Primero la versión achicada; si falla, la original; si falla, placeholder.
+  const [failed, setFailed] = useState<string[]>([])
+  const current = src
+    ? [optimizedSrc(src, size), src].find((s) => !failed.includes(s))
+    : undefined
+  if (!current)
     return (
       <div
         className="ph"
@@ -55,11 +64,11 @@ export function Img({
     )
   return (
     <img
-      src={src}
+      src={current}
       alt={alt}
-      loading="lazy"
+      loading={eager ? 'eager' : 'lazy'}
       decoding="async"
-      onError={() => setFailed(true)}
+      onError={() => setFailed((f) => [...f, current])}
     />
   )
 }

@@ -1,4 +1,16 @@
 {
+  "images": {
+    "sizes": [256, 640, 1080],
+    "formats": ["image/webp"],
+    "minimumCacheTTL": 2678400,
+    "remotePatterns": [
+      {
+        "protocol": "https",
+        "hostname": "bukjmleercxlxbexekos.supabase.co",
+        "pathname": "/storage/v1/object/public/**"
+      }
+    ]
+  },
   "rewrites": [
     {
       "source": "/herramientas",

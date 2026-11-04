@@ -137,6 +137,8 @@ function ProductView({ f, related }: { f: Family; related: Family[] }) {
               src={images[imgIdx] ?? null}
               alt={f.name + (variantLabel ? ` · ${variantLabel}` : '')}
               label={f.name}
+              size="full"
+              eager
             />
           </div>
           {images.length > 1 && (
@@ -150,7 +152,7 @@ function ProductView({ f, related }: { f: Family; related: Family[] }) {
                   aria-label={`Foto ${i + 1}`}
                   onClick={() => setImgIdx(i)}
                 >
-                  <img src={src} alt="" loading="lazy" />
+                  <Img src={src} alt="" size="thumb" />
                 </button>
               ))}
             </div>

@@ -49,10 +49,11 @@ export function Home() {
               <div className="hero-mosaic">
                 {heroImgs.map((src, i) => (
                   <div className="m" key={src}>
-                    <img
+                    <Img
                       src={src}
                       alt=""
-                      loading={i === 0 ? 'eager' : 'lazy'}
+                      size={i === 0 ? 'full' : 'card'}
+                      eager={i === 0}
                     />
                   </div>
                 ))}
@@ -62,6 +63,8 @@ export function Home() {
                 src={heroImgs[0] ?? null}
                 alt="Productos impresos en 3D"
                 label="Global3D"
+                size="full"
+                eager
               />
             )}
           </div>
