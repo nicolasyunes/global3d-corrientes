@@ -70,7 +70,7 @@ export function maxPrice(f: Family): number | null {
 export function familyImage(f: Family): string | null {
   const withStock = f.variants.find((v) => v.stock > 0 && v.images.length > 0)
   const any = f.variants.find((v) => v.images.length > 0)
-  return (withStock ?? any)?.images[0] ?? null
+  return (withStock ?? any)?.images[0] ?? f.images?.[0] ?? null
 }
 
 /**
@@ -79,12 +79,13 @@ export function familyImage(f: Family): string | null {
  * producto. Primero las variantes con stock. Sin repetidos.
  */
 export function heroPhotos(families: Family[], max: number): string[] {
-  const queues = families.map((f) =>
-    [...f.variants]
+  const queues = families.map((f) => {
+    const fromVariants = [...f.variants]
       .sort((a, b) => Number(b.stock > 0) - Number(a.stock > 0))
       .map((v) => v.images[0])
-      .filter((x): x is string => !!x),
-  )
+      .filter((x): x is string => !!x)
+    return fromVariants.length ? fromVariants : (f.images ?? [])
+  })
   const out: string[] = []
   for (let round = 0; out.length < max; round++) {
     let added = false

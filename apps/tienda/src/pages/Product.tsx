@@ -76,8 +76,9 @@ function ProductView({ f, related }: { f: Family; related: Family[] }) {
       : f.priceFrom
   const images = useMemo(() => {
     if (variant?.images.length) return variant.images
-    return f.variants.flatMap((v) => v.images).slice(0, 6)
-  }, [variant, f.variants])
+    const all = f.variants.flatMap((v) => v.images).slice(0, 6)
+    return all.length ? all : (f.images ?? []).slice(0, 6)
+  }, [variant, f.variants, f.images])
 
   useEffect(() => setImgIdx(0), [variant?.id])
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { heroPhotos } from './catalog'
+import { familyImage, heroPhotos } from './catalog'
 import type { Family } from './types'
 
 const fam = (slug: string, variants: Array<[string | null, number]>) =>
@@ -31,6 +31,12 @@ describe('heroPhotos', () => {
       'vaso-boca',
       'vaso-sin-stock',
     ])
+  })
+
+  it('usa las fotos propias de la familia si sus productos no tienen', () => {
+    const f = { ...fam('premios', []), images: ['p1', 'p2'] } as Family
+    expect(heroPhotos([f, fam('b', [['z', 1]])], 8)).toEqual(['p1', 'z', 'p2'])
+    expect(familyImage(f)).toBe('p1')
   })
 
   it('respeta el máximo y no repite', () => {
