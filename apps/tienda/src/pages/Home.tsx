@@ -261,62 +261,84 @@ export function Home() {
 
       <section className="section" aria-labelledby="faq-title">
         <div className="container faq">
-          <h2 id="faq-title">Preguntas frecuentes</h2>
-          <div className="faq-list">
-            <details>
-              <summary>¿Cuánto tarda un pedido?</summary>
-              <p>
-                Lo que está en stock lo retirás en el día. Lo personalizado
-                depende del producto: cada ficha dice cuántos días hábiles
-                tarda.
-              </p>
-            </details>
-            <details>
-              <summary>¿Cuánto tengo que pagar para empezar?</summary>
-              <p>
-                Una seña del {settings.sena.porcentaje}%. El saldo lo pagás al
-                retirar o antes del envío. Si querés, podés pagar el total de
-                una.
-              </p>
-            </details>
-            <details>
-              <summary>¿Cómo pago?</summary>
-              <p>
-                Por transferencia al alias{' '}
-                <strong>{settings.transferencia.alias}</strong>, o en efectivo
-                si lo retirás en el local.
-              </p>
-            </details>
-            <details>
-              <summary>¿Hacen envíos?</summary>
-              <p>
-                Sí. En Corrientes: {lowerFirst(settings.envios.corrientes)}. Al
-                resto del país: {lowerFirst(settings.envios.pais)}.
-              </p>
-            </details>
-            <details>
-              <summary>¿Cómo les mando mi logo o mi diseño?</summary>
-              <p>
-                Por WhatsApp, cuando hacés el pedido. Mandá la imagen en la
-                mejor calidad que tengas; si tenés el archivo en PDF o vector,
-                mejor.
-              </p>
-            </details>
-            <details>
-              <summary>¿Hay cantidad mínima?</summary>
-              <p>
-                En la mayoría no. Algunos productos con logo, como los llaveros,
-                tienen un mínimo, que figura en la ficha.
-              </p>
-            </details>
-            <details>
-              <summary>¿Dónde están?</summary>
-              <p>
-                En {settings.local.direccion}. Abrimos{' '}
-                {lowerFirst(settings.local.horarios)}.
-              </p>
-            </details>
+          <div>
+            <h2 id="faq-title">Preguntas frecuentes</h2>
+            <div className="faq-list">
+              <details>
+                <summary>¿Cuánto tarda un pedido?</summary>
+                <p>
+                  Lo que está en stock lo retirás en el día. Lo personalizado
+                  depende del producto: cada ficha dice cuántos días hábiles
+                  tarda.
+                </p>
+              </details>
+              <details>
+                <summary>¿Cuánto tengo que pagar para empezar?</summary>
+                <p>
+                  Una seña del {settings.sena.porcentaje}%. El saldo lo pagás al
+                  retirar o antes del envío. Si querés, podés pagar el total de
+                  una.
+                </p>
+              </details>
+              <details>
+                <summary>¿Cómo pago?</summary>
+                <p>
+                  Por transferencia al alias{' '}
+                  <strong>{settings.transferencia.alias}</strong>, o en efectivo
+                  si lo retirás en el local.
+                </p>
+              </details>
+              <details>
+                <summary>¿Hacen envíos?</summary>
+                <p>
+                  Sí. En Corrientes: {lowerFirst(settings.envios.corrientes)}.
+                  Al resto del país: {lowerFirst(settings.envios.pais)}.
+                </p>
+              </details>
+              <details>
+                <summary>¿Cómo les mando mi logo o mi diseño?</summary>
+                <p>
+                  Por WhatsApp, cuando hacés el pedido. Mandá la imagen en la
+                  mejor calidad que tengas; si tenés el archivo en PDF o vector,
+                  mejor.
+                </p>
+              </details>
+              <details>
+                <summary>¿Hay cantidad mínima?</summary>
+                <p>
+                  En la mayoría no. Algunos productos con logo, como los
+                  llaveros, tienen un mínimo, que figura en la ficha.
+                </p>
+              </details>
+              <details>
+                <summary>¿Dónde están?</summary>
+                <p>
+                  En {settings.local.direccion}. Abrimos{' '}
+                  {lowerFirst(settings.local.horarios)}.
+                </p>
+              </details>
+            </div>
           </div>
+          <aside className="faq-map" aria-labelledby="map-title">
+            <h2 id="map-title">Dónde estamos</h2>
+            <iframe
+              title={`Mapa: ${settings.local.direccion}`}
+              src={`https://www.google.com/maps?q=${encodeURIComponent(settings.local.mapsQuery)}&z=16&output=embed`}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+            <p>
+              <strong>{settings.local.direccion}</strong>
+              <span>{settings.local.horarios}</span>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.local.mapsQuery)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Cómo llegar
+              </a>
+            </p>
+          </aside>
         </div>
       </section>
     </>
