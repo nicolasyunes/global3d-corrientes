@@ -24,6 +24,7 @@ function CategoryTile({
     <Link
       to={`/c/${t.slug}`}
       className={big ? 'bento-tile bento-big' : 'bento-tile'}
+      aria-label={t.label}
     >
       <Img
         src={t.image}
@@ -32,7 +33,6 @@ function CategoryTile({
         size={big ? 'full' : 'card'}
         eager={big}
       />
-      <span className="bento-label">{t.label}</span>
     </Link>
   )
 }
@@ -44,12 +44,11 @@ export function Home() {
   const inStockNow = families.filter(
     (f) => f.saleMode === 'stock' && inStock(f),
   )
-  const readyCount = inStockNow.length
   const ready = inStockNow.filter((f) => !f.featured).slice(0, 8)
   const usedCats = CATEGORIES.filter((c) =>
     families.some((f) => f.category === c.slug),
   )
-  // Vidriera: la primera categoría va grande, las tres siguientes chicas.
+  // Vidriera: la primera categoría va grande, las cuatro siguientes chicas.
   // Cada una muestra la foto de un producto suyo, destacado si hay.
   const tiles = [
     ...HERO_ORDER.map((slug) => CATEGORIES.find((c) => c.slug === slug)),
@@ -68,7 +67,7 @@ export function Home() {
       }
     })
     .filter((t) => t.any)
-    .slice(0, 4)
+    .slice(0, 5)
 
   return (
     <>
@@ -80,21 +79,8 @@ export function Home() {
           </div>
           {status === 'ready' ? (
             <div className="bento">
-              {tiles.slice(0, 1).map((t) => (
-                <CategoryTile key={t.slug} t={t} big />
-              ))}
-              <Link
-                to={readyCount > 0 ? '/catalogo?stock=1' : '/catalogo'}
-                className="bento-tile bento-ready"
-              >
-                <span>Listo para retirar</span>
-                <span>
-                  <b>{readyCount}</b>
-                  {readyCount === 1 ? 'producto hoy →' : 'productos hoy →'}
-                </span>
-              </Link>
-              {tiles.slice(1).map((t) => (
-                <CategoryTile key={t.slug} t={t} />
+              {tiles.map((t, i) => (
+                <CategoryTile key={t.slug} t={t} big={i === 0} />
               ))}
             </div>
           ) : status === 'error' ? (
