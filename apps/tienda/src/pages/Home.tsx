@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Img } from '../components/bits'
+import { IconPin, IconTruck, IconWhatsApp } from '../components/Icons'
 import { ProductCard } from '../components/ProductCard'
 import {
   CATEGORIES,
@@ -9,6 +10,7 @@ import {
 } from '../lib/catalog'
 import { useShop } from '../lib/data'
 import { usePageTitle } from '../lib/usePageTitle'
+import { waLink } from '../lib/whatsapp'
 import { GridSkeleton, LoadError } from './states'
 
 const HERO_ORDER = ['vasos', 'trofeos', 'llaveros', 'figuras']
@@ -39,7 +41,7 @@ function CategoryTile({
 
 export function Home() {
   usePageTitle(null)
-  const { families, status, reload } = useShop()
+  const { families, settings, status, reload } = useShop()
   const featured = families.filter((f) => f.featured)
   const inStockNow = families.filter(
     (f) => f.saleMode === 'stock' && inStock(f),
@@ -73,10 +75,7 @@ export function Home() {
     <>
       <section className="hero">
         <div className="container">
-          <div className="hero-head">
-            <h1>Impreso en 3D en Corrientes</h1>
-            <Link to="/catalogo">Ver todo el catálogo</Link>
-          </div>
+          <h1 className="sr-only">Global3D · Impresión 3D en Corrientes</h1>
           {status === 'ready' ? (
             <div className="bento">
               {tiles.map((t, i) => (
@@ -100,6 +99,35 @@ export function Home() {
             </div>
           )}
         </div>
+      </section>
+
+      <section className="perks" aria-label="Cómo comprar">
+        <ul className="container perks-list">
+          <li>
+            <IconTruck size={28} />
+            <strong>Envíos a todo el país</strong>
+            <span>En Corrientes y al resto del país</span>
+          </li>
+          <li>
+            <IconPin size={28} />
+            <strong>Retirá en el local</strong>
+            <span>{settings.local.direccion}</span>
+          </li>
+          <li>
+            <a
+              href={waLink(
+                settings.whatsapp,
+                '¡Hola Global3D! Tengo una consulta.',
+              )}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <IconWhatsApp size={28} />
+              <strong>Te atendemos por WhatsApp</strong>
+              <span>Consultas y pedidos a medida</span>
+            </a>
+          </li>
+        </ul>
       </section>
 
       <section className="section" aria-labelledby="cats-title">
