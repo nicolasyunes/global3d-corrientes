@@ -38,6 +38,8 @@ export interface Family {
   personalization: PersonalizationField[]
   priceFrom: number | null
   featured: boolean
+  /** Fotos propias de la familia; se usan si sus productos no tienen fotos */
+  images?: string[]
   variants: Variant[]
 }
 
