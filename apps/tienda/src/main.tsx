@@ -12,6 +12,7 @@ import { Home } from './pages/Home'
 import { Order } from './pages/Order'
 import { Product } from './pages/Product'
 import { NotFound } from './pages/states'
+import { shopBase } from './lib/basePath'
 import './styles/tienda.css'
 
 const router = createBrowserRouter(
@@ -33,7 +34,7 @@ const router = createBrowserRouter(
       ],
     },
   ],
-  { basename: import.meta.env.BASE_URL.replace(/\/$/, '') },
+  { basename: shopBase(window.location.pathname) },
 )
 
 createRoot(document.getElementById('root')!).render(

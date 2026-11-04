@@ -6,6 +6,7 @@ import { useShop } from '../lib/data'
 import { ars, onlyDigits } from '../lib/format'
 import type { DeliveryMode, PaymentMethod, PaymentMode } from '../lib/types'
 import { usePageTitle } from '../lib/usePageTitle'
+import { shopBase } from '../lib/basePath'
 import { orderMessage } from '../lib/whatsapp'
 import { itemStatus } from './Cart'
 
@@ -109,7 +110,7 @@ export function Checkout() {
         notes: notes.trim() || undefined,
       })
       const trackingUrl = new URL(
-        `${import.meta.env.BASE_URL}pedido/${res.token}`,
+        `${shopBase(window.location.pathname)}/pedido/${res.token}`,
         window.location.origin,
       ).toString()
       const waText = orderMessage({

@@ -48,6 +48,16 @@ describe('vista previa de fichas', () => {
     expect(m.title).toContain('Desde $ 10.000')
   })
 
+  it('en el dominio propio el link no lleva /tienda', () => {
+    const m = productMeta(
+      'vaso-camiseta',
+      [vaso],
+      'https://global3d.com.ar',
+      '',
+    )
+    expect(m.url).toBe('https://global3d.com.ar/p/vaso-camiseta')
+  })
+
   it('producto inexistente: vista previa genérica sin foto', () => {
     const m = productMeta('no-existe', [vaso], ORIGIN)
     expect(m.title).toContain('Global3D')

@@ -29,8 +29,9 @@ export async function GET(request: Request): Promise<Response> {
   const host =
     request.headers.get('x-forwarded-host') ?? request.headers.get('host')
   const origin = host ? `https://${host}` : url.origin
+  const base = url.searchParams.get('base') === 'root' ? '' : '/tienda'
   const families = await catalog().catch(() => [])
-  return new Response(renderHtml(productMeta(slug, families, origin)), {
+  return new Response(renderHtml(productMeta(slug, families, origin, base)), {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',

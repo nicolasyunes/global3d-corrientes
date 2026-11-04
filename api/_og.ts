@@ -61,12 +61,14 @@ export function absoluteImage(src: string, origin: string): string {
   return src
 }
 
+/** `base`: '/tienda' en vercel.app, '' en el dominio propio (vercel.json). */
 export function productMeta(
   slug: string,
   families: OgFamily[],
   origin: string,
+  base: '' | '/tienda' = '/tienda',
 ): OgMeta {
-  const url = `${origin}/tienda/p/${encodeURIComponent(slug)}`
+  const url = `${origin}${base}/p/${encodeURIComponent(slug)}`
   const f = families.find((x) => x.slug === slug)
   if (!f)
     return {
