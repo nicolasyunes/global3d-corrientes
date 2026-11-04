@@ -1,10 +1,41 @@
 import { Link } from 'react-router-dom'
 import { Img } from '../components/bits'
 import { ProductCard } from '../components/ProductCard'
-import { CATEGORIES, familyImage, inStock } from '../lib/catalog'
+import {
+  CATEGORIES,
+  familyImage,
+  inStock,
+  type CategoryMeta,
+} from '../lib/catalog'
 import { useShop } from '../lib/data'
 import { usePageTitle } from '../lib/usePageTitle'
 import { GridSkeleton, LoadError } from './states'
+
+const HERO_ORDER = ['vasos', 'trofeos', 'llaveros', 'figuras']
+
+function CategoryTile({
+  t,
+  big = false,
+}: {
+  t: CategoryMeta & { image: string | null }
+  big?: boolean
+}) {
+  return (
+    <Link
+      to={`/c/${t.slug}`}
+      className={big ? 'bento-tile bento-big' : 'bento-tile'}
+    >
+      <Img
+        src={t.image}
+        alt=""
+        label={t.label}
+        size={big ? 'full' : 'card'}
+        eager={big}
+      />
+      <span className="bento-label">{t.label}</span>
+    </Link>
+  )
+}
 
 export function Home() {
   usePageTitle(null)
@@ -18,62 +49,70 @@ export function Home() {
   const usedCats = CATEGORIES.filter((c) =>
     families.some((f) => f.category === c.slug),
   )
-  const heroImgs = featured
-    .map(familyImage)
-    .filter((x): x is string => !!x)
-    .slice(0, 3)
+  // Vidriera: la primera categoría va grande, las tres siguientes chicas.
+  // Cada una muestra la foto de un producto suyo, destacado si hay.
+  const tiles = [
+    ...HERO_ORDER.map((slug) => CATEGORIES.find((c) => c.slug === slug)),
+    ...CATEGORIES,
+  ]
+    .filter((c, i, all): c is CategoryMeta => !!c && all.indexOf(c) === i)
+    .map((c) => {
+      const inCat = families.filter((f) => f.category === c.slug)
+      const pick =
+        inCat.find((f) => f.featured && familyImage(f)) ??
+        inCat.find((f) => familyImage(f))
+      return {
+        ...c,
+        image: pick ? familyImage(pick) : null,
+        any: inCat.length > 0,
+      }
+    })
+    .filter((t) => t.any)
+    .slice(0, 4)
 
   return (
     <>
       <section className="hero">
-        <div className="container hero-grid">
-          <div className="stack" style={{ gap: 18 }}>
-            <h1>Impresión 3D en Corrientes</h1>
-            <p className="lead">
-              Vasos, trofeos, llaveros y figuras que hacemos en nuestro taller
-              de Junín 862. Lo que está en stock lo retirás hoy. Con nombre,
-              club o logo, lo hacemos en unos días hábiles.
-            </p>
-            {readyCount > 0 && (
-              <Link to="/catalogo?stock=1" className="hero-ready">
-                {readyCount === 1
-                  ? '1 producto para retirar hoy'
-                  : `${readyCount} productos para retirar hoy`}
+        <div className="container">
+          <div className="hero-head">
+            <h1>Impreso en 3D en Corrientes</h1>
+            <Link to="/catalogo">Ver todo el catálogo</Link>
+          </div>
+          {status === 'ready' ? (
+            <div className="bento">
+              {tiles.slice(0, 1).map((t) => (
+                <CategoryTile key={t.slug} t={t} big />
+              ))}
+              <Link
+                to={readyCount > 0 ? '/catalogo?stock=1' : '/catalogo'}
+                className="bento-tile bento-ready"
+              >
+                <span>Listo para retirar</span>
+                <span>
+                  <b>{readyCount}</b>
+                  {readyCount === 1 ? 'producto hoy →' : 'productos hoy →'}
+                </span>
               </Link>
-            )}
-            <div className="hero-cta">
-              <Link to="/catalogo" className="btn btn-primary">
-                Ver catálogo
-              </Link>
-              <Link to="/a-medida" className="btn btn-ghost">
-                Pedí a medida
-              </Link>
+              {tiles.slice(1).map((t) => (
+                <CategoryTile key={t.slug} t={t} />
+              ))}
             </div>
-          </div>
-          <div className="hero-media">
-            {heroImgs.length >= 3 ? (
-              <div className="hero-mosaic">
-                {heroImgs.map((src, i) => (
-                  <div className="m" key={src}>
-                    <Img
-                      src={src}
-                      alt=""
-                      size={i === 0 ? 'full' : 'card'}
-                      eager={i === 0}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <Img
-                src={heroImgs[0] ?? null}
-                alt="Productos impresos en 3D"
-                label="Global3D"
-                size="full"
-                eager
-              />
-            )}
-          </div>
+          ) : status === 'error' ? (
+            <LoadError onRetry={reload} />
+          ) : (
+            <div className="bento" aria-hidden="true">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className={
+                    i === 0
+                      ? 'bento-tile bento-big skeleton'
+                      : 'bento-tile skeleton'
+                  }
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
