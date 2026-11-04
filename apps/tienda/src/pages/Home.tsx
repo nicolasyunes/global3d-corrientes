@@ -101,7 +101,7 @@ export function Home() {
         </div>
       </section>
 
-      <section className="perks" aria-label="Cómo comprar">
+      <section className="perks" aria-label="Envíos, retiro y atención">
         <ul className="container perks-list">
           <li>
             <IconTruck size={28} />
@@ -168,6 +168,53 @@ export function Home() {
         </div>
       </section>
 
+      <section className="section" aria-labelledby="how-title">
+        <div className="container">
+          <div className="how">
+            <h2 id="how-title">Cómo comprar</h2>
+            <ol className="how-steps">
+              <li>
+                <strong>Elegí tu producto</strong>
+                <span>
+                  Del catálogo o a medida, con tu nombre, tu club o tu logo.
+                </span>
+              </li>
+              <li>
+                <strong>
+                  Señá el {settings.sena.porcentaje}% o pagá el total
+                </strong>
+                <span>
+                  Por transferencia, o en efectivo si lo retirás en el local.
+                </span>
+              </li>
+              <li>
+                <strong>Retiralo o te lo enviamos</strong>
+                <span>
+                  Seguí tu pedido con el link y te avisamos por WhatsApp cuando
+                  está listo.
+                </span>
+              </li>
+            </ol>
+            <div className="how-cta">
+              <Link to="/catalogo" className="btn btn-dark">
+                Ver catálogo
+              </Link>
+              <a
+                href={waLink(
+                  settings.whatsapp,
+                  '¡Hola Global3D! Quiero hacer un pedido.',
+                )}
+                target="_blank"
+                rel="noreferrer"
+                className="how-wa"
+              >
+                Prefiero pedirlo por WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="section" style={{ paddingTop: 8 }}>
         <div className="container">
           <div className="band band-dark">
@@ -214,36 +261,6 @@ export function Home() {
         </section>
       )}
 
-      <section
-        className="section"
-        aria-labelledby="how-title"
-        style={{ paddingTop: 8 }}
-      >
-        <div className="container stack">
-          <h2 id="how-title">Cómo comprar</h2>
-          <ol className="steps">
-            <li>
-              <span>
-                <strong>Elegí o pedí a medida.</strong> Lo que está en stock lo
-                retirás hoy; lo personalizado se hace en pocos días.
-              </span>
-            </li>
-            <li>
-              <span>
-                <strong>Confirmá con la seña del 50% o el total.</strong> Por
-                transferencia o en efectivo en el local.
-              </span>
-            </li>
-            <li>
-              <span>
-                <strong>Mandanos el pedido por WhatsApp</strong> y seguilo con
-                tu link hasta que esté listo.
-              </span>
-            </li>
-          </ol>
-        </div>
-      </section>
-
       <section className="section" style={{ paddingTop: 8 }}>
         <div className="container grid-2">
           <div className="band band-line">
@@ -271,6 +288,71 @@ export function Home() {
           </div>
         </div>
       </section>
+
+      <section className="section" aria-labelledby="faq-title">
+        <div className="container faq">
+          <h2 id="faq-title">Preguntas frecuentes</h2>
+          <div className="faq-list">
+            <details>
+              <summary>¿Cuánto tarda un pedido?</summary>
+              <p>
+                Lo que está en stock lo retirás en el día. Lo personalizado
+                depende del producto: cada ficha dice cuántos días hábiles
+                tarda.
+              </p>
+            </details>
+            <details>
+              <summary>¿Cuánto tengo que pagar para empezar?</summary>
+              <p>
+                Una seña del {settings.sena.porcentaje}%. El saldo lo pagás al
+                retirar o antes del envío. Si querés, podés pagar el total de
+                una.
+              </p>
+            </details>
+            <details>
+              <summary>¿Cómo pago?</summary>
+              <p>
+                Por transferencia al alias{' '}
+                <strong>{settings.transferencia.alias}</strong>, o en efectivo
+                si lo retirás en el local.
+              </p>
+            </details>
+            <details>
+              <summary>¿Hacen envíos?</summary>
+              <p>
+                Sí. En Corrientes: {lowerFirst(settings.envios.corrientes)}. Al
+                resto del país: {lowerFirst(settings.envios.pais)}.
+              </p>
+            </details>
+            <details>
+              <summary>¿Cómo les mando mi logo o mi diseño?</summary>
+              <p>
+                Por WhatsApp, cuando hacés el pedido. Mandá la imagen en la
+                mejor calidad que tengas; si tenés el archivo en PDF o vector,
+                mejor.
+              </p>
+            </details>
+            <details>
+              <summary>¿Hay cantidad mínima?</summary>
+              <p>
+                En la mayoría no. Algunos productos con logo, como los llaveros,
+                tienen un mínimo, que figura en la ficha.
+              </p>
+            </details>
+            <details>
+              <summary>¿Dónde están?</summary>
+              <p>
+                En {settings.local.direccion}. Abrimos{' '}
+                {lowerFirst(settings.local.horarios)}.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
     </>
   )
+}
+
+function lowerFirst(s: string): string {
+  return s.charAt(0).toLowerCase() + s.slice(1)
 }
