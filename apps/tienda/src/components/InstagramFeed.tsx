@@ -1,11 +1,28 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api'
+import { cleanPostLinks } from '../lib/instagram'
 import type { InstagramPost } from '../lib/types'
 
-// Últimas publicaciones de Instagram. Si no hay token cargado o la API falla,
-// no se muestra nada.
-export function InstagramFeed({ handle }: { handle: string }) {
+const EMBED_SCRIPT = 'https://www.instagram.com/embed.js'
+
+declare global {
+  interface Window {
+    instgrm?: { Embeds: { process: () => void } }
+  }
+}
+
+// Últimas publicaciones de Instagram. Con token de la API muestra una grilla
+// propia; si no, las publicaciones elegidas a mano (`instagram_posts` en
+// shop_settings) con el embed oficial. Sin ninguna de las dos, no se muestra.
+export function InstagramFeed({
+  handle,
+  links,
+}: {
+  handle: string
+  links?: string[]
+}) {
   const [posts, setPosts] = useState<InstagramPost[]>([])
+  const picked = cleanPostLinks(links)
 
   useEffect(() => {
     let alive = true
@@ -18,7 +35,8 @@ export function InstagramFeed({ handle }: { handle: string }) {
     }
   }, [])
 
-  if (posts.length < 3) return null
+  const useApi = posts.length >= 3
+  if (!useApi && picked.length === 0) return null
 
   return (
     <section className="section" aria-labelledby="ig-title">
@@ -33,30 +51,86 @@ export function InstagramFeed({ handle }: { handle: string }) {
             @{handle}
           </a>
         </div>
-        <ul className="ig-grid">
-          {posts.map((p) => (
-            <li key={p.id}>
-              <a
-                href={p.url}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={p.caption || 'Publicación de Instagram'}
-              >
-                <img src={p.image} alt="" loading="lazy" decoding="async" />
-                {p.isVideo && (
-                  <svg
-                    className="ig-play"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path d="M8 5v14l11-7z" fill="currentColor" />
-                  </svg>
-                )}
-              </a>
-            </li>
-          ))}
-        </ul>
+        {useApi ? <ApiGrid posts={posts} /> : <Embeds links={picked} />}
       </div>
     </section>
+  )
+}
+
+function ApiGrid({ posts }: { posts: InstagramPost[] }) {
+  return (
+    <ul className="ig-grid">
+      {posts.map((p) => (
+        <li key={p.id}>
+          <a
+            href={p.url}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={p.caption || 'Publicación de Instagram'}
+          >
+            <img src={p.image} alt="" loading="lazy" decoding="async" />
+            {p.isVideo && (
+              <svg className="ig-play" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 5v14l11-7z" fill="currentColor" />
+              </svg>
+            )}
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+// El script de Instagram se carga recién cuando la sección está por verse.
+function Embeds({ links }: { links: string[] }) {
+  const ref = useRef<HTMLUListElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const run = () => {
+      if (window.instgrm) {
+        window.instgrm.Embeds.process()
+        return
+      }
+      if (document.querySelector(`script[src="${EMBED_SCRIPT}"]`)) return
+      const s = document.createElement('script')
+      s.src = EMBED_SCRIPT
+      s.async = true
+      document.body.appendChild(s)
+    }
+    if (!('IntersectionObserver' in window)) {
+      run()
+      return
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          io.disconnect()
+          run()
+        }
+      },
+      { rootMargin: '400px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [links])
+
+  return (
+    <ul className="ig-embeds" ref={ref}>
+      {links.map((url) => (
+        <li key={url}>
+          <blockquote
+            className="instagram-media"
+            data-instgrm-permalink={url}
+            data-instgrm-version="14"
+          >
+            <a href={url} target="_blank" rel="noreferrer">
+              Ver esta publicación en Instagram
+            </a>
+          </blockquote>
+        </li>
+      ))}
+    </ul>
   )
 }

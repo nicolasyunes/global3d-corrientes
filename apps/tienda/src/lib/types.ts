@@ -69,6 +69,8 @@ export interface ShopSettings {
   transferencia: { alias: string; cbu: string; titular: string; banco: string }
   sena: { porcentaje: number }
   envios: { corrientes: string; pais: string }
+  /** Links de publicaciones elegidas a mano; se usan si no hay token de la API */
+  instagram_posts?: string[]
 }
 
 export interface InstagramPost {

@@ -290,7 +290,10 @@ export function Home() {
         </div>
       </section>
 
-      <InstagramFeed handle={settings.instagram} />
+      <InstagramFeed
+        handle={settings.instagram}
+        links={settings.instagram_posts}
+      />
 
       <section className="section" aria-labelledby="faq-title">
         <div className="container faq">

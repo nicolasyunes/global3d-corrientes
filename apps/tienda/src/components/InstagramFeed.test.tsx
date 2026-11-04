@@ -30,6 +30,22 @@ describe('InstagramFeed', () => {
     ).toHaveAttribute('href', 'https://www.instagram.com/global3d_corrientes/')
   })
 
+  it('sin API usa los links elegidos con el embed oficial', async () => {
+    vi.mocked(api.instagram).mockResolvedValue([])
+    const { container } = render(
+      <InstagramFeed
+        handle="global3d_corrientes"
+        links={['https://www.instagram.com/p/DexTXJyofqu/?img_index=1']}
+      />,
+    )
+    await vi.waitFor(() => expect(api.instagram).toHaveBeenCalled())
+    const quote = container.querySelector('blockquote.instagram-media')
+    expect(quote).toHaveAttribute(
+      'data-instgrm-permalink',
+      'https://www.instagram.com/p/DexTXJyofqu/',
+    )
+  })
+
   it('no muestra nada si no hay publicaciones', async () => {
     vi.mocked(api.instagram).mockResolvedValue([])
     const { container } = render(<InstagramFeed handle="x" />)
