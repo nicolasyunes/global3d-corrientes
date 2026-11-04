@@ -10,9 +10,11 @@ export function Home() {
   usePageTitle(null)
   const { families, status, reload } = useShop()
   const featured = families.filter((f) => f.featured)
-  const ready = families
-    .filter((f) => f.saleMode === 'stock' && inStock(f) && !f.featured)
-    .slice(0, 8)
+  const inStockNow = families.filter(
+    (f) => f.saleMode === 'stock' && inStock(f),
+  )
+  const readyCount = inStockNow.length
+  const ready = inStockNow.filter((f) => !f.featured).slice(0, 8)
   const usedCats = CATEGORIES.filter((c) =>
     families.some((f) => f.category === c.slug),
   )
@@ -26,15 +28,19 @@ export function Home() {
       <section className="hero">
         <div className="container hero-grid">
           <div className="stack" style={{ gap: 18 }}>
-            <h1>
-              Lo imaginás.
-              <br />
-              Lo <b>imprimimos.</b>
-            </h1>
+            <h1>Impresión 3D en Corrientes</h1>
             <p className="lead">
-              Vasos, trofeos, figuras y regalos impresos en 3D en Corrientes.
-              Personalizados con tu nombre, tu club o el logo de tu negocio.
+              Vasos, trofeos, llaveros y figuras que hacemos en nuestro taller
+              de Junín 862. Lo que está en stock lo retirás hoy. Con nombre,
+              club o logo, lo hacemos en unos días hábiles.
             </p>
+            {readyCount > 0 && (
+              <Link to="/catalogo?stock=1" className="hero-ready">
+                {readyCount === 1
+                  ? '1 producto para retirar hoy'
+                  : `${readyCount} productos para retirar hoy`}
+              </Link>
+            )}
             <div className="hero-cta">
               <Link to="/catalogo" className="btn btn-primary">
                 Ver catálogo
