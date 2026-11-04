@@ -1,7 +1,36 @@
 {
+  "images": {
+    "sizes": [256, 640, 1080],
+    "formats": ["image/webp"],
+    "minimumCacheTTL": 2678400,
+    "remotePatterns": [
+      {
+        "protocol": "https",
+        "hostname": "bukjmleercxlxbexekos.supabase.co",
+        "pathname": "/storage/v1/object/public/**"
+      }
+    ]
+  },
   "rewrites": [
-    { "source": "/herramientas", "destination": "/herramientas/index.html" },
-    { "source": "/herramientas/", "destination": "/herramientas/index.html" },
-    { "source": "/((?!herramientas/).*)", "destination": "/index.html" }
+    {
+      "source": "/herramientas",
+      "destination": "/herramientas/index.html"
+    },
+    {
+      "source": "/herramientas/",
+      "destination": "/herramientas/index.html"
+    },
+    {
+      "source": "/tienda",
+      "destination": "/tienda/index.html"
+    },
+    {
+      "source": "/tienda/(.*)",
+      "destination": "/tienda/index.html"
+    },
+    {
+      "source": "/((?!herramientas/|tienda/).*)",
+      "destination": "/index.html"
+    }
   ]
 }
