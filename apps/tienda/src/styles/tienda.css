@@ -533,12 +533,27 @@ p {
   color: var(--on-band);
   margin-top: 28px;
 }
+/* Mobile: slider de a uno, con scroll-snap */
 .perks-list {
   list-style: none;
   margin: 0 auto;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  display: grid;
+  padding: 18px 0 6px;
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.perks-list::-webkit-scrollbar {
+  display: none;
+}
+.perks-list > li {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--gutter);
+  box-sizing: border-box;
 }
 .perks-list li > *,
 .perks-list li > a {
@@ -546,18 +561,45 @@ p {
 }
 .perks-list li,
 .perks-list li > a {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 14px;
-  align-items: center;
-  padding: 14px 0;
   text-decoration: none;
 }
-.perks-list li:has(> a) {
-  padding: 0;
+.perks-list > li:not(:has(> a)),
+.perks-list li > a {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 14px;
+  align-items: center;
 }
-.perks-list li + li {
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+.perks-dots {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 6px;
+}
+.perks-dots button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: none;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.perks-dots button::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--on-band);
+  opacity: 0.35;
+  transition:
+    opacity 0.2s,
+    width 0.2s;
+}
+.perks-dots button[aria-current='true']::before {
+  opacity: 1;
+  width: 18px;
+  border-radius: 4px;
 }
 .perks-list svg {
   grid-row: span 2;
@@ -576,24 +618,26 @@ p {
     margin-top: 40px;
   }
   .perks-list {
+    display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding-top: 36px;
-    padding-bottom: 36px;
+    overflow: visible;
+    padding: 36px var(--gutter);
   }
-  .perks-list li,
+  .perks-list > li {
+    padding: 0 16px;
+  }
+  .perks-list > li:not(:has(> a)),
   .perks-list li > a {
     grid-template-columns: 1fr;
     justify-items: center;
     text-align: center;
     row-gap: 4px;
-    padding: 0 16px;
-  }
-  .perks-list li:has(> a) {
-    padding: 0;
   }
   .perks-list li + li {
-    border-top: 0;
     border-left: 1px solid rgba(255, 255, 255, 0.14);
+  }
+  .perks-dots {
+    display: none;
   }
   .perks-list svg {
     grid-row: auto;
@@ -620,21 +664,38 @@ p {
   grid-column: span 2;
   grid-row: span 2;
 }
-.bento-tile > img,
-.bento-tile > .ph {
+.bento-layer {
   position: absolute;
   inset: 0;
+}
+/* La foto nueva aparece con un fundido sobre la anterior */
+.bento-layer.is-in {
+  animation: bento-in 0.9s ease both;
+}
+@keyframes bento-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.bento-layer > img,
+.bento-layer > .ph {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.4s ease;
 }
-.bento-tile:hover > img {
+.bento-tile:hover .bento-layer > img {
   transform: scale(1.03);
 }
 @media (prefers-reduced-motion: reduce) {
-  .bento-tile > img {
+  .bento-layer > img {
     transition: none;
+  }
+  .bento-layer.is-in {
+    animation: none;
   }
 }
 @media (min-width: 900px) {

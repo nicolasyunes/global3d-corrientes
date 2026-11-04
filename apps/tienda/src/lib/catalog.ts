@@ -73,6 +73,33 @@ export function familyImage(f: Family): string | null {
   return (withStock ?? any)?.images[0] ?? null
 }
 
+/**
+ * Fotos para rotar en el hero: la primera foto de cada producto (variante),
+ * alternando entre familias para que dos seguidas no sean del mismo
+ * producto. Primero las variantes con stock. Sin repetidos.
+ */
+export function heroPhotos(families: Family[], max: number): string[] {
+  const queues = families.map((f) =>
+    [...f.variants]
+      .sort((a, b) => Number(b.stock > 0) - Number(a.stock > 0))
+      .map((v) => v.images[0])
+      .filter((x): x is string => !!x),
+  )
+  const out: string[] = []
+  for (let round = 0; out.length < max; round++) {
+    let added = false
+    for (const q of queues) {
+      const src = q[round]
+      if (src === undefined) continue
+      added = true
+      if (!out.includes(src)) out.push(src)
+      if (out.length === max) break
+    }
+    if (!added) break
+  }
+  return out
+}
+
 export type Availability =
   | { kind: 'stock'; units: number }
   | { kind: 'pedido'; days: number }

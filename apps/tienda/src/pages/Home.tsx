@@ -1,11 +1,12 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Img } from '../components/bits'
-import { IconPin, IconTruck, IconWhatsApp } from '../components/Icons'
+import { CategoryTile } from '../components/CategoryTile'
 import { InstagramFeed } from '../components/InstagramFeed'
+import { Perks } from '../components/Perks'
 import { ProductCard } from '../components/ProductCard'
 import {
   CATEGORIES,
-  familyImage,
+  heroPhotos,
   inStock,
   type CategoryMeta,
 } from '../lib/catalog'
@@ -15,30 +16,7 @@ import { waLink } from '../lib/whatsapp'
 import { GridSkeleton, LoadError } from './states'
 
 const HERO_ORDER = ['vasos', 'trofeos', 'llaveros', 'figuras']
-
-function CategoryTile({
-  t,
-  big = false,
-}: {
-  t: CategoryMeta & { image: string | null }
-  big?: boolean
-}) {
-  return (
-    <Link
-      to={`/c/${t.slug}`}
-      className={big ? 'bento-tile bento-big' : 'bento-tile'}
-      aria-label={t.label}
-    >
-      <Img
-        src={t.image}
-        alt=""
-        label={t.label}
-        size={big ? 'full' : 'card'}
-        eager={big}
-      />
-    </Link>
-  )
-}
+const PHOTOS_PER_TILE = 8
 
 export function Home() {
   usePageTitle(null)
@@ -52,25 +30,31 @@ export function Home() {
     families.some((f) => f.category === c.slug),
   )
   // Vidriera: la primera categoría va grande, las cuatro siguientes chicas.
-  // Cada una muestra la foto de un producto suyo, destacado si hay.
-  const tiles = [
-    ...HERO_ORDER.map((slug) => CATEGORIES.find((c) => c.slug === slug)),
-    ...CATEGORIES,
-  ]
-    .filter((c, i, all): c is CategoryMeta => !!c && all.indexOf(c) === i)
-    .map((c) => {
-      const inCat = families.filter((f) => f.category === c.slug)
-      const pick =
-        inCat.find((f) => f.featured && familyImage(f)) ??
-        inCat.find((f) => familyImage(f))
-      return {
-        ...c,
-        image: pick ? familyImage(pick) : null,
-        any: inCat.length > 0,
-      }
-    })
-    .filter((t) => t.any)
-    .slice(0, 5)
+  // Cada recuadro rota entre fotos de productos de su categoría, primero los
+  // destacados.
+  const tiles = useMemo(
+    () =>
+      [
+        ...HERO_ORDER.map((slug) => CATEGORIES.find((c) => c.slug === slug)),
+        ...CATEGORIES,
+      ]
+        .filter((c, i, all): c is CategoryMeta => !!c && all.indexOf(c) === i)
+        .map((c) => {
+          const inCat = families.filter((f) => f.category === c.slug)
+          const ordered = [
+            ...inCat.filter((f) => f.featured),
+            ...inCat.filter((f) => !f.featured),
+          ]
+          return {
+            ...c,
+            images: heroPhotos(ordered, PHOTOS_PER_TILE),
+            any: inCat.length > 0,
+          }
+        })
+        .filter((t) => t.any)
+        .slice(0, 5),
+    [families],
+  )
 
   return (
     <>
@@ -80,7 +64,14 @@ export function Home() {
           {status === 'ready' ? (
             <div className="bento">
               {tiles.map((t, i) => (
-                <CategoryTile key={t.slug} t={t} big={i === 0} />
+                <CategoryTile
+                  key={t.slug}
+                  slug={t.slug}
+                  label={t.label}
+                  images={t.images}
+                  big={i === 0}
+                  order={i}
+                />
               ))}
             </div>
           ) : status === 'error' ? (
@@ -102,34 +93,7 @@ export function Home() {
         </div>
       </section>
 
-      <section className="perks" aria-label="Envíos, retiro y atención">
-        <ul className="container perks-list">
-          <li>
-            <IconTruck size={28} />
-            <strong>Envíos a todo el país</strong>
-            <span>En Corrientes y al resto del país</span>
-          </li>
-          <li>
-            <IconPin size={28} />
-            <strong>Retirá en el local</strong>
-            <span>{settings.local.direccion}</span>
-          </li>
-          <li>
-            <a
-              href={waLink(
-                settings.whatsapp,
-                '¡Hola Global3D! Tengo una consulta.',
-              )}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <IconWhatsApp size={28} />
-              <strong>Te atendemos por WhatsApp</strong>
-              <span>Consultas y pedidos a medida</span>
-            </a>
-          </li>
-        </ul>
-      </section>
+      <Perks settings={settings} />
 
       <section className="section" aria-labelledby="cats-title">
         <div className="container">
