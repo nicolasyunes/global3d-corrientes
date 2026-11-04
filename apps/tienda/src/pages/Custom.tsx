@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { QuoteFiles, type QuoteAttachment } from '../components/QuoteFiles'
 import { useShop } from '../lib/data'
 import { onlyDigits } from '../lib/format'
 import { usePageTitle } from '../lib/usePageTitle'
 import { waLink } from '../lib/whatsapp'
 
-// Pedido a medida: arma el mensaje y abre WhatsApp. Las fotos de referencia y
-// los logos los manda el cliente por el mismo chat.
+// Pedido a medida: arma el mensaje y abre WhatsApp. Las fotos, logos o planos
+// se pueden adjuntar acá (van como links en el mensaje) o mandar por el chat.
 export function Custom() {
   usePageTitle('Pedido a medida')
   const { settings } = useShop()
@@ -23,6 +24,9 @@ export function Custom() {
     cuit: '',
   })
   const [tried, setTried] = useState(false)
+  const [files, setFiles] = useState<QuoteAttachment[]>([])
+  const uploading = files.some((x) => x.status === 'uploading')
+  const uploaded = files.filter((x) => x.status === 'done' && x.url)
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) =>
     setF({ ...f, [k]: e.target.value })
 
@@ -31,7 +35,7 @@ export function Custom() {
   const submit = (e: FormEvent) => {
     e.preventDefault()
     setTried(true)
-    if (!valid) return
+    if (!valid || uploading) return
     const lines = [
       `¡Hola Global3D! Soy ${f.nombre.trim()} y quiero pedir un presupuesto${empresa ? ' para empresa' : ''}.`,
       '',
@@ -43,11 +47,13 @@ export function Custom() {
       f.ref && `Referencia: ${f.ref.trim()}`,
       empresa && f.empresa && `Empresa: ${f.empresa.trim()}`,
       empresa && f.cuit && `CUIT para factura: ${f.cuit.trim()}`,
-      '',
-      'Les mando por acá las fotos o el logo.',
+      ...(uploaded.length
+        ? ['', 'Archivos:', ...uploaded.map((x) => x.url)]
+        : ['', 'Les mando por acá las fotos o el logo.']),
     ].filter((l) => l !== false && l !== undefined && l !== null) as string[]
     window.open(
-      waLink(settings.whatsapp, lines.join('\n')),
+      // Los campos opcionales vacíos dejan líneas en blanco: queda una sola.
+      waLink(settings.whatsapp, lines.join('\n').replace(/\n{3,}/g, '\n\n')),
       '_blank',
       'noopener',
     )
@@ -122,10 +128,8 @@ export function Custom() {
               value={f.ref}
               onChange={set('ref')}
             />
-            <span className="hint">
-              Las fotos o el logo nos los mandás por WhatsApp.
-            </span>
           </label>
+          <QuoteFiles files={files} setFiles={setFiles} />
           <div className="grid-2">
             <label className="field">
               <span className="label">Cantidad</span>
@@ -210,11 +214,17 @@ export function Custom() {
               <span className="error-text">Escribí tu nombre.</span>
             )}
           </label>
-          <button type="submit" className="btn btn-wa btn-block">
-            Enviar por WhatsApp
+          <button
+            type="submit"
+            className="btn btn-wa btn-block"
+            disabled={uploading}
+          >
+            {uploading ? 'Subiendo archivos…' : 'Enviar por WhatsApp'}
           </button>
           <p className="hint">
-            Te abrimos WhatsApp con todo escrito: solo tenés que mandarlo.
+            Te abrimos WhatsApp con todo escrito
+            {uploaded.length ? ' y los links de tus archivos' : ''}: solo tenés
+            que mandarlo.
           </p>
         </section>
       </form>

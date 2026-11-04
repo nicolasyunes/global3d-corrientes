@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
+import { quoteFilePath } from './quoteFiles'
 import type {
   CreateOrderInput,
   CreateOrderResult,
@@ -57,6 +58,17 @@ export const api = {
     rpc<CreateOrderResult>('shop_create_order', { p: input }),
   orderStatus: (token: string) =>
     rpc<OrderStatusResult | null>('shop_order_status', { p_token: token }),
+  /** Sube un archivo de "Pedido a medida" y devuelve su link público. */
+  uploadQuoteFile: async (file: File, type: string): Promise<string> => {
+    const path = quoteFilePath(type)
+    const bucket = supabase.storage.from('shop-quote-files')
+    const { error } = await bucket.upload(path, file, {
+      contentType: type,
+      upsert: false,
+    })
+    if (error) throw new ShopError(error.message)
+    return bucket.getPublicUrl(path).data.publicUrl
+  },
   // Edge function con caché; si algo falla devuelve [] y la sección no se ve.
   instagram: async (): Promise<InstagramPost[]> => {
     const { data, error } = await supabase.functions.invoke<{
