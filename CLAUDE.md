@@ -51,6 +51,7 @@ Páginas: `index`, `llavero`, `vaso`, `letra-caja` (la principal). Usan manifold
 - Los pedidos web entran a `orders` con estado `new` y `origin_channel = 'web'`, así aparecen en el admin.
 - Datos del local, WhatsApp, alias/CBU y % de seña se editan en `shop_settings`; familias/variantes en `shop_families` y `shop_family_products`.
 - Instagram: edge function `instagram-feed` (Instagram API with Instagram Login) con caché de 30 min en `shop_instagram` (sin acceso para anon ni authenticated). El token inicial va en el secret `INSTAGRAM_TOKEN`; la función lo renueva sola y guarda el nuevo en la tabla. Mientras no haya token, muestra con el embed oficial las publicaciones elegidas a mano en `shop_settings.instagram_posts` (array de links, máximo 6). Sin ninguna de las dos, la sección no se muestra.
+- Pedido a medida: adjuntos (PNG/JPG/SVG/PDF, 3 × 10 MB) al bucket `shop-quote-files`, carpeta `a-medida/AAAA-MM/`; anon solo sube, los links van en el WhatsApp. pg_cron llama a diario a la edge function `cleanup-quote-files`, que borra los de más de 30 días.
 - Fotos en producción: `/_vercel/image` (`images` en `vercel.json`), con fallback a la original.
 
 ## Imagen a SVG (`src/features/tools/vectorize.ts`)
