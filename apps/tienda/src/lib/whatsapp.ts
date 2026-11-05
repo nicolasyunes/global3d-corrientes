@@ -37,9 +37,11 @@ export function orderMessage(args: {
   const pay =
     args.method === 'cash'
       ? 'Pago en efectivo al retirar'
-      : args.payMode === 'sena'
-        ? `Transfiero la seña: ${ars(args.deposit)}`
-        : `Transfiero el total: ${ars(args.total)}`
+      : args.method === 'mercadopago'
+        ? `Pago con tarjeta (Mercado Pago): ${ars(args.payMode === 'sena' ? args.deposit : args.total)}`
+        : args.payMode === 'sena'
+          ? `Transfiero la seña: ${ars(args.deposit)}`
+          : `Transfiero el total: ${ars(args.total)}`
   const entrega =
     args.delivery === 'retiro'
       ? DELIVERY_LABEL.retiro
