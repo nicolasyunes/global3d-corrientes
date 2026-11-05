@@ -23,6 +23,18 @@ import {
   type ProductDraft,
 } from './validation'
 import ProductImageGallery, { PhotoGrid } from './ProductImageGallery'
+import { ShopLinkSection } from './ShopLinkSection'
+import {
+  emptyShopLink,
+  validateShopLink,
+  type ShopFamilyOption,
+  type ShopLinkDraft,
+} from './shopLink'
+import {
+  draftFromFamilies,
+  listShopFamilies,
+  saveProductShopLink,
+} from './shopLink.api'
 import './products.css'
 
 const COMMON_COLORS = [
@@ -180,6 +192,29 @@ export default function ProductForm() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [shopLink, setShopLink] = useState<ShopLinkDraft>(emptyShopLink())
+  const [families, setFamilies] = useState<ShopFamilyOption[]>([])
+  const [shopStatus, setShopStatus] = useState<'loading' | 'ready' | 'error'>(
+    'loading',
+  )
+  const [shopError, setShopError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    listShopFamilies()
+      .then((list) => {
+        if (cancelled) return
+        setFamilies(list)
+        if (id) setShopLink(draftFromFamilies(id, list) ?? emptyShopLink())
+        setShopStatus('ready')
+      })
+      .catch(() => {
+        if (!cancelled) setShopStatus('error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id])
   // New products: photos wait here and upload right after the product exists.
   const [pendingPhotos, setPendingPhotos] = useState<
     { key: string; file: File; url: string }[]
@@ -274,7 +309,12 @@ export default function ProductForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const nextErrors = validateProduct(draft)
-    if (Object.keys(nextErrors).length > 0) {
+    const shopProblem =
+      shopStatus === 'ready'
+        ? validateShopLink(shopLink, families, id ?? null)
+        : null
+    setShopError(shopProblem)
+    if (Object.keys(nextErrors).length > 0 || shopProblem) {
       setErrors(nextErrors)
       return
     }
@@ -294,6 +334,20 @@ export default function ProductForm() {
           ? await updateProduct(id, patch)
           : await createProduct(patch)
       await saveProductParts(saved.id, cleanParts(parts))
+      if (shopStatus === 'ready') {
+        try {
+          await saveProductShopLink(saved.id, shopLink, families)
+        } catch (err) {
+          // El producto ya existe: se abre para reintentar solo la tienda.
+          setSubmitError(
+            `El producto se guardó, pero no se pudo actualizar la tienda${
+              err instanceof Error ? `: ${err.message}` : '.'
+            }`,
+          )
+          if (!isEdit) navigate(`/admin/productos/${saved.id}`)
+          return
+        }
+      }
       if (!isEdit && pendingPhotos.length) {
         try {
           for (const [position, photo] of pendingPhotos.entries())
@@ -486,6 +540,18 @@ export default function ProductForm() {
             />
           )}
         </section>
+
+        <ShopLinkSection
+          draft={shopLink}
+          onChange={(next) => {
+            setShopLink(next)
+            setShopError(null)
+          }}
+          families={families}
+          status={shopStatus}
+          error={shopError}
+          productName={draft.name}
+        />
       </div>
 
       <div className="pform__footer">
