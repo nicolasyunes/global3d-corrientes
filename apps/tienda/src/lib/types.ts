@@ -75,6 +75,8 @@ export interface ShopSettings {
   instagram_posts?: string[]
   /** Pago con tarjeta; apagado hasta que se active (ver lib/mercadopago.ts) */
   mercadopago?: { enabled: boolean; publicKey: string }
+  /** % de descuento pagando en efectivo o transferencia */
+  descuento_efectivo?: { porcentaje: number }
 }
 
 export interface InstagramPost {

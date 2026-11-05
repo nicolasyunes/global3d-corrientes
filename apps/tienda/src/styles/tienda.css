@@ -1146,6 +1146,14 @@ p {
 .pdp-price .price {
   font-size: 2rem;
 }
+.pdp-cash {
+  margin: 0;
+  color: var(--ok);
+  font-size: 0.95rem;
+}
+.pdp-cash strong {
+  font-size: 1.1rem;
+}
 .opt-group {
   display: flex;
   flex-direction: column;

@@ -5,6 +5,7 @@ import { cart, cartHasQuote, cartTotal, useCart } from '../lib/cart'
 import { useShop } from '../lib/data'
 import { ars, onlyDigits } from '../lib/format'
 import { mpAvailable } from '../lib/mercadopago'
+import { cashDiscount, cashDiscountPct, discountFor } from '../lib/discount'
 import type { DeliveryMode, PaymentMethod, PaymentMode } from '../lib/types'
 import { usePageTitle } from '../lib/usePageTitle'
 import { shopBase } from '../lib/basePath'
@@ -52,12 +53,8 @@ export function Checkout() {
 
   if (items.length === 0) return <Navigate to="/carrito" replace />
 
-  const total = cartTotal(items)
+  const listTotal = cartTotal(items)
   const quote = cartHasQuote(items)
-  const deposit =
-    payMode === 'sena'
-      ? Math.ceil((total * settings.sena.porcentaje) / 100)
-      : total
   const cashAllowed = delivery === 'retiro'
   const cardAllowed = mpAvailable(settings)
   const effMethod: PaymentMethod =
@@ -65,6 +62,14 @@ export function Checkout() {
     (method === 'mercadopago' && !cardAllowed)
       ? 'transfer'
       : method
+  // Mismo cálculo que shop_create_order: el descuento va sobre el total.
+  const pct = cashDiscountPct(settings)
+  const discount = discountFor(effMethod) ? cashDiscount(listTotal, pct) : 0
+  const total = listTotal - discount
+  const deposit =
+    payMode === 'sena'
+      ? Math.ceil((total * settings.sena.porcentaje) / 100)
+      : total
   const payNowLabel =
     effMethod === 'cash'
       ? 'Pagás al retirar'
@@ -320,7 +325,9 @@ export function Checkout() {
                   onChange={() => setMethod('transfer')}
                 />
                 <span>
-                  <strong>Transferencia</strong>
+                  <strong>
+                    Transferencia{pct > 0 ? ` · ${pct}% off` : ''}
+                  </strong>
                   <small>
                     Al confirmar te mostramos el alias y el CBU (
                     {settings.transferencia.banco}).
@@ -339,7 +346,9 @@ export function Checkout() {
                   onChange={() => setMethod('cash')}
                 />
                 <span>
-                  <strong>Efectivo en el local</strong>
+                  <strong>
+                    Efectivo en el local{pct > 0 ? ` · ${pct}% off` : ''}
+                  </strong>
                   <small>
                     {cashAllowed
                       ? 'Pagás cuando pasás a retirar.'
@@ -410,9 +419,22 @@ export function Checkout() {
               </span>
             </div>
           ))}
+          {discount > 0 && (
+            <div
+              className="sum-row"
+              style={{ borderTop: '1px solid var(--line)', paddingTop: 12 }}
+            >
+              <span>{pct}% off por pagar en efectivo o transferencia</span>
+              <span className="num">−{ars(discount)}</span>
+            </div>
+          )}
           <div
             className="sum-row big"
-            style={{ borderTop: '1px solid var(--line)', paddingTop: 12 }}
+            style={
+              discount > 0
+                ? undefined
+                : { borderTop: '1px solid var(--line)', paddingTop: 12 }
+            }
           >
             <span>Total</span>
             <span className="num">{ars(total)}</span>
