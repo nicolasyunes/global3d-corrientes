@@ -215,3 +215,21 @@ export async function reorderProductImages(
   }
   await syncCoverImage(productId)
 }
+
+export type ProductLogRow = Database['public']['Tables']['product_log']['Row']
+
+// Historial de productos (lo escribe un trigger con `updated_by`): todo el
+// catálogo o un producto, lo más nuevo primero.
+export async function listProductLog(
+  opts: { productId?: string; limit?: number } = {},
+): Promise<ProductLogRow[]> {
+  let query = supabase
+    .from('product_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(opts.limit ?? 40)
+  if (opts.productId) query = query.eq('product_id', opts.productId)
+  const { data, error } = await query
+  if (error) throw error
+  return data ?? []
+}

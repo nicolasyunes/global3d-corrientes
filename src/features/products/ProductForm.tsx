@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Icon from '@/components/Icon'
 import { parseMoney } from '@/features/orders/orderDraft'
+import { useOperator } from '@/features/operators/operator-context'
 import { colorSwatch } from '@/features/production/pieces'
 import {
   createProduct,
@@ -22,6 +23,7 @@ import {
   type FieldErrors,
   type ProductDraft,
 } from './validation'
+import ProductActivity from './ProductActivity'
 import ProductImageGallery, { PhotoGrid } from './ProductImageGallery'
 import { ShopLinkSection } from './ShopLinkSection'
 import {
@@ -183,6 +185,7 @@ export default function ProductForm() {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
   const navigate = useNavigate()
+  const { current } = useOperator()
 
   const [draft, setDraft] = useState<ProductDraft>(emptyProductDraft())
   const [parts, setParts] = useState<PartDraft[]>([])
@@ -328,6 +331,8 @@ export default function ProductForm() {
         base_price: parseMoney(draft.basePrice),
         stock_quantity: parseNonNegativeInt(draft.stockQuantity) ?? 0,
         active: draft.active,
+        // Queda en el historial quién lo creó o cambió.
+        updated_by: current?.id ?? null,
       }
       const saved =
         isEdit && id
@@ -552,6 +557,8 @@ export default function ProductForm() {
           error={shopError}
           productName={draft.name}
         />
+
+        {isEdit && id && <ProductActivity productId={id} />}
       </div>
 
       <div className="pform__footer">

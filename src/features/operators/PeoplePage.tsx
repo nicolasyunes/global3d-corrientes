@@ -1,12 +1,21 @@
 import { useState, type FormEvent } from 'react'
 import Icon from '@/components/Icon'
 import { useOperator } from './operator-context'
-import { createOperator, initialsFrom, setOperatorPin } from './operators.api'
+import {
+  canManageProducts,
+  createOperator,
+  initialsFrom,
+  setOperatorPin,
+  setOperatorProducts,
+} from './operators.api'
 import { OPERATOR_COLORS } from './OperatorGate'
 import './operators.css'
 
 type Mode =
-  { kind: 'idle' } | { kind: 'new' } | { kind: 'pin'; operatorId: string }
+  | { kind: 'idle' }
+  | { kind: 'new' }
+  | { kind: 'pin'; operatorId: string }
+  | { kind: 'products'; operatorId: string; value: boolean }
 
 export default function PeoplePage() {
   const { operators, current, refresh } = useOperator()
@@ -15,6 +24,7 @@ export default function PeoplePage() {
   const [color, setColor] = useState(OPERATOR_COLORS[1])
   const [role, setRole] = useState<'operator' | 'admin'>('operator')
   const [pin, setPin] = useState('')
+  const [products, setProducts] = useState(false)
   const [adminPin, setAdminPin] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,6 +34,7 @@ export default function PeoplePage() {
     setMode(next)
     setName('')
     setPin('')
+    setProducts(false)
     setAdminPin('')
     setError(null)
   }
@@ -33,7 +44,7 @@ export default function PeoplePage() {
     if (!current) return
     if (mode.kind === 'new' && !name.trim())
       return setError('Escribí el nombre.')
-    if (!/^\d{4}$/.test(pin))
+    if (mode.kind !== 'products' && !/^\d{4}$/.test(pin))
       return setError('El PIN tiene que tener 4 números.')
     if (!/^\d{4}$/.test(adminPin))
       return setError('Confirmá con tu PIN de administrador.')
@@ -42,14 +53,24 @@ export default function PeoplePage() {
     try {
       const admin = { id: current.id, pin: adminPin }
       if (mode.kind === 'new') {
-        await createOperator(
+        const newId = await createOperator(
           { name: name.trim(), initials: initialsFrom(name), color, role, pin },
           admin,
         )
+        if (role === 'operator' && products)
+          await setOperatorProducts(newId, true, admin)
         setDone(`${name.trim()} ya puede ingresar con su PIN.`)
       } else if (mode.kind === 'pin') {
         await setOperatorPin(mode.operatorId, pin, admin)
         setDone('PIN actualizado.')
+      } else if (mode.kind === 'products') {
+        await setOperatorProducts(mode.operatorId, mode.value, admin)
+        const who = operators.find((o) => o.id === mode.operatorId)?.name ?? ''
+        setDone(
+          mode.value
+            ? `${who} ya puede cargar y editar productos.`
+            : `${who} ya no puede cargar productos.`,
+        )
       }
       await refresh()
       reset({ kind: 'idle' })
@@ -61,7 +82,9 @@ export default function PeoplePage() {
   }
 
   const editing =
-    mode.kind === 'pin' ? operators.find((o) => o.id === mode.operatorId) : null
+    mode.kind === 'pin' || mode.kind === 'products'
+      ? operators.find((o) => o.id === mode.operatorId)
+      : null
 
   return (
     <main>
@@ -102,9 +125,30 @@ export default function PeoplePage() {
                 <div className="people-list__who">
                   <strong>{op.name}</strong>
                   <span className="muted">
-                    {op.role === 'admin' ? 'Administrador' : 'Taller'}
+                    {op.role === 'admin'
+                      ? 'Administrador'
+                      : canManageProducts(op)
+                        ? 'Taller · carga productos'
+                        : 'Taller'}
                   </span>
                 </div>
+                {op.role !== 'admin' && (
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() =>
+                      reset({
+                        kind: 'products',
+                        operatorId: op.id,
+                        value: !op.can_manage_products,
+                      })
+                    }
+                  >
+                    {op.can_manage_products
+                      ? 'Quitar productos'
+                      : 'Habilitar productos'}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn--ghost btn--sm"
@@ -123,7 +167,9 @@ export default function PeoplePage() {
               <h2 className="card__title">
                 {mode.kind === 'new'
                   ? 'Nueva persona'
-                  : `Nuevo PIN para ${editing?.name ?? ''}`}
+                  : mode.kind === 'products'
+                    ? `${mode.value ? 'Habilitar' : 'Quitar'} productos a ${editing?.name ?? ''}`
+                    : `Nuevo PIN para ${editing?.name ?? ''}`}
               </h2>
               <span className="spacer" />
               <button
@@ -179,21 +225,43 @@ export default function PeoplePage() {
                     Administrador
                   </button>
                 </div>
+                {role === 'operator' && (
+                  <label className="people-check">
+                    <input
+                      type="checkbox"
+                      checked={products}
+                      onChange={(e) => setProducts(e.target.checked)}
+                    />
+                    Puede cargar y editar productos
+                  </label>
+                )}
               </>
             )}
 
-            <label className="field-label" htmlFor="p-pin">
-              PIN de 4 números
-            </label>
-            <input
-              id="p-pin"
-              className="input"
-              type="password"
-              inputMode="numeric"
-              maxLength={4}
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-            />
+            {mode.kind === 'products' && (
+              <p className="muted">
+                {mode.value
+                  ? 'Va a poder entrar a Productos y stock, crear productos y editarlos. Cada cambio queda registrado con su nombre.'
+                  : 'Deja de ver Productos y stock. Lo que ya cargó queda en el historial.'}
+              </p>
+            )}
+
+            {mode.kind !== 'products' && (
+              <>
+                <label className="field-label" htmlFor="p-pin">
+                  PIN de 4 números
+                </label>
+                <input
+                  id="p-pin"
+                  className="input"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                />
+              </>
+            )}
             <label className="field-label" htmlFor="p-admin">
               Tu PIN ({current?.name}) para confirmar
             </label>

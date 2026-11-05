@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from '@/components/Icon'
 import { formatMoney } from '@/features/orders/format'
+import { useOperator } from '@/features/operators/operator-context'
 import { colorSwatch } from '@/features/production/pieces'
 import {
   listAllParts,
@@ -10,6 +11,7 @@ import {
   type ProductRow,
 } from './products.api'
 import { emptyProductFilter, filterProducts, type ProductFilter } from './list'
+import ProductActivity from './ProductActivity'
 import { partsSummary, type PartLine } from './parts'
 import '@/features/production/production.css'
 import './products.css'
@@ -23,6 +25,7 @@ export default function ProductsList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const { current } = useOperator()
 
   useEffect(() => {
     Promise.all([listProducts(), listAllParts()])
@@ -56,7 +59,10 @@ export default function ProductsList() {
       ),
     )
     try {
-      await updateProduct(product.id, { stock_quantity: next })
+      await updateProduct(product.id, {
+        stock_quantity: next,
+        updated_by: current?.id ?? null,
+      })
     } catch {
       setProducts((rows) =>
         rows.map((r) =>
@@ -225,6 +231,8 @@ export default function ProductsList() {
           })}
         </ul>
       )}
+
+      {!loading && <ProductActivity limit={20} />}
     </>
   )
 }
