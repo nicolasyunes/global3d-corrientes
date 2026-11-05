@@ -14,7 +14,9 @@ export interface NewOperator {
 export async function listOperators(): Promise<Operator[]> {
   const { data, error } = await supabase
     .from('operators')
-    .select('id, name, initials, color, role, active, created_at')
+    .select(
+      'id, name, initials, color, role, active, can_manage_products, created_at',
+    )
     .eq('active', true)
     .order('created_at', { ascending: true })
   if (error) throw error
@@ -69,4 +71,24 @@ export function initialsFrom(name: string): string {
   if (parts.length === 0) return ''
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+// Habilita o quita a una persona la carga de productos (los admin siempre
+// pueden). Lo confirma un administrador con su PIN.
+export async function setOperatorProducts(
+  operatorId: string,
+  value: boolean,
+  admin: { id: string; pin: string },
+): Promise<void> {
+  const { error } = await supabase.rpc('set_operator_products', {
+    p_operator: operatorId,
+    p_value: value,
+    p_admin: admin.id,
+    p_admin_pin: admin.pin,
+  })
+  if (error) throw error
+}
+
+export function canManageProducts(op: Operator | null | undefined): boolean {
+  return !!op && (op.role === 'admin' || op.can_manage_products === true)
 }

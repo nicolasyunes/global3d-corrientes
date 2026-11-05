@@ -30,6 +30,8 @@ interface NavItem {
   short?: string
   icon: IconName
   adminOnly?: boolean
+  // Admin o quien tenga la carga de productos habilitada.
+  productsOnly?: boolean
   // Sidebar only; on the phone it lives in "Más".
   sideOnly?: boolean
 }
@@ -74,7 +76,7 @@ const SECONDARY: NavItem[] = [
     to: '/admin/productos',
     label: 'Productos y stock',
     icon: 'layers',
-    adminOnly: true,
+    productsOnly: true,
   },
   {
     to: '/admin/estadisticas',
@@ -102,10 +104,12 @@ export default function AdminLayout() {
     )
       void signOut()
   }
-  const { current, isAdmin, lock } = useOperator()
+  const { current, isAdmin, canManageProducts, lock } = useOperator()
   const [moreOpen, setMoreOpen] = useState(false)
   const location = useLocation()
-  const secondary = SECONDARY.filter((item) => !item.adminOnly || isAdmin)
+  const secondary = SECONDARY.filter((item) =>
+    item.productsOnly ? canManageProducts : !item.adminOnly || isAdmin,
+  )
   const [openIdeas, setOpenIdeas] = useState(0)
   const [pendingTasks, setPendingTasks] = useState(0)
 
