@@ -4,9 +4,8 @@ import { ProductCard } from '../components/ProductCard'
 import {
   CATEGORIES,
   categoryLabel,
-  inStock,
-  searchFamilies,
 } from '../lib/catalog'
+import { buildCards } from '../lib/catalogCards'
 import { useShop } from '../lib/data'
 import { usePageTitle } from '../lib/usePageTitle'
 import { GridSkeleton, LoadError } from './states'
@@ -20,9 +19,10 @@ export function Catalog() {
   const meta = CATEGORIES.find((c) => c.slug === cat)
   usePageTitle(cat ? categoryLabel(cat) : 'Catálogo')
 
-  let list = cat ? families.filter((f) => f.category === cat) : families
-  if (onlyStock) list = list.filter(inStock)
-  list = searchFamilies(list, q)
+  const list = buildCards(
+    cat ? families.filter((f) => f.category === cat) : families,
+    { onlyStock, query: q },
+  )
 
   const usedCats = CATEGORIES.filter((c) =>
     families.some((f) => f.category === c.slug),
@@ -119,8 +119,8 @@ export function Catalog() {
             {list.length} {list.length === 1 ? 'producto' : 'productos'}
           </p>
           <div className="grid">
-            {list.map((f) => (
-              <ProductCard key={f.slug} f={f} />
+            {list.map((c) => (
+              <ProductCard key={c.key} f={c.family} card={c} />
             ))}
           </div>
         </>
