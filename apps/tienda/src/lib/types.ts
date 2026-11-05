@@ -122,6 +122,8 @@ export type OrderStatus =
 export interface OrderStatusResult {
   code: string
   status: OrderStatus
+  /** El taller todavía no lo confirmó (se cancela solo a las 72 h) */
+  pendingConfirmation?: boolean
   createdAt: string
   dueDate: string
   total: number | null

@@ -109,21 +109,25 @@ export function Order() {
         <h1 style={{ fontSize: 'clamp(1.8rem, 4.4vw, 2.6rem)' }}>
           {fresh
             ? `¡Listo, ${order.customerFirstName}! Falta un paso`
-            : HEADLINE[order.status]}
+            : order.pendingConfirmation
+              ? 'Falta confirmar tu pedido'
+              : HEADLINE[order.status]}
         </h1>
       </div>
 
       <div className="stack" style={{ gap: 18 }}>
-        {fresh && (
+        {(fresh || order.pendingConfirmation) && (
           <section
             className="panel"
             style={{ borderColor: 'var(--accent)', borderWidth: 2 }}
           >
             <h2>Mandanos el pedido por WhatsApp</h2>
             <p className="muted">
-              Ya lo guardamos. Abrí WhatsApp y mandanos el mensaje que te
-              dejamos escrito
-              {isTransfer ? ', con el comprobante de la transferencia.' : '.'}
+              {fresh
+                ? 'Ya lo guardamos. Abrí WhatsApp y mandanos el mensaje que te dejamos escrito'
+                : 'Todavía no lo confirmamos. Mandanos el mensaje por WhatsApp'}
+              {isTransfer ? ', con el comprobante de la transferencia.' : '.'}{' '}
+              Si no lo confirmamos en 72 horas, se cancela solo.
             </p>
             <a
               className="btn btn-wa btn-block"
