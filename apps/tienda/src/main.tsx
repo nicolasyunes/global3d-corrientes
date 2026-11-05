@@ -13,6 +13,7 @@ import { Order } from './pages/Order'
 import { Product } from './pages/Product'
 import { NotFound } from './pages/states'
 import { shopBase } from './lib/basePath'
+import { rememberMpTestFlag } from './lib/mercadopago'
 import './styles/tienda.css'
 
 const router = createBrowserRouter(
@@ -36,6 +37,8 @@ const router = createBrowserRouter(
   ],
   { basename: shopBase(window.location.pathname) },
 )
+
+rememberMpTestFlag()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
