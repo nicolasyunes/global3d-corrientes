@@ -21,6 +21,42 @@
       "destination": "/herramientas/index.html"
     },
     {
+      "source": "/tienda/p/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|facebookexternalhit|Facebot|meta-externalagent|Instagram|Twitterbot|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Applebot).*"
+        }
+      ],
+      "destination": "/api/tienda-og?slug=:slug"
+    },
+    {
+      "source": "/p/:slug",
+      "has": [
+        {
+          "type": "host",
+          "value": "(www\\.)?global3d\\.com\\.ar"
+        },
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|facebookexternalhit|Facebot|meta-externalagent|Instagram|Twitterbot|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Applebot).*"
+        }
+      ],
+      "destination": "/api/tienda-og?slug=:slug&base=root"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "(www\\.)?global3d\\.com\\.ar" }],
+      "destination": "/tienda/index.html"
+    },
+    {
+      "source": "/((?!tienda/|api/|_vercel/|herramientas/).*)",
+      "has": [{ "type": "host", "value": "(www\\.)?global3d\\.com\\.ar" }],
+      "destination": "/tienda/index.html"
+    },
+    {
       "source": "/tienda",
       "destination": "/tienda/index.html"
     },
@@ -29,7 +65,7 @@
       "destination": "/tienda/index.html"
     },
     {
-      "source": "/((?!herramientas/|tienda/).*)",
+      "source": "/((?!herramientas/|tienda/|api/).*)",
       "destination": "/index.html"
     }
   ]

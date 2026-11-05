@@ -7,6 +7,7 @@ import { countOpenIdeas } from '@/features/ideas/ideas.api'
 import { countOpenTasks } from '@/features/notices/notices.api'
 import { useOrderModal } from '@/features/orders/order-modal-context'
 import { OrderModalProvider } from '@/features/orders/OrderModalProvider'
+import { WebOrdersAlert } from '@/features/orders/WebOrdersAlert'
 import './shell.css'
 
 function NewOrderFab() {
@@ -176,6 +177,7 @@ export default function AdminLayout() {
         </div>
 
         <NewOrderFab />
+        <WebOrdersAlert />
 
         <nav className="shell-bottom" aria-label="Navegación">
           {MAIN.filter((item) => !item.sideOnly).map((item) => (
