@@ -4,6 +4,7 @@ import { api, orderErrorMessage } from '../lib/api'
 import { cart, cartHasQuote, cartTotal, useCart } from '../lib/cart'
 import { useShop } from '../lib/data'
 import { ars, onlyDigits } from '../lib/format'
+import { mpAvailable } from '../lib/mercadopago'
 import type { DeliveryMode, PaymentMethod, PaymentMode } from '../lib/types'
 import { usePageTitle } from '../lib/usePageTitle'
 import { shopBase } from '../lib/basePath'
@@ -58,7 +59,18 @@ export function Checkout() {
       ? Math.ceil((total * settings.sena.porcentaje) / 100)
       : total
   const cashAllowed = delivery === 'retiro'
-  const effMethod: PaymentMethod = cashAllowed ? method : 'transfer'
+  const cardAllowed = mpAvailable(settings)
+  const effMethod: PaymentMethod =
+    (method === 'cash' && !cashAllowed) ||
+    (method === 'mercadopago' && !cardAllowed)
+      ? 'transfer'
+      : method
+  const payNowLabel =
+    effMethod === 'cash'
+      ? 'Pagás al retirar'
+      : effMethod === 'mercadopago'
+        ? 'Pagás con tarjeta'
+        : 'Transferís ahora'
 
   const errs = {
     name: name.trim().length < 2 ? 'Escribí tu nombre.' : null,
@@ -335,6 +347,23 @@ export function Checkout() {
                   </small>
                 </span>
               </label>
+              {cardAllowed && (
+                <label className="choice">
+                  <input
+                    type="radio"
+                    name="medio"
+                    checked={effMethod === 'mercadopago'}
+                    onChange={() => setMethod('mercadopago')}
+                  />
+                  <span>
+                    <strong>Tarjeta de crédito o débito</strong>
+                    <small>
+                      Con Mercado Pago, en el paso siguiente. Cuotas según tu
+                      tarjeta.
+                    </small>
+                  </span>
+                </label>
+              )}
             </div>
           </fieldset>
 
@@ -394,9 +423,7 @@ export function Checkout() {
             </div>
           )}
           <div className="sum-row">
-            <span>
-              {effMethod === 'cash' ? 'Pagás al retirar' : 'Transferís ahora'}
-            </span>
+            <span>{payNowLabel}</span>
             <strong className="num">{ars(deposit)}</strong>
           </div>
           {error && (
@@ -424,9 +451,7 @@ export function Checkout() {
             </div>
           )}
           <div className="sum-row big">
-            <span>
-              {effMethod === 'cash' ? 'Pagás al retirar' : 'Transferís ahora'}
-            </span>
+            <span>{payNowLabel}</span>
             <span className="num">{ars(deposit)}</span>
           </div>
           <button

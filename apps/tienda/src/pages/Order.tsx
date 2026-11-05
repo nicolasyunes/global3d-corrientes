@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { CopyButton } from '../components/bits'
 import { IconWhatsApp } from '../components/Icons'
+import { MpCardPayment } from '../components/MpCardPayment'
 import { api } from '../lib/api'
 import { useShop } from '../lib/data'
 import { ars, shortDate } from '../lib/format'
@@ -41,6 +42,12 @@ export function Order() {
     'loading',
   )
   usePageTitle(order ? `Pedido #${order.code}` : 'Tu pedido')
+  const [reloadKey, setReloadKey] = useState(0)
+  // El pago se registra en el servidor: se vuelve a leer el pedido un momento
+  // después para mostrar la seña cobrada y el estado confirmado.
+  const refresh = useCallback(() => {
+    setTimeout(() => setReloadKey((k) => k + 1), 1500)
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -55,7 +62,7 @@ export function Order() {
     return () => {
       alive = false
     }
-  }, [token])
+  }, [token, reloadKey])
 
   if (state === 'loading')
     return (
@@ -95,6 +102,8 @@ export function Order() {
   const balance = order.pendingBalance ?? Math.max(0, total - paid)
   const toTransfer = fresh ? fresh.deposit : order.payment.deposit
   const isTransfer = (fresh?.method ?? order.payment.method) === 'transfer'
+  const isCard = (fresh?.method ?? order.payment.method) === 'mercadopago'
+  const mpKey = settings.mercadopago?.publicKey
   const waText =
     fresh?.waText ??
     `¡Hola Global3D! Consulto por mi pedido #${order.code}: ${window.location.href}`
@@ -116,6 +125,14 @@ export function Order() {
       </div>
 
       <div className="stack" style={{ gap: 18 }}>
+        {isCard && mpKey && !cancelled && paid < toTransfer && (
+          <MpCardPayment
+            orderToken={token}
+            amount={toTransfer - paid}
+            publicKey={mpKey}
+            onPaid={refresh}
+          />
+        )}
         {(fresh || order.pendingConfirmation) && (
           <section
             className="panel"

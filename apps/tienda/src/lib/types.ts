@@ -73,6 +73,8 @@ export interface ShopSettings {
   envios: { corrientes: string; pais: string }
   /** Links de publicaciones elegidas a mano; se usan si no hay token de la API */
   instagram_posts?: string[]
+  /** Pago con tarjeta; apagado hasta que se active (ver lib/mercadopago.ts) */
+  mercadopago?: { enabled: boolean; publicKey: string }
 }
 
 export interface InstagramPost {
@@ -86,7 +88,7 @@ export interface InstagramPost {
 
 export type DeliveryMode = 'retiro' | 'corrientes' | 'pais'
 export type PaymentMode = 'sena' | 'total'
-export type PaymentMethod = 'transfer' | 'cash'
+export type PaymentMethod = 'transfer' | 'cash' | 'mercadopago'
 
 export interface CreateOrderInput {
   customer: { name: string; whatsapp: string }

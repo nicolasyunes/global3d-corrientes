@@ -70,6 +70,18 @@ export const api = {
     return bucket.getPublicUrl(path).data.publicUrl
   },
   // Edge function con caché; si algo falla devuelve [] y la sección no se ve.
+  /** Cobra con tarjeta (edge function mp-pay); el monto lo calcula el servidor. */
+  payWithMercadoPago: async (
+    orderToken: string,
+    formData: unknown,
+  ): Promise<{ status: string | null; statusDetail: string | null }> => {
+    const { data, error } = await supabase.functions.invoke<{
+      status: string
+      statusDetail: string | null
+    }>('mp-pay', { body: { orderToken, formData } })
+    if (error || !data) return { status: null, statusDetail: null }
+    return data
+  },
   instagram: async (): Promise<InstagramPost[]> => {
     const { data, error } = await supabase.functions.invoke<{
       posts: InstagramPost[]
