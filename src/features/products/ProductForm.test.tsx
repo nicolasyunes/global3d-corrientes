@@ -32,10 +32,43 @@ vi.mock('./products.api', () => ({
   reorderProductImages: vi.fn(),
 }))
 
+const { listShopFamiliesMock, saveProductShopLinkMock } = vi.hoisted(() => ({
+  listShopFamiliesMock: vi.fn(),
+  saveProductShopLinkMock: vi.fn(),
+}))
+
+vi.mock('./shopLink.api', async (orig) => ({
+  ...(await orig<typeof import('./shopLink.api')>()),
+  listShopFamilies: listShopFamiliesMock,
+  saveProductShopLink: saveProductShopLinkMock,
+}))
+
+const VASO = {
+  id: 'fam-vaso',
+  slug: 'vaso-camiseta',
+  name: 'Vaso camiseta',
+  category: 'vasos',
+  published: true,
+  axes: [
+    { key: 'tamano', label: 'Tamaño' },
+    { key: 'diseno', label: 'Equipo' },
+  ],
+  members: [
+    {
+      productId: 'p1',
+      values: { tamano: '650 ml', diseno: 'River' },
+      position: 0,
+    },
+    { productId: 'p2', values: { tamano: '1 L', diseno: 'Boca' }, position: 1 },
+  ],
+}
+
 import ProductForm from './ProductForm'
 
 beforeEach(() => {
   vi.clearAllMocks()
+  listShopFamiliesMock.mockResolvedValue([VASO])
+  saveProductShopLinkMock.mockResolvedValue(undefined)
   listProductImagesMock.mockResolvedValue([])
   listProductPartsMock.mockResolvedValue([])
   createProductMock.mockResolvedValue({ id: 'new-1' })
@@ -143,5 +176,80 @@ describe('ProductForm', () => {
       expect(uploadProductImageMock).toHaveBeenCalledWith('new-1', file, 0),
     )
     expect(await screen.findByText('lista')).toBeInTheDocument()
+  })
+
+  it('asigna un producto nuevo a una ficha de la tienda con sus opciones', async () => {
+    renderAt('/admin/productos/nuevo')
+    fireEvent.change(await screen.findByLabelText('Nombre del producto'), {
+      target: { value: 'Vaso camiseta 1L River' },
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'En una ficha que ya existe' }),
+    )
+    fireEvent.change(screen.getByLabelText('Ficha de la tienda'), {
+      target: { value: 'fam-vaso' },
+    })
+    fireEvent.change(screen.getByLabelText('Tamaño'), {
+      target: { value: '1 L' },
+    })
+    fireEvent.change(screen.getByLabelText('Equipo'), {
+      target: { value: 'River' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+    await waitFor(() =>
+      expect(saveProductShopLinkMock).toHaveBeenCalledWith(
+        'new-1',
+        expect.objectContaining({
+          mode: 'existing',
+          familyId: 'fam-vaso',
+          options: { tamano: '1 L', diseno: 'River' },
+        }),
+        [VASO],
+      ),
+    )
+  })
+
+  it('no guarda si falta una opción o repite la de otro producto', async () => {
+    renderAt('/admin/productos/nuevo')
+    fireEvent.change(await screen.findByLabelText('Nombre del producto'), {
+      target: { value: 'Otro vaso' },
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'En una ficha que ya existe' }),
+    )
+    fireEvent.change(screen.getByLabelText('Ficha de la tienda'), {
+      target: { value: 'fam-vaso' },
+    })
+    fireEvent.change(screen.getByLabelText('Tamaño'), {
+      target: { value: '650 ml' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+    expect(await screen.findByText('Completá equipo.')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Equipo'), {
+      target: { value: 'river' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+    expect(
+      await screen.findByText(
+        /Ya hay otro producto con Tamaño 650 ml y Equipo river/,
+      ),
+    ).toBeInTheDocument()
+    expect(createProductMock).not.toHaveBeenCalled()
+  })
+
+  it('al editar muestra la ficha en la que ya está el producto', async () => {
+    getProductMock.mockResolvedValue({
+      id: 'p1',
+      name: 'Vaso camiseta 650 River',
+      description: null,
+      base_price: 22500,
+      stock_quantity: 1,
+      active: true,
+    })
+    renderAt('/admin/productos/p1')
+    expect(await screen.findByLabelText('Ficha de la tienda')).toHaveValue(
+      'fam-vaso',
+    )
+    expect(screen.getByLabelText('Equipo')).toHaveValue('River')
   })
 })
