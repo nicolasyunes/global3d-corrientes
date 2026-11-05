@@ -510,3 +510,19 @@
     grid-column: 1 / -1;
   }
 }
+
+/* Tienda online en la ficha del producto */
+.shoplink__modes {
+  border-radius: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.shoplink__fields {
+  display: grid;
+  gap: 6px;
+  max-width: 520px;
+}
+.shoplink__fields > div {
+  display: grid;
+  gap: 6px;
+}
