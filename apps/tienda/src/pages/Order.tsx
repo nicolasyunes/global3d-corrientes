@@ -48,6 +48,16 @@ export function Order() {
   const refresh = useCallback(() => {
     setTimeout(() => setReloadKey((k) => k + 1), 1500)
   }, [])
+  // Vuelta de "Pagar con Mercado Pago": el resultado viene en la dirección y
+  // el pago lo registra el aviso de Mercado Pago unos segundos después.
+  const mpReturn = new URLSearchParams(loc.search).get('collection_status')
+  useEffect(() => {
+    if (mpReturn !== 'approved' && mpReturn !== 'in_process') return
+    const timers = [3000, 8000].map((ms) =>
+      setTimeout(() => setReloadKey((k) => k + 1), ms),
+    )
+    return () => timers.forEach(clearTimeout)
+  }, [mpReturn])
 
   useEffect(() => {
     let alive = true
@@ -125,14 +135,30 @@ export function Order() {
       </div>
 
       <div className="stack" style={{ gap: 18 }}>
-        {isCard && mpKey && !cancelled && paid < toTransfer && (
-          <MpCardPayment
-            orderToken={token}
-            amount={toTransfer - paid}
-            publicKey={mpKey}
-            onPaid={refresh}
-          />
+        {mpReturn === 'approved' && (
+          <div className="notice n-ok" role="status">
+            ¡Pago aprobado con Mercado Pago! En unos segundos lo vas a ver
+            acreditado acá.
+          </div>
         )}
+        {(mpReturn === 'in_process' || mpReturn === 'pending') && (
+          <div className="notice n-info" role="status">
+            Tu pago con Mercado Pago quedó en revisión. Te avisamos apenas se
+            acredite; no hace falta pagar de nuevo.
+          </div>
+        )}
+        {isCard &&
+          mpKey &&
+          !cancelled &&
+          paid < toTransfer &&
+          mpReturn !== 'approved' && (
+            <MpCardPayment
+              orderToken={token}
+              amount={toTransfer - paid}
+              publicKey={mpKey}
+              onPaid={refresh}
+            />
+          )}
         {(fresh || order.pendingConfirmation) && (
           <section
             className="panel"

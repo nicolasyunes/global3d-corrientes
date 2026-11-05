@@ -1806,3 +1806,130 @@ p {
   flex-direction: column;
   gap: 16px;
 }
+
+/* Checkout en pasos: medio de pago, entrega y datos */
+.checkout-steps {
+  gap: 18px;
+}
+.panel.step {
+  margin: 0;
+  min-width: 0;
+}
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  margin-bottom: 14px;
+  float: left;
+  width: 100%;
+}
+.step-head + * {
+  clear: both;
+}
+.step-head strong {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+.step-head small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.step-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.step-sub {
+  font-size: 0.95rem;
+  font-weight: 800;
+  margin: 18px 0 10px;
+}
+.pay-choice {
+  align-items: center;
+}
+.pay-choice input {
+  margin: 0;
+}
+.pay-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.pay-choice[aria-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.off-badge,
+.pay-tag {
+  margin-left: auto;
+  flex: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.off-badge {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+.pay-tag {
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+}
+@media (min-width: 640px) {
+  .choice-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.pay-now {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+.pay-now strong {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+.trust-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.trust-list li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  line-height: 1.4;
+}
+.trust-list svg {
+  flex: none;
+  margin-top: 1px;
+}
+.sum-row .num {
+  white-space: nowrap;
+}
