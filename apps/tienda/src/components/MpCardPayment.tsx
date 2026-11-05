@@ -13,7 +13,7 @@ interface MpGlobal {
   ): {
     bricks: () => {
       create: (
-        kind: 'cardPayment',
+        kind: 'payment',
         containerId: string,
         settings: unknown,
       ) => Promise<Brick>
@@ -24,9 +24,11 @@ interface MpGlobal {
 const CONTAINER = 'mp-card-brick'
 
 /**
- * Formulario de tarjeta de Mercado Pago (Card Payment Brick) para pagar la
- * seña o el total de un pedido. Los datos de la tarjeta los maneja Mercado
- * Pago; acá solo llega un token. El cobro y el monto los decide el servidor.
+ * Pago con Mercado Pago (Payment Brick) de la seña o el total de un pedido:
+ * tarjeta de crédito o débito acá mismo, o "Pagar con Mercado Pago" (dinero en
+ * cuenta, tarjetas guardadas), que lleva al login de Mercado Pago y vuelve a
+ * esta página. Los datos de la tarjeta los maneja Mercado Pago; acá solo llega
+ * un token. El cobro y el monto los decide el servidor.
  */
 export function MpCardPayment({
   orderToken,
@@ -51,16 +53,29 @@ export function MpCardPayment({
     let alive = true
     setPhase('loading')
     const created = previous.current
-      .then(() => loadMpSdk())
-      .then(() => {
+      .then(() =>
+        Promise.all([
+          loadMpSdk(),
+          // Sin preferencia igual se puede pagar con tarjeta.
+          api
+            .mercadoPagoPreference(orderToken, window.location.href)
+            .catch(() => null),
+        ]),
+      )
+      .then(([, preferenceId]) => {
         if (!alive) return null
         const MP = (window as unknown as { MercadoPago: MpGlobal }).MercadoPago
         const mp = new MP(publicKey, { locale: 'es-AR' })
-        return mp.bricks().create('cardPayment', CONTAINER, {
-          initialization: { amount },
+        return mp.bricks().create('payment', CONTAINER, {
+          initialization: preferenceId ? { amount, preferenceId } : { amount },
           customization: {
             visual: { style: { theme: 'default' } },
-            paymentMethods: { maxInstallments: 12 },
+            paymentMethods: {
+              creditCard: 'all',
+              debitCard: 'all',
+              ...(preferenceId ? { mercadoPago: 'all' } : {}),
+              maxInstallments: 12,
+            },
           },
           callbacks: {
             onReady: () => alive && setPhase('ready'),
@@ -69,7 +84,16 @@ export function MpCardPayment({
             onError: (e: { type?: string } | undefined) => {
               if (alive && e?.type === 'critical') setPhase('error')
             },
-            onSubmit: async (formData: unknown) => {
+            onSubmit: async ({
+              selectedPaymentMethod,
+              formData,
+            }: {
+              selectedPaymentMethod?: string
+              formData?: unknown
+            }) => {
+              // "Pagar con Mercado Pago": el Brick lleva al login de Mercado
+              // Pago y el pago entra por el aviso (mp-webhook).
+              if (selectedPaymentMethod === 'wallet_purchase') return
               const r = await api.payWithMercadoPago(orderToken, formData)
               const msg = mpResultMessage(r.status, r.statusDetail)
               if (alive) setResult(msg)
@@ -99,10 +123,11 @@ export function MpCardPayment({
 
   return (
     <section className="panel" aria-labelledby="mp-title">
-      <h2 id="mp-title">Pagá con tarjeta: {ars(amount)}</h2>
+      <h2 id="mp-title">Pagá con Mercado Pago: {ars(amount)}</h2>
       <p className="muted">
-        Crédito o débito con Mercado Pago. Las cuotas y su interés dependen de
-        tu tarjeta.
+        Con tu cuenta de Mercado Pago (dinero en cuenta o tarjetas guardadas) o
+        con cualquier tarjeta de crédito o débito. Las cuotas y su interés
+        dependen de tu tarjeta.
       </p>
       {result && (
         <div

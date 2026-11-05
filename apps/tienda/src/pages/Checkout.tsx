@@ -1,5 +1,15 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
+import {
+  IconBank,
+  IconBox,
+  IconCard,
+  IconCash,
+  IconLock,
+  IconStore,
+  IconTruck,
+  IconWhatsApp,
+} from '../components/Icons'
 import { api, orderErrorMessage } from '../lib/api'
 import { cart, cartHasQuote, cartTotal, useCart } from '../lib/cart'
 import { useShop } from '../lib/data'
@@ -74,7 +84,7 @@ export function Checkout() {
     effMethod === 'cash'
       ? 'Pagás al retirar'
       : effMethod === 'mercadopago'
-        ? 'Pagás con tarjeta'
+        ? 'Pagás con Mercado Pago'
         : 'Transferís ahora'
 
   const errs = {
@@ -177,9 +187,208 @@ export function Checkout() {
       </div>
 
       <form className="split" onSubmit={submit} noValidate>
-        <div className="stack" style={{ gap: 18 }}>
-          <section className="panel" aria-labelledby="c-datos">
-            <h2 id="c-datos">Tus datos</h2>
+        <div className="stack checkout-steps">
+          <fieldset className="panel step">
+            <legend className="step-head">
+              <span className="step-num" aria-hidden="true">
+                1
+              </span>
+              <span>
+                <strong>Cómo pagás</strong>
+                <small>Elegí el medio de pago</small>
+              </span>
+            </legend>
+            <div className="choice-list">
+              <label className="choice pay-choice">
+                <input
+                  type="radio"
+                  name="medio"
+                  checked={effMethod === 'transfer'}
+                  onChange={() => setMethod('transfer')}
+                />
+                <span className="pay-icon" aria-hidden="true">
+                  <IconBank />
+                </span>
+                <span>
+                  <strong>Transferencia bancaria</strong>
+                  <small>
+                    Al confirmar te mostramos el alias y el CBU (
+                    {settings.transferencia.banco}).
+                  </small>
+                </span>
+                {pct > 0 && <span className="off-badge">{pct}% off</span>}
+              </label>
+              <label
+                className="choice pay-choice"
+                aria-disabled={!cashAllowed || undefined}
+              >
+                <input
+                  type="radio"
+                  name="medio"
+                  disabled={!cashAllowed}
+                  checked={effMethod === 'cash'}
+                  onChange={() => setMethod('cash')}
+                />
+                <span className="pay-icon" aria-hidden="true">
+                  <IconCash />
+                </span>
+                <span>
+                  <strong>Efectivo en el local</strong>
+                  <small>
+                    {cashAllowed
+                      ? 'Pagás cuando pasás a retirar.'
+                      : 'Solo si retirás en el local (paso 2).'}
+                  </small>
+                </span>
+                {pct > 0 && <span className="off-badge">{pct}% off</span>}
+              </label>
+              {cardAllowed && (
+                <label className="choice pay-choice">
+                  <input
+                    type="radio"
+                    name="medio"
+                    checked={effMethod === 'mercadopago'}
+                    onChange={() => setMethod('mercadopago')}
+                  />
+                  <span className="pay-icon" aria-hidden="true">
+                    <IconCard />
+                  </span>
+                  <span>
+                    <strong>Mercado Pago</strong>
+                    <small>
+                      Tarjeta de crédito o débito, o el dinero de tu cuenta de
+                      Mercado Pago. Hasta 12 cuotas.
+                    </small>
+                  </span>
+                  <span className="pay-tag">Online</span>
+                </label>
+              )}
+            </div>
+
+            <h3 className="step-sub">¿Cuánto pagás ahora?</h3>
+            <div className="choice-list choice-row">
+              <label className="choice">
+                <input
+                  type="radio"
+                  name="modo"
+                  checked={payMode === 'sena'}
+                  onChange={() => setPayMode('sena')}
+                />
+                <span>
+                  <strong>Seña del {settings.sena.porcentaje}%</strong>
+                  <small>El resto al retirar o antes del envío.</small>
+                </span>
+                <span className="end num">
+                  {ars(Math.ceil((total * settings.sena.porcentaje) / 100))}
+                </span>
+              </label>
+              <label className="choice">
+                <input
+                  type="radio"
+                  name="modo"
+                  checked={payMode === 'total'}
+                  onChange={() => setPayMode('total')}
+                />
+                <span>
+                  <strong>El total</strong>
+                  <small>Y te olvidás del saldo.</small>
+                </span>
+                <span className="end num">{ars(total)}</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset className="panel step">
+            <legend className="step-head">
+              <span className="step-num" aria-hidden="true">
+                2
+              </span>
+              <span>
+                <strong>Entrega</strong>
+                <small>Cómo te llega el pedido</small>
+              </span>
+            </legend>
+            <div className="choice-list">
+              <label className="choice pay-choice">
+                <input
+                  type="radio"
+                  name="entrega"
+                  checked={delivery === 'retiro'}
+                  onChange={() => setDelivery('retiro')}
+                />
+                <span className="pay-icon" aria-hidden="true">
+                  <IconStore />
+                </span>
+                <span>
+                  <strong>Retiro en el local</strong>
+                  <small>
+                    {settings.local.direccion} · {settings.local.horarios}. Te
+                    avisamos cuando está listo.
+                  </small>
+                </span>
+                <span className="end">Gratis</span>
+              </label>
+              <label className="choice pay-choice">
+                <input
+                  type="radio"
+                  name="entrega"
+                  checked={delivery === 'corrientes'}
+                  onChange={() => setDelivery('corrientes')}
+                />
+                <span className="pay-icon" aria-hidden="true">
+                  <IconTruck size={18} />
+                </span>
+                <span>
+                  <strong>Envío en Corrientes</strong>
+                  <small>{settings.envios.corrientes}.</small>
+                </span>
+                <span className="end">A coordinar</span>
+              </label>
+              <label className="choice pay-choice">
+                <input
+                  type="radio"
+                  name="entrega"
+                  checked={delivery === 'pais'}
+                  onChange={() => setDelivery('pais')}
+                />
+                <span className="pay-icon" aria-hidden="true">
+                  <IconBox />
+                </span>
+                <span>
+                  <strong>Envío al resto del país</strong>
+                  <small>{settings.envios.pais}.</small>
+                </span>
+                <span className="end">A cotizar</span>
+              </label>
+            </div>
+            {delivery !== 'retiro' && (
+              <label className="field">
+                <span className="label">Dirección, ciudad y código postal</span>
+                <input
+                  id="direccion"
+                  className="input"
+                  autoComplete="street-address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  aria-invalid={(tried && !!errs.address) || undefined}
+                />
+                {tried && errs.address && (
+                  <span className="error-text">{errs.address}</span>
+                )}
+              </label>
+            )}
+          </fieldset>
+
+          <fieldset className="panel step">
+            <legend className="step-head">
+              <span className="step-num" aria-hidden="true">
+                3
+              </span>
+              <span>
+                <strong>Tus datos</strong>
+                <small>Para avisarte cuando esté listo</small>
+              </span>
+            </legend>
             <div className="grid-2">
               <label className="field">
                 <span className="label">Nombre y apellido</span>
@@ -213,170 +422,6 @@ export function Checkout() {
                 )}
               </label>
             </div>
-          </section>
-
-          <fieldset className="panel" style={{ margin: 0 }}>
-            <legend className="sr-only">Entrega</legend>
-            <h2 aria-hidden="true">Entrega</h2>
-            <div className="choice-list">
-              <label className="choice">
-                <input
-                  type="radio"
-                  name="entrega"
-                  checked={delivery === 'retiro'}
-                  onChange={() => setDelivery('retiro')}
-                />
-                <span>
-                  <strong>Retiro en el local</strong>
-                  <small>
-                    {settings.local.direccion} · {settings.local.horarios}. Te
-                    avisamos cuando está listo.
-                  </small>
-                </span>
-                <span className="end">Gratis</span>
-              </label>
-              <label className="choice">
-                <input
-                  type="radio"
-                  name="entrega"
-                  checked={delivery === 'corrientes'}
-                  onChange={() => setDelivery('corrientes')}
-                />
-                <span>
-                  <strong>Envío en Corrientes</strong>
-                  <small>{settings.envios.corrientes}.</small>
-                </span>
-                <span className="end">A coordinar</span>
-              </label>
-              <label className="choice">
-                <input
-                  type="radio"
-                  name="entrega"
-                  checked={delivery === 'pais'}
-                  onChange={() => setDelivery('pais')}
-                />
-                <span>
-                  <strong>Envío al resto del país</strong>
-                  <small>{settings.envios.pais}.</small>
-                </span>
-                <span className="end">A cotizar</span>
-              </label>
-            </div>
-            {delivery !== 'retiro' && (
-              <label className="field">
-                <span className="label">Dirección, ciudad y código postal</span>
-                <input
-                  id="direccion"
-                  className="input"
-                  autoComplete="street-address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  aria-invalid={(tried && !!errs.address) || undefined}
-                />
-                {tried && errs.address && (
-                  <span className="error-text">{errs.address}</span>
-                )}
-              </label>
-            )}
-          </fieldset>
-
-          <fieldset className="panel" style={{ margin: 0 }}>
-            <legend className="sr-only">Pago</legend>
-            <h2 aria-hidden="true">¿Cuánto pagás ahora?</h2>
-            <div className="choice-list">
-              <label className="choice">
-                <input
-                  type="radio"
-                  name="modo"
-                  checked={payMode === 'sena'}
-                  onChange={() => setPayMode('sena')}
-                />
-                <span>
-                  <strong>Seña del {settings.sena.porcentaje}%</strong>
-                  <small>El saldo lo pagás al retirar o antes del envío.</small>
-                </span>
-                <span className="end num">
-                  {ars(Math.ceil((total * settings.sena.porcentaje) / 100))}
-                </span>
-              </label>
-              <label className="choice">
-                <input
-                  type="radio"
-                  name="modo"
-                  checked={payMode === 'total'}
-                  onChange={() => setPayMode('total')}
-                />
-                <span>
-                  <strong>El total</strong>
-                  <small>Y te olvidás del saldo.</small>
-                </span>
-                <span className="end num">{ars(total)}</span>
-              </label>
-            </div>
-            <h2 aria-hidden="true" style={{ marginTop: 6 }}>
-              Medio de pago
-            </h2>
-            <div className="choice-list">
-              <label className="choice">
-                <input
-                  type="radio"
-                  name="medio"
-                  checked={effMethod === 'transfer'}
-                  onChange={() => setMethod('transfer')}
-                />
-                <span>
-                  <strong>
-                    Transferencia{pct > 0 ? ` · ${pct}% off` : ''}
-                  </strong>
-                  <small>
-                    Al confirmar te mostramos el alias y el CBU (
-                    {settings.transferencia.banco}).
-                  </small>
-                </span>
-              </label>
-              <label
-                className="choice"
-                style={cashAllowed ? undefined : { opacity: 0.5 }}
-              >
-                <input
-                  type="radio"
-                  name="medio"
-                  disabled={!cashAllowed}
-                  checked={effMethod === 'cash'}
-                  onChange={() => setMethod('cash')}
-                />
-                <span>
-                  <strong>
-                    Efectivo en el local{pct > 0 ? ` · ${pct}% off` : ''}
-                  </strong>
-                  <small>
-                    {cashAllowed
-                      ? 'Pagás cuando pasás a retirar.'
-                      : 'Solo para retiro en el local.'}
-                  </small>
-                </span>
-              </label>
-              {cardAllowed && (
-                <label className="choice">
-                  <input
-                    type="radio"
-                    name="medio"
-                    checked={effMethod === 'mercadopago'}
-                    onChange={() => setMethod('mercadopago')}
-                  />
-                  <span>
-                    <strong>Tarjeta de crédito o débito</strong>
-                    <small>
-                      Con Mercado Pago, en el paso siguiente. Cuotas según tu
-                      tarjeta.
-                    </small>
-                  </span>
-                </label>
-              )}
-            </div>
-          </fieldset>
-
-          <section className="panel">
             <label className="field">
               <span className="label">
                 ¿Algo más que tengamos que saber? (opcional)
@@ -390,7 +435,7 @@ export function Checkout() {
                 placeholder="Ej: lo necesito para el sábado, es para regalo…"
               />
             </label>
-          </section>
+          </fieldset>
         </div>
 
         <aside className="panel summary" aria-label="Resumen del pedido">
@@ -444,7 +489,7 @@ export function Checkout() {
               Los productos a cotizar se suman cuando te pasemos el precio.
             </div>
           )}
-          <div className="sum-row">
+          <div className="pay-now">
             <span>{payNowLabel}</span>
             <strong className="num">{ars(deposit)}</strong>
           </div>
@@ -458,12 +503,28 @@ export function Checkout() {
             className="btn btn-primary btn-block desktop-only"
             disabled={sending}
           >
-            {sending ? 'Guardando…' : 'Confirmar pedido'}
+            {sending
+              ? 'Guardando…'
+              : effMethod === 'mercadopago'
+                ? 'Continuar al pago'
+                : 'Confirmar pedido'}
           </button>
-          <p className="hint">
-            Después te abrimos WhatsApp con el pedido escrito para que nos lo
-            mandes.
-          </p>
+          <ul className="trust-list">
+            {effMethod === 'mercadopago' ? (
+              <li>
+                <IconLock size={16} /> Pago seguro procesado por Mercado Pago.
+                Tus datos no pasan por nosotros.
+              </li>
+            ) : (
+              <li>
+                <IconLock size={16} /> Tus datos solo se usan para este pedido.
+              </li>
+            )}
+            <li>
+              <IconWhatsApp size={16} /> Te escribimos por WhatsApp para
+              coordinar.
+            </li>
+          </ul>
         </aside>
 
         <div className="mobile-bar">
@@ -481,7 +542,11 @@ export function Checkout() {
             className="btn btn-primary btn-block"
             disabled={sending}
           >
-            {sending ? 'Guardando…' : 'Confirmar pedido'}
+            {sending
+              ? 'Guardando…'
+              : effMethod === 'mercadopago'
+                ? 'Continuar al pago'
+                : 'Confirmar pedido'}
           </button>
         </div>
       </form>

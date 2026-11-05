@@ -82,6 +82,17 @@ export const api = {
     if (error || !data) return { status: null, statusDetail: null }
     return data
   },
+  /** Preferencia para "Pagar con Mercado Pago" (edge function mp-preference). */
+  mercadoPagoPreference: async (
+    orderToken: string,
+    returnUrl: string,
+  ): Promise<string | null> => {
+    const { data, error } = await supabase.functions.invoke<{
+      preferenceId: string
+    }>('mp-preference', { body: { orderToken, returnUrl } })
+    if (error || !data?.preferenceId) return null
+    return data.preferenceId
+  },
   instagram: async (): Promise<InstagramPost[]> => {
     const { data, error } = await supabase.functions.invoke<{
       posts: InstagramPost[]
