@@ -1312,6 +1312,7 @@ export type Database = {
           stock_quantity: number
           image_url: string | null
           active: boolean
+          ship_box: string | null
           created_at: string
           updated_at: string
           updated_by: string | null
@@ -1324,6 +1325,7 @@ export type Database = {
           stock_quantity?: number
           image_url?: string | null
           active?: boolean
+          ship_box?: string | null
           created_at?: string
           updated_at?: string
           updated_by?: string | null
@@ -1336,6 +1338,7 @@ export type Database = {
           stock_quantity?: number
           image_url?: string | null
           active?: boolean
+          ship_box?: string | null
           created_at?: string
           updated_at?: string
           updated_by?: string | null

@@ -71,6 +71,7 @@ const MAIN: NavItem[] = [
 const SECONDARY: NavItem[] = [
   { to: '/admin/ventas-pedidos', label: 'Entregados', icon: 'receipt' },
   { to: '/admin/calculadora', label: 'Calculadora', icon: 'calc' },
+  { to: '/admin/envios', label: 'Cotizar envío', icon: 'pin' },
   { to: '/admin/conteo', label: 'Conteo', icon: 'list' },
   {
     to: '/admin/productos',

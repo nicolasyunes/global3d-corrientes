@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { quoteFilePath } from './quoteFiles'
+import type { Agency, ShippingQuote } from './shipping'
 import type {
   CreateOrderInput,
   CreateOrderResult,
@@ -38,6 +39,11 @@ const ORDER_ERRORS: Record<string, string> = {
   producto_invalido:
     'Uno de los productos ya no está disponible. Sacalo del carrito y probá de nuevo.',
   cantidad_minima: 'Uno de los productos no llega a la cantidad mínima.',
+  envio_sin_cotizar: 'Cotizá el envío con tu código postal antes de confirmar.',
+  envio_invalido: 'Elegí de nuevo cómo te lo mandamos.',
+  cotizacion_vencida:
+    'El precio del envío se actualizó. Revisalo y confirmá de nuevo.',
+  sucursal_invalida: 'Elegí la sucursal de Correo donde lo retirás.',
   demasiados_pedidos:
     'Recibimos varios pedidos seguidos desde este número. Escribinos por WhatsApp y lo cargamos nosotros.',
 }
@@ -49,6 +55,20 @@ export function orderErrorMessage(err: unknown): string {
     ? ORDER_ERRORS[key]
     : 'No pudimos registrar el pedido. Revisá tu conexión y probá de nuevo, o escribinos por WhatsApp.'
 }
+
+/** Lee el código de error que devuelve una edge function ({ error: '...' }). */
+async function functionErrorCode(error: unknown): Promise<string | null> {
+  const ctx = (error as { context?: unknown } | null)?.context
+  if (ctx instanceof Response) {
+    const body = await ctx.json().catch(() => null)
+    if (body && typeof body.error === 'string') return body.error
+  }
+  return null
+}
+
+export type QuoteResult =
+  | { ok: true; quote: ShippingQuote }
+  | { ok: false; error: string | null }
 
 export const api = {
   catalog: () => rpc<Family[]>('shop_catalog'),
@@ -92,6 +112,29 @@ export const api = {
     }>('mp-preference', { body: { orderToken, returnUrl } })
     if (error || !data?.preferenceId) return null
     return data.preferenceId
+  },
+  /** Cotiza el envío del carrito con Correo Argentino (edge function correo-cotizar). */
+  quoteShipping: async (
+    items: Array<{ productId?: string; familySlug?: string; quantity: number }>,
+    postalCode: string,
+  ): Promise<QuoteResult> => {
+    const { data, error } = await supabase.functions.invoke<ShippingQuote>(
+      'correo-cotizar',
+      { body: { action: 'rates', items, postalCode } },
+    )
+    if (error || !data?.quoteId)
+      return { ok: false, error: await functionErrorCode(error) }
+    return { ok: true, quote: data }
+  },
+  /** Sucursales de Correo de una provincia, las más cercanas al CP primero. */
+  agencies: async (provinceCode: string, postalCode: string): Promise<Agency[]> => {
+    const { data, error } = await supabase.functions.invoke<{
+      agencies: Agency[]
+    }>('correo-cotizar', {
+      body: { action: 'agencies', provinceCode, postalCode },
+    })
+    if (error || !data) throw new ShopError('sucursales')
+    return data.agencies ?? []
   },
   instagram: async (): Promise<InstagramPost[]> => {
     const { data, error } = await supabase.functions.invoke<{

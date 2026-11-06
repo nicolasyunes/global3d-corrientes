@@ -120,7 +120,18 @@ export interface CreateOrderInput {
     quantity: number
     personalization?: string
   }>
-  delivery: { mode: DeliveryMode; address?: string }
+  delivery: {
+    mode: DeliveryMode
+    address?: string
+    /** Envío por Correo Argentino cotizado (correo-cotizar) */
+    shipping?: {
+      quoteId: string
+      type: 'S' | 'D'
+      product: string
+      agencyCode?: string
+      agencyName?: string
+    }
+  }
   payment: { mode: PaymentMode; method: PaymentMethod }
   notes?: string
 }
@@ -130,6 +141,8 @@ export interface CreateOrderResult {
   code: string
   total: number
   deposit: number
+  /** Costo del envío por Correo incluido en el total (0 si no hay) */
+  shipping?: number
   quote: boolean
   dueDate: string
 }

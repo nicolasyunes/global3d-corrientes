@@ -5,6 +5,7 @@ import {
   type ShopLinkDraft,
   type ShopLinkMode,
 } from './shopLink'
+import type { ShipBox } from '@/features/shipping/shipping'
 
 const MODES: { mode: ShopLinkMode; label: string }[] = [
   { mode: 'none', label: 'No se muestra' },
@@ -24,6 +25,9 @@ export function ShopLinkSection({
   status,
   error,
   productName,
+  boxes,
+  shipBox,
+  onShipBox,
 }: {
   draft: ShopLinkDraft
   onChange: (next: ShopLinkDraft) => void
@@ -31,6 +35,11 @@ export function ShopLinkSection({
   status: 'loading' | 'ready' | 'error'
   error: string | null
   productName: string
+  /** Cajas de envío configuradas (Cotizar envío) */
+  boxes?: ShipBox[]
+  /** Caja del producto; '' usa la de la ficha */
+  shipBox?: string
+  onShipBox?: (key: string) => void
 }) {
   const family = families.find((f) => f.id === draft.familyId)
   const categories = [...new Set(families.map((f) => f.category))].sort()
@@ -169,6 +178,32 @@ export function ShopLinkSection({
               <p className="muted pform__hint">
                 Se publica una ficha con este producto solo. Precio, stock y
                 fotos salen de este producto.
+              </p>
+            </div>
+          )}
+
+          {draft.mode !== 'none' && boxes && boxes.length > 0 && onShipBox && (
+            <div className="shoplink__fields">
+              <label className="field-label" htmlFor="shop-ship-box">
+                Caja para el envío
+              </label>
+              <select
+                id="shop-ship-box"
+                className="input"
+                value={shipBox ?? ''}
+                onChange={(e) => onShipBox(e.target.value)}
+              >
+                <option value="">La de la ficha (chica si no se eligió)</option>
+                {boxes.map((b) => (
+                  <option key={b.key} value={b.key}>
+                    {b.label} · {b.length}×{b.width}×{b.height} cm,{' '}
+                    {(b.weight / 1000).toLocaleString('es-AR')} kg
+                  </option>
+                ))}
+              </select>
+              <p className="muted pform__hint">
+                Con esto la tienda cotiza Correo Argentino. Las cajas se editan
+                en Cotizar envío.
               </p>
             </div>
           )}
