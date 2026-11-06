@@ -325,7 +325,7 @@ export default function ProductForm() {
     setSubmitting(true)
     setSubmitError(null)
     try {
-      // El precio de lista es del admin: el resto del equipo ni lo ve ni lo toca.
+      // El precio de lista lo ve todo el equipo, pero solo el admin lo cambia.
       const patch = {
         name: draft.name.trim(),
         description: draft.description.trim() || null,
@@ -442,25 +442,25 @@ export default function ProductForm() {
             )}
 
             <div className="pform__row">
-              {isAdmin && (
-                <div>
-                  <label className="field-label" htmlFor="product-price">
-                    Precio de lista ($)
-                  </label>
-                  <input
-                    id="product-price"
-                    className="input num"
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={draft.basePrice}
-                    onChange={(e) => setField('basePrice', e.target.value)}
-                    aria-invalid={Boolean(errors.basePrice)}
-                  />
-                  {errors.basePrice && (
-                    <p className="pform__err">{errors.basePrice}</p>
-                  )}
-                </div>
-              )}
+              <div>
+                <label className="field-label" htmlFor="product-price">
+                  Precio de lista ($)
+                </label>
+                <input
+                  id="product-price"
+                  className="input num"
+                  inputMode="decimal"
+                  placeholder={isAdmin ? '0' : '—'}
+                  value={draft.basePrice}
+                  readOnly={!isAdmin}
+                  title={isAdmin ? undefined : 'Solo el admin cambia el precio'}
+                  onChange={(e) => setField('basePrice', e.target.value)}
+                  aria-invalid={Boolean(errors.basePrice)}
+                />
+                {errors.basePrice && (
+                  <p className="pform__err">{errors.basePrice}</p>
+                )}
+              </div>
               <div>
                 <label className="field-label" htmlFor="product-stock">
                   Stock armado

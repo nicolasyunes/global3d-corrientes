@@ -184,13 +184,11 @@ export default function ProductsList() {
                       </span>
                     </span>
                   </span>
-                  {isAdmin && (
-                    <span className="prow__price num">
-                      {product.base_price === null
-                        ? '—'
-                        : formatMoney(product.base_price)}
-                    </span>
-                  )}
+                  <span className="prow__price num">
+                    {product.base_price === null
+                      ? '—'
+                      : formatMoney(product.base_price)}
+                  </span>
                 </Link>
                 <div className="prow__stock" aria-label="Stock armado">
                   <button

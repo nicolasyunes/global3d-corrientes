@@ -107,18 +107,17 @@ describe('ProductsList', () => {
     )
   })
 
-  it('a quien no es admin no le muestra precios ni movimientos', async () => {
-    renderList()
-    await screen.findByText('Llavero Zelda')
-    expect(screen.queryByText(/15\.000/)).toBeNull()
-    expect(screen.queryByText('Movimientos')).toBeNull()
-  })
-
-  it('al admin le muestra precios y el link a movimientos', async () => {
-    operator.isAdmin = true
+  it('todo el equipo ve los precios; el link a movimientos es solo del admin', async () => {
     renderList()
     await screen.findByText('Llavero Zelda')
     expect(screen.getAllByText(/15\.000/).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Movimientos')).toBeNull()
+  })
+
+  it('al admin le muestra el link a movimientos', async () => {
+    operator.isAdmin = true
+    renderList()
+    await screen.findByText('Llavero Zelda')
     expect(screen.getByText('Movimientos')).toBeVisible()
   })
 

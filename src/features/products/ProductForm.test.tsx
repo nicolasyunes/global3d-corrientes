@@ -153,13 +153,15 @@ describe('ProductForm', () => {
     ])
   })
 
-  it('a quien no es admin no le muestra el precio ni lo manda', async () => {
+  it('a quien no es admin le muestra el precio sin poder cambiarlo ni mandarlo', async () => {
     operator.isAdmin = false
     renderAt('/admin/productos/nuevo')
     fireEvent.change(await screen.findByLabelText('Nombre del producto'), {
       target: { value: 'Llavero Zelda' },
     })
-    expect(screen.queryByLabelText('Precio de lista ($)')).toBeNull()
+    expect(screen.getByLabelText('Precio de lista ($)')).toHaveAttribute(
+      'readonly',
+    )
     fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
 
     await waitFor(() => expect(createProductMock).toHaveBeenCalledTimes(1))
