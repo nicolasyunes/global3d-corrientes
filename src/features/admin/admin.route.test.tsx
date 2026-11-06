@@ -33,8 +33,8 @@ vi.mock('@/features/orders/OrderProduction', () => ({
 vi.mock('@/features/orders/OrdersList', () => ({
   default: () => <div>LIST</div>,
 }))
-vi.mock('@/features/orders/DeliveredOrdersList', () => ({
-  default: () => <div />,
+vi.mock('@/features/sales/SalesPage', () => ({
+  default: () => <div>VENTAS</div>,
 }))
 vi.mock('@/features/calculator/CalculatorPage', () => ({
   default: () => <div>CALC</div>,

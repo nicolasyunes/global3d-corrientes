@@ -1,9 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import type { FilamentLogRow, FilamentSale } from '@/features/filaments/filaments'
-import { listDeliveredOrders } from '@/features/orders/orders.api'
-import { listProductSales } from '@/features/orders/productSales.api'
+import { listSales } from '@/features/sales/sales.api'
 import { pageAll } from './paging'
-import { inRange, toDeliveredRows, type DeliveredRow, type Range } from './stats'
+import { saleToDeliveredRow, type DeliveredRow, type Range } from './stats'
 
 export const STATS_LOG_KINDS = ['sale', 'used', 'transfer', 'personal', 'adjust', 'count']
 
@@ -34,11 +33,11 @@ export async function deliveredMoments(): Promise<Map<string, string>> {
 }
 
 // Everything the stats screen needs for one period. Volumes are small (tens of
-// rows a month), so delivered orders and product sales are filtered here.
+// rows a month); sales come from the ledger already limited to the period.
 export async function loadStats(range: Range): Promise<StatsData> {
   const from = range.from.toISOString()
   const to = range.to.toISOString()
-  const [sales, log, orders, productSales, moments] = await Promise.all([
+  const [sales, log, ledger] = await Promise.all([
     supabase
       .from('filament_sales')
       .select('*')
@@ -60,12 +59,8 @@ export async function loadStats(range: Range): Promise<StatsData> {
         if (error) throw new Error(error.message)
         return (data ?? []) as FilamentLogRow[]
       }),
-    listDeliveredOrders(),
-    listProductSales(),
-    deliveredMoments(),
+    listSales(range.from, range.to),
   ])
-  const delivered = toDeliveredRows(orders, productSales, moments).filter((r) =>
-    inRange(r.at, range),
-  )
+  const delivered = ledger.filter((s) => !s.voided_at).map(saleToDeliveredRow)
   return { sales, log, delivered }
 }

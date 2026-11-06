@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from '@/components/Icon'
+import { useToast } from '@/components/useToast'
 import { useOperator } from '@/features/operators/operator-context'
+import { pesos } from '@/features/sales/sales'
+import { getOrderSale } from '@/features/sales/sales.api'
 import { orderTitle } from '@/features/production/OrderRow'
 import SortSelect, { useStoredSort } from '@/features/production/SortSelect'
 import {
@@ -88,6 +91,7 @@ export default function OrdersList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [toast, showToast] = useToast()
   const today = useMemo(() => toISODate(new Date()), [])
 
   useEffect(() => {
@@ -143,6 +147,15 @@ export default function OrdersList() {
         await logOrderEvent(order.id, current?.id ?? null, 'postprocess', event)
       const fresh = await listOrders()
       setOrders(fresh)
+      // Al entregar, la base registra la venta del pedido: se avisa con el monto.
+      if (fields.status === 'delivered' && order.status !== 'delivered') {
+        try {
+          const sale = await getOrderSale(order.id)
+          if (sale) showToast(`Venta registrada: ${pesos(sale.amount)}`)
+        } catch {
+          // Entregar no depende de poder leer la venta.
+        }
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'No se pudo guardar el cambio.',
@@ -389,6 +402,7 @@ export default function OrdersList() {
           })}
         </div>
       )}
+      {toast}
     </main>
   )
 }

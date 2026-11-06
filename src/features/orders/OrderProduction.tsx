@@ -8,7 +8,10 @@ import {
   type OrderStatus,
   type OriginChannel,
 } from '@/lib/domain-constants'
+import { useToast } from '@/components/useToast'
 import { useOperator } from '@/features/operators/operator-context'
+import { pesos } from '@/features/sales/sales'
+import { getOrderSale } from '@/features/sales/sales.api'
 import ActivityFeed from '@/features/production/ActivityFeed'
 import OrderPieces from '@/features/production/OrderPieces'
 import { colorSwatch } from '@/features/production/pieces'
@@ -104,6 +107,7 @@ export default function OrderProduction() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [toast, showToast] = useToast()
   const [activityKey, setActivityKey] = useState(0)
   const [piecesKey, setPiecesKey] = useState(0)
   const [paymentsKey, setPaymentsKey] = useState(0)
@@ -197,6 +201,16 @@ export default function OrderProduction() {
 
   // Saves, then re-reads the order: the database may have recomputed its
   // stage. `event` goes to the order's activity.
+  // Al entregar, la base registra la venta del pedido: se avisa con el monto.
+  async function noticeSale(orderId: string) {
+    try {
+      const sale = await getOrderSale(orderId)
+      if (sale) showToast(`Venta registrada: ${pesos(sale.amount)}`)
+    } catch {
+      // Entregar no depende de poder leer la venta.
+    }
+  }
+
   async function patchOrder(
     fields: OrderUpdate,
     event?: {
@@ -221,6 +235,8 @@ export default function OrderProduction() {
       const fresh = await getOrder(order.id)
       if (fresh) setOrder(fresh)
       setActivityKey((k) => k + 1)
+      if (fields.status === 'delivered' && order.status !== 'delivered')
+        await noticeSale(order.id)
       return true
     } catch (err) {
       setActionError(
@@ -697,6 +713,7 @@ export default function OrderProduction() {
           <ActivityFeed orderId={order.id} refreshKey={activityKey} />
         </div>
       </div>
+      {toast}
     </main>
   )
 }
