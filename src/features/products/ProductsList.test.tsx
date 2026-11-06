@@ -46,6 +46,7 @@ function row(over: Partial<ProductRow> = {}): ProductRow {
     stock_quantity: 2,
     image_url: null,
     active: true,
+    ship_box: null,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     updated_by: null,

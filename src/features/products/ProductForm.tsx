@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { getCorreoConfig } from '@/features/shipping/shipping.api'
+import type { ShipBox } from '@/features/shipping/shipping'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Icon from '@/components/Icon'
 import { useOperator } from '@/features/operators/operator-context'
@@ -203,6 +205,13 @@ export default function ProductForm() {
     'loading',
   )
   const [shopError, setShopError] = useState<string | null>(null)
+  const [shipBox, setShipBox] = useState('')
+  const [boxes, setBoxes] = useState<ShipBox[]>([])
+  useEffect(() => {
+    getCorreoConfig()
+      .then((c) => setBoxes(c.cajas))
+      .catch(() => setBoxes([]))
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -271,6 +280,7 @@ export default function ProductForm() {
           return
         }
         setDraft(draftFromProduct(product))
+        setShipBox(product.ship_box ?? '')
         setLoadedStock(product.stock_quantity)
         setImages(imgs)
         setParts(
@@ -334,6 +344,7 @@ export default function ProductForm() {
           buildProductPatch(draft, isEdit ? loadedStock : null),
           isAdmin,
         ),
+        ship_box: shipBox || null,
         // Queda en el historial quién lo creó o cambió.
         updated_by: current?.id ?? null,
       }
@@ -561,6 +572,9 @@ export default function ProductForm() {
           status={shopStatus}
           error={shopError}
           productName={draft.name}
+          boxes={boxes}
+          shipBox={shipBox}
+          onShipBox={setShipBox}
         />
 
         {isEdit && id && <ProductActivity productId={id} />}

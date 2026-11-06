@@ -1514,6 +1514,50 @@ p {
   white-space: nowrap;
   font-size: 0.9rem;
 }
+/* Cotizador de Correo Argentino */
+.ship-quote {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.ship-quote-form {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+.ship-quote-form:has(select) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+}
+.ship-quote-form:has(select) .ship-quote-btn {
+  grid-column: 1 / -1;
+}
+.ship-quote-btn {
+  min-height: 48px;
+}
+@media (min-width: 600px) {
+  .ship-quote-form:has(select) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  }
+  .ship-quote-form:has(select) .ship-quote-btn {
+    grid-column: auto;
+  }
+}
+.ship-rate {
+  cursor: default;
+}
+.cart-ship {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.cart-ship .hint {
+  margin: 4px 0 0;
+}
+.cart-ship h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
 .grid-2 {
   display: grid;
   gap: 12px;

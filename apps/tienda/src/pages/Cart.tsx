@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Img, QtyStepper } from '../components/bits'
+import { CorreoShipping } from '../components/CorreoShipping'
 import { IconTrash } from '../components/Icons'
 import {
   cart,
@@ -145,6 +146,19 @@ export function Cart() {
           <Link to="/catalogo" className="btn btn-ghost btn-block">
             Seguir comprando
           </Link>
+          <CorreoShipping
+            items={items}
+            mode="preview"
+            heading={
+              <>
+                <h3>Calculá el envío</h3>
+                <p className="hint">
+                  Por Correo Argentino, a sucursal o a domicilio. Retirar en el
+                  local es gratis.
+                </p>
+              </>
+            }
+          />
         </aside>
       </div>
       <div className="mobile-bar">
