@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Icon from '@/components/Icon'
-import { parseMoney } from '@/features/orders/orderDraft'
 import { useOperator } from '@/features/operators/operator-context'
 import { colorSwatch } from '@/features/production/pieces'
 import {
@@ -17,8 +16,8 @@ import {
 } from './products.api'
 import { cleanParts, newPartDraft, partQty, type PartDraft } from './parts'
 import {
+  buildProductPatch,
   emptyProductDraft,
-  parseNonNegativeInt,
   validateProduct,
   type FieldErrors,
   type ProductDraft,
@@ -188,6 +187,8 @@ export default function ProductForm() {
   const { current } = useOperator()
 
   const [draft, setDraft] = useState<ProductDraft>(emptyProductDraft())
+  // Stock al abrir la ficha: solo se manda si el usuario lo cambió.
+  const [loadedStock, setLoadedStock] = useState<number | null>(null)
   const [parts, setParts] = useState<PartDraft[]>([])
   const [errors, setErrors] = useState<FieldErrors>({})
   const [images, setImages] = useState<ProductImageRow[]>([])
@@ -269,6 +270,7 @@ export default function ProductForm() {
           return
         }
         setDraft(draftFromProduct(product))
+        setLoadedStock(product.stock_quantity)
         setImages(imgs)
         setParts(
           rows.map((r) =>
@@ -326,11 +328,7 @@ export default function ProductForm() {
     setSubmitError(null)
     try {
       const patch = {
-        name: draft.name.trim(),
-        description: draft.description.trim() || null,
-        base_price: parseMoney(draft.basePrice),
-        stock_quantity: parseNonNegativeInt(draft.stockQuantity) ?? 0,
-        active: draft.active,
+        ...buildProductPatch(draft, isEdit ? loadedStock : null),
         // Queda en el historial quién lo creó o cambió.
         updated_by: current?.id ?? null,
       }

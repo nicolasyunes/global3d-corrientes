@@ -37,6 +37,37 @@ export function parseNonNegativeInt(value: string): number | null {
   return Number(trimmed)
 }
 
+export interface ProductPatch {
+  name: string
+  description: string | null
+  base_price: number | null
+  active: boolean
+  stock_quantity?: number
+}
+
+/**
+ * Lo que manda la ficha al guardar. `loadedStock` es el stock que tenía el
+ * producto al abrir la ficha (null si es nuevo): si no se tocó el campo, el
+ * stock no se manda. Así guardar un precio no pisa el stock que cambió
+ * mientras la ficha estaba abierta (una venta lo descuenta por trigger, o se
+ * ajustó desde la lista), ni deja un "ajuste" falso en el historial.
+ */
+export function buildProductPatch(
+  draft: ProductDraft,
+  loadedStock: number | null,
+): ProductPatch {
+  const patch: ProductPatch = {
+    name: draft.name.trim(),
+    description: draft.description.trim() || null,
+    base_price: parseMoney(draft.basePrice),
+    active: draft.active,
+  }
+  const stock = parseNonNegativeInt(draft.stockQuantity) ?? 0
+  if (loadedStock === null || stock !== loadedStock)
+    patch.stock_quantity = stock
+  return patch
+}
+
 export function validateProduct(draft: ProductDraft): FieldErrors {
   const errors: FieldErrors = {}
 

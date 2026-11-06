@@ -36,8 +36,9 @@ vi.mock('./orderImages.api', async () => {
     publicImageUrl: (p: string) => `https://files/${p}`,
   }
 })
+const { templatesMock } = vi.hoisted(() => ({ templatesMock: vi.fn() }))
 vi.mock('@/features/products/products.api', () => ({
-  listProductTemplates: vi.fn().mockResolvedValue([]),
+  listProductTemplates: templatesMock,
 }))
 vi.mock('@/features/operators/operator-context', () => ({
   useOperator: () => ({ current: { id: 'op-1' } }),
@@ -48,6 +49,7 @@ import { emptyDraft, emptyItem } from './orderDraft'
 
 beforeEach(() => {
   vi.clearAllMocks()
+  templatesMock.mockResolvedValue([])
   createMock.mockResolvedValue({ id: 'order-9' })
   uploadMock.mockResolvedValue({})
 })
@@ -76,6 +78,35 @@ function fillWithoutChannel() {
   })
   fireEvent.click(screen.getByRole('button', { name: 'Mañana' }))
 }
+
+describe('OrderModal — producto', () => {
+  it('sugiere productos guardados buscando por palabras', async () => {
+    templatesMock.mockResolvedValue([
+      {
+        id: 'p-boca',
+        name: 'Vaso Camiseta 650 ml BOCA',
+        basePrice: 24800,
+        imageUrl: null,
+        parts: [{ label: 'vaso', color: 'azul', quantity: 1 }],
+      },
+    ])
+    render(<OrderModal orderId={null} onClose={vi.fn()} onSaved={vi.fn()} />)
+    await waitFor(() => expect(templatesMock).toHaveBeenCalled())
+    const input = screen.getByLabelText('Producto')
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'vaso boca' } })
+    const list = await screen.findByRole('listbox', {
+      name: 'Productos sugeridos',
+    })
+    fireEvent.click(
+      within(list).getByRole('button', { name: /Vaso Camiseta 650 ml BOCA/ }),
+    )
+    expect(input).toHaveValue('Vaso Camiseta 650 ml BOCA')
+    expect(
+      screen.queryByRole('listbox', { name: 'Productos sugeridos' }),
+    ).not.toBeInTheDocument()
+  })
+})
 
 describe('OrderModal — archivos', () => {
   it('guarda el pedido y después sube los archivos con su tipo', async () => {

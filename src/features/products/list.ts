@@ -1,3 +1,4 @@
+import { matchesQuery } from '@/lib/search'
 import type { ProductRow } from './products.api'
 
 // Below this quantity a product reads as "low stock" rather than plain OK —
@@ -26,19 +27,21 @@ export function emptyProductFilter(): ProductFilter {
 
 // Client-side filter over the already-loaded list — a workshop's own products
 // are few enough that a server-side search isn't worth the round trip.
-// Matches name/description case-insensitively.
+// Búsqueda por palabras (ver matchesQuery) sobre nombre y descripción: los
+// productos no tienen SKU, categoría ni variante propios.
+export function productMatchesQuery(
+  product: Pick<ProductRow, 'name' | 'description'>,
+  query: string,
+): boolean {
+  return matchesQuery([product.name, product.description], query)
+}
+
 export function filterProducts(
   products: readonly ProductRow[],
   filter: ProductFilter,
 ): ProductRow[] {
-  const query = filter.query.trim().toLowerCase()
-
   return products.filter((product) => {
     if (filter.activeOnly && !product.active) return false
-    if (query === '') return true
-    return (
-      product.name.toLowerCase().includes(query) ||
-      (product.description ?? '').toLowerCase().includes(query)
-    )
+    return productMatchesQuery(product, filter.query)
   })
 }
