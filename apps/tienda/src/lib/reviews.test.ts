@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   allReviewsUrl,
   cleanReviews,
+  firstName,
   formatRating,
   writeReviewUrl,
 } from './reviews'
@@ -56,6 +57,14 @@ describe('cleanReviews', () => {
       estrellas: 5,
     }))
     expect(cleanReviews(many)).toHaveLength(6)
+  })
+})
+
+describe('firstName', () => {
+  it('deja solo el primer nombre con mayúscula', () => {
+    expect(firstName('andres sosa')).toBe('Andres')
+    expect(firstName(' Federico Revidatti Turpin ')).toBe('Federico')
+    expect(firstName('kubic3d')).toBe('Kubic3d')
   })
 })
 

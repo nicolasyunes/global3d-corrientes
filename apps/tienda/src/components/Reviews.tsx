@@ -1,6 +1,7 @@
 import {
   allReviewsUrl,
   cleanReviews,
+  firstName,
   formatRating,
   writeReviewUrl,
 } from '../lib/reviews'
@@ -48,7 +49,7 @@ export function Reviews({ settings }: { settings: ShopSettings }) {
               <Stars n={it.estrellas} />
               <blockquote>{it.texto}</blockquote>
               <p className="rev-author">
-                <strong>{it.nombre}</strong>
+                <strong>{firstName(it.nombre)}</strong>
                 {it.fecha && <span className="muted"> · {it.fecha}</span>}
               </p>
             </li>

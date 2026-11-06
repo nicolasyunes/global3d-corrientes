@@ -52,6 +52,12 @@ export function cleanReviews(
   return out.slice(0, max)
 }
 
+/** Solo el primer nombre, con mayúscula inicial: "andres sosa" → "Andres". */
+export function firstName(nombre: string): string {
+  const first = nombre.trim().split(/\s+/)[0] ?? ''
+  return first.charAt(0).toLocaleUpperCase('es') + first.slice(1)
+}
+
 /** "4,9" con coma decimal; null si la nota no es válida. */
 export function formatRating(nota: number | undefined): string | null {
   if (typeof nota !== 'number' || !Number.isFinite(nota)) return null
