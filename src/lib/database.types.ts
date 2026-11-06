@@ -15,6 +15,7 @@ export type Database = {
           name: string
           phone: string | null
           whatsapp: string | null
+          wholesale: boolean
           created_at: string
           updated_at: string
         }
@@ -23,6 +24,7 @@ export type Database = {
           name: string
           phone?: string | null
           whatsapp?: string | null
+          wholesale?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -31,6 +33,7 @@ export type Database = {
           name?: string
           phone?: string | null
           whatsapp?: string | null
+          wholesale?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -1342,6 +1345,191 @@ export type Database = {
         }
         Relationships: []
       }
+      sales: {
+        Row: {
+          id: string
+          sold_at: string
+          channel: string | null
+          customer_id: string | null
+          order_id: string | null
+          method: string | null
+          list_total: number
+          discount: number
+          amount: number
+          operator_id: string | null
+          note: string | null
+          source_tx_id: string | null
+          voided_at: string | null
+          voided_by: string | null
+          void_reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          sold_at?: string
+          channel?: string | null
+          customer_id?: string | null
+          order_id?: string | null
+          method?: string | null
+          list_total?: number
+          discount?: number
+          amount: number
+          operator_id?: string | null
+          note?: string | null
+          source_tx_id?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          void_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          sold_at?: string
+          channel?: string | null
+          customer_id?: string | null
+          order_id?: string | null
+          method?: string | null
+          list_total?: number
+          discount?: number
+          amount?: number
+          operator_id?: string | null
+          note?: string | null
+          source_tx_id?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          void_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'sales_customer_id_fkey'
+            columns: ['customer_id']
+            isOneToOne: false
+            referencedRelation: 'customers'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'sales_order_id_fkey'
+            columns: ['order_id']
+            isOneToOne: true
+            referencedRelation: 'orders'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'sales_operator_id_fkey'
+            columns: ['operator_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'sales_voided_by_fkey'
+            columns: ['voided_by']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      sale_items: {
+        Row: {
+          id: string
+          sale_id: string
+          position: number
+          product_id: string | null
+          description: string
+          quantity: number
+          list_unit_price: number
+          unit_price: number
+        }
+        Insert: {
+          id?: string
+          sale_id: string
+          position?: number
+          product_id?: string | null
+          description: string
+          quantity: number
+          list_unit_price: number
+          unit_price: number
+        }
+        Update: {
+          id?: string
+          sale_id?: string
+          position?: number
+          product_id?: string | null
+          description?: string
+          quantity?: number
+          list_unit_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'sale_items_sale_id_fkey'
+            columns: ['sale_id']
+            isOneToOne: false
+            referencedRelation: 'sales'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'sale_items_product_id_fkey'
+            columns: ['product_id']
+            isOneToOne: false
+            referencedRelation: 'products'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      sale_log: {
+        Row: {
+          id: string
+          sale_id: string
+          operator_id: string | null
+          kind: string
+          reason: string | null
+          before: Json | null
+          after: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          sale_id: string
+          operator_id?: string | null
+          kind: string
+          reason?: string | null
+          before?: Json | null
+          after?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          sale_id?: string
+          operator_id?: string | null
+          kind?: string
+          reason?: string | null
+          before?: Json | null
+          after?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'sale_log_sale_id_fkey'
+            columns: ['sale_id']
+            isOneToOne: false
+            referencedRelation: 'sales'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'sale_log_operator_id_fkey'
+            columns: ['operator_id']
+            isOneToOne: false
+            referencedRelation: 'operators'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       saved_searches: {
         Row: {
           id: string
@@ -1655,6 +1843,18 @@ export type Database = {
           p_note?: string | null
         }
         Returns: Database['public']['Tables']['transactions']['Row']
+      }
+      create_sale: {
+        Args: { p: Json; p_operator: string }
+        Returns: string
+      }
+      edit_sale: {
+        Args: { p_sale: string; p: Json; p_operator: string }
+        Returns: string
+      }
+      void_sale: {
+        Args: { p_sale: string; p_operator: string; p_reason: string }
+        Returns: string
       }
       void_order_payment: {
         Args: { p_tx: string; p_operator: string; p_reason: string }
