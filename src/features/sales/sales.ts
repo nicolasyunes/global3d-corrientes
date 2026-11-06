@@ -68,3 +68,10 @@ export function logLabel(
   const base = `${KIND_LABEL[row.kind] ?? row.kind} por ${operatorName(row.operator_id)}`
   return row.reason ? `${base}: ${row.reason}` : base
 }
+
+const ARS = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 })
+
+/** "$23.000": montos de venta, sin decimales. */
+export function pesos(n: number | null | undefined): string {
+  return n == null ? '—' : `$${ARS.format(Number(n))}`
+}

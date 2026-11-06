@@ -99,3 +99,26 @@ export async function setCustomerWholesale(
     .eq('id', customerId)
   if (error) fail(error)
 }
+
+export interface SaleCustomerHit {
+  id: string
+  name: string
+  phone: string | null
+  wholesale: boolean
+}
+
+// Same matching as the order form's customer search, plus the wholesale flag.
+export async function searchSaleCustomers(
+  query: string,
+): Promise<SaleCustomerHit[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, name, phone, wholesale')
+    .ilike('name', `%${q.replace(/[%_]/g, '')}%`)
+    .order('updated_at', { ascending: false })
+    .limit(6)
+  if (error) fail(error)
+  return data ?? []
+}
