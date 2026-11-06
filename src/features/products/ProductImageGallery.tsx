@@ -1,4 +1,5 @@
-import { useState, type ChangeEvent } from 'react'
+import { useState } from 'react'
+import Icon from '@/components/Icon'
 import {
   deleteProductImage,
   reorderProductImages,
@@ -6,9 +7,89 @@ import {
   type ProductImageRow,
 } from './products.api'
 
-// Galería de medios del editor de producto. Cada archivo subido crea una fila
-// en product_images; la primera (position 0) es la portada y se espeja en
-// products.image_url del lado de la API. El reordenamiento reescribe position.
+export interface PhotoTile {
+  key: string
+  url: string
+}
+
+// Shared photo grid: the first photo is the cover; arrows reorder.
+export function PhotoGrid({
+  tiles,
+  busy,
+  onMove,
+  onRemove,
+  onAdd,
+}: {
+  tiles: PhotoTile[]
+  busy?: boolean
+  onMove: (index: number, delta: number) => void
+  onRemove: (index: number) => void
+  onAdd: (files: File[]) => void
+}) {
+  return (
+    <div className="photos">
+      {tiles.length > 0 && (
+        <ul className="photos__grid">
+          {tiles.map((tile, index) => (
+            <li key={tile.key} className="photo">
+              <img src={tile.url} alt="" />
+              {index === 0 && <span className="photo__cover">Portada</span>}
+              <div className="photo__tools">
+                <button
+                  type="button"
+                  aria-label={`Mover foto ${index + 1} a la izquierda`}
+                  disabled={busy || index === 0}
+                  onClick={() => onMove(index, -1)}
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Mover foto ${index + 1} a la derecha`}
+                  disabled={busy || index === tiles.length - 1}
+                  onClick={() => onMove(index, 1)}
+                >
+                  →
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Quitar foto ${index + 1}`}
+                  disabled={busy}
+                  onClick={() => onRemove(index)}
+                >
+                  <Icon name="close" size={14} />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <label className={`photos__add${busy ? ' is-busy' : ''}`}>
+        <Icon name="plus" size={20} />
+        <span>
+          <strong>{busy ? 'Subiendo…' : 'Agregar fotos'}</strong>
+          <small>JPG o PNG · la primera es la portada</small>
+        </span>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          className="visually-hidden"
+          disabled={busy}
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []).filter((f) =>
+              f.type.startsWith('image/'),
+            )
+            e.target.value = ''
+            if (files.length) onAdd(files)
+          }}
+        />
+      </label>
+    </div>
+  )
+}
+
+// Photos of a saved product: every change goes straight to storage.
 export default function ProductImageGallery({
   productId,
   images,
@@ -21,121 +102,62 @@ export default function ProductImageGallery({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? [])
-    event.target.value = ''
-    if (files.length === 0) return
+  async function run(fn: () => Promise<void>, fallback: string) {
     setBusy(true)
     setError(null)
     try {
+      await fn()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : fallback)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const add = (files: File[]) =>
+    run(async () => {
       let next = images
       for (const file of files) {
         const row = await uploadProductImage(productId, file, next.length)
         next = [...next, row]
         onChange(next)
       }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'No se pudo subir la imagen.',
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
+    }, 'No se pudo subir la foto.')
 
-  async function persistOrder(next: ProductImageRow[]) {
-    onChange(next)
-    setBusy(true)
-    setError(null)
-    try {
-      await reorderProductImages(
-        productId,
-        next.map((i) => i.id),
-      )
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo reordenar.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  function move(index: number, delta: number) {
-    const target = index + delta
-    if (target < 0 || target >= images.length) return
+  const move = (index: number, delta: number) => {
     const next = [...images]
-    ;[next[index], next[target]] = [next[target], next[index]]
-    void persistOrder(next)
+    ;[next[index], next[index + delta]] = [next[index + delta], next[index]]
+    onChange(next)
+    void run(
+      () =>
+        reorderProductImages(
+          productId,
+          next.map((i) => i.id),
+        ),
+      'No se pudo reordenar.',
+    )
   }
 
-  async function remove(image: ProductImageRow) {
-    setBusy(true)
-    setError(null)
-    try {
-      await deleteProductImage(image)
-      onChange(images.filter((i) => i.id !== image.id))
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'No se pudo quitar la imagen.',
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
+  const remove = (index: number) =>
+    run(async () => {
+      await deleteProductImage(images[index])
+      onChange(images.filter((_, i) => i !== index))
+    }, 'No se pudo quitar la foto.')
 
   return (
-    <div className="product-gallery">
-      <label className="field__label" htmlFor="product-gallery-input">
-        Imágenes
-      </label>
-      <input
-        id="product-gallery-input"
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleFiles}
-        disabled={busy}
+    <>
+      <PhotoGrid
+        tiles={images.map((i) => ({ key: i.id, url: i.url }))}
+        busy={busy}
+        onAdd={(files) => void add(files)}
+        onMove={move}
+        onRemove={(index) => void remove(index)}
       />
-
-      {error && <p className="field__error">{error}</p>}
-
-      {images.length > 0 && (
-        <ul className="product-gallery__grid">
-          {images.map((image, index) => (
-            <li key={image.id} className="product-gallery__item">
-              <img src={image.url} alt={image.alt ?? ''} />
-              {index === 0 && (
-                <span className="product-gallery__badge">Portada</span>
-              )}
-              <div className="product-gallery__controls">
-                <button
-                  type="button"
-                  aria-label={`Mover ${index + 1} a la izquierda`}
-                  onClick={() => move(index, -1)}
-                  disabled={busy || index === 0}
-                >
-                  ◀
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Mover ${index + 1} a la derecha`}
-                  onClick={() => move(index, 1)}
-                  disabled={busy || index === images.length - 1}
-                >
-                  ▶
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Quitar imagen ${index + 1}`}
-                  onClick={() => void remove(image)}
-                  disabled={busy}
-                >
-                  Quitar
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+      {error && (
+        <p className="banner banner--error" role="alert">
+          {error}
+        </p>
       )}
-    </div>
+    </>
   )
 }

@@ -275,6 +275,11 @@
   border-color: var(--color-orange);
   background: var(--color-accent-50);
 }
+.chip--urgent[aria-pressed='true'] {
+  border-color: var(--status-red-50);
+  background: var(--status-red-50);
+  color: var(--status-red);
+}
 
 /* ---------- Surfaces ---------- */
 .card {

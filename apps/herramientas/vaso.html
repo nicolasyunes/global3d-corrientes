@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vaso con logo</title>
+    <!-- Los addons de three importan "three" a secas: el import map lo resuelve al mismo módulo -->
+    <script type="importmap">
+      { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+    </script>
+    <style>
+      :root {
+        --bg: #f6f5f2;
+        --panel: #ffffff;
+        --ink: #1b1b1b;
+        --muted: #6b6b6b;
+        --line: #e2e0da;
+        --accent: #f9d72c;
+        --warn: #b4420f;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      .app { display: grid; grid-template-columns: 1fr 340px; height: 100vh; }
+      @media (max-width: 820px) { .app { grid-template-columns: 1fr; height: auto; } #view { height: 60vh; } }
+      #view { position: relative; min-height: 360px; background: radial-gradient(circle at 50% 40%, #ffffff, #e9e7e1); }
+      #view canvas { display: block; width: 100%; height: 100%; }
+      .hint { position: absolute; left: 16px; bottom: 12px; color: var(--muted); font-size: 12px; }
+      aside { background: var(--panel); border-left: 1px solid var(--line); padding: 20px; overflow-y: auto; }
+      h1 { font-size: 20px; margin: 0 0 4px; }
+      .lead { color: var(--muted); margin: 0 0 8px; font-size: 13px; }
+      h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 20px 0 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+      label { display: flex; justify-content: space-between; font-weight: 600; font-size: 13px; margin: 10px 0 2px; }
+      label span { color: var(--muted); font-weight: 400; }
+      input[type=range] { width: 100%; }
+      select { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: #fff; }
+      .swatches { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 6px; }
+      .swatches label { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 0; font-weight: 400; font-size: 11px; color: var(--muted); }
+      input[type=color] { width: 40px; height: 30px; border: 1px solid var(--line); border-radius: 6px; padding: 2px; background: #fff; cursor: pointer; }
+      .check { display: flex; gap: 8px; align-items: center; justify-content: flex-start; font-weight: 600; }
+      .drop { border: 2px dashed var(--line); border-radius: 10px; padding: 14px; text-align: center; cursor: pointer; color: var(--muted); font-size: 13px; }
+      .drop.over { border-color: var(--ink); }
+      .drop b { color: var(--ink); }
+      .actions { display: grid; gap: 8px; margin-top: 20px; }
+      button { font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 14px; cursor: pointer; border: 1px solid var(--ink); background: var(--panel); color: var(--ink); }
+      button.primary { background: var(--accent); border-color: var(--accent); }
+      .info { margin-top: 12px; font-size: 13px; color: var(--muted); }
+      .info.warn, .warn { color: var(--warn); }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div id="view"><div class="hint">Arrastrá para girar · rueda para zoom</div></div>
+      <aside>
+        <h1>Vaso con logo</h1>
+        <p class="lead">El logo se imprime plano, se curva y se pega. La vista curva la misma pieza que vas a imprimir.</p>
+
+        <h2>Vaso</h2>
+        <select id="modelo" aria-label="Modelo de vaso">
+          <option value="chop650">Chop 650 cc (modelo del taller)</option>
+          <option value="conico">Cónico (pinta)</option>
+          <option value="recto">Recto</option>
+          <option value="bajo">Bajo (whisky)</option>
+          <option value="custom">Personalizado</option>
+        </select>
+        <div id="medidasVaso">
+        <label for="alto">Alto <span id="altoV"></span></label>
+        <input type="range" id="alto" min="60" max="200" step="1" />
+        <label for="dBase">Ø base <span id="dBaseV"></span></label>
+        <input type="range" id="dBase" min="40" max="110" step="1" />
+        <label for="dBoca">Ø boca <span id="dBocaV"></span></label>
+        <input type="range" id="dBoca" min="40" max="120" step="1" />
+        </div>
+        <div class="swatches" id="coloresVaso"></div>
+
+        <h2>Logo</h2>
+        <div class="drop" id="drop" tabindex="0" role="button"><b>Subir logo SVG</b><br /><span id="logoNombre">usando logo de ejemplo</span></div>
+        <input type="file" id="file" accept=".svg,image/svg+xml" hidden />
+        <div class="info" id="logoMsg"></div>
+        <label for="ancho">Ancho de la pieza <span id="anchoV"></span></label>
+        <input type="range" id="ancho" min="15" max="140" step="1" value="55" />
+        <label for="altura">Altura del centro <span id="alturaV"></span></label>
+        <input type="range" id="altura" min="0" max="200" step="1" value="75" />
+        <label for="espesor">Espesor del logo <span id="espesorV"></span></label>
+        <input type="range" id="espesor" min="0.6" max="3" step="0.2" value="1.2" />
+        <div class="swatches" id="coloresLogo"></div>
+
+        <h2>Placa de fondo</h2>
+        <label class="check"><input type="checkbox" id="placa" /> Pegar el logo sobre una placa</label>
+        <label for="margen">Margen <span id="margenV"></span></label>
+        <input type="range" id="margen" min="1" max="10" step="0.5" value="3" />
+        <label for="espesorPlaca">Espesor placa <span id="espesorPlacaV"></span></label>
+        <input type="range" id="espesorPlaca" min="0.6" max="2.5" step="0.2" value="1" />
+        <div class="swatches"><label>Placa<input type="color" id="colorPlaca" value="#ffffff" /></label></div>
+
+        <div class="info" id="medidas"></div>
+
+        <div class="actions">
+          <button class="primary" id="png">Descargar imagen (PNG)</button>
+          <button id="stl">Descargar pieza plana (STL por color)</button>
+        </div>
+      </aside>
+    </div>
+
+    <script type="module">
+      const CDN = 'https://cdn.jsdelivr.net/npm/three@0.170.0'
+      const THREE = await import(`${CDN}/build/three.module.js`)
+      const { OrbitControls } = await import(`${CDN}/examples/jsm/controls/OrbitControls.js`)
+      const { RoomEnvironment } = await import(`${CDN}/examples/jsm/environments/RoomEnvironment.js`)
+      const { SVGLoader } = await import(`${CDN}/examples/jsm/loaders/SVGLoader.js`)
+      const { TessellateModifier } = await import(`${CDN}/examples/jsm/modifiers/TessellateModifier.js`)
+      const { STLExporter } = await import(`${CDN}/examples/jsm/exporters/STLExporter.js`)
+      const { STLLoader } = await import(`${CDN}/examples/jsm/loaders/STLLoader.js`)
+
+      // Perfil exterior del chop medido del 3MF real (radio en mm cada 1 mm de altura, en el frente opuesto al asa)
+      const PERFIL_CHOP = [
+        50.29, 50.34, 50.39, 50.46, 50.58, 50.73, 51.1, 51.51, 51.89, 52.16, 52.22, 52.03, 51.68, 51.22, 50.8, 50.62,
+        50.52, 50.42, 50.29, 49.99, 48.17, 48.27, 48.52, 48.93, 49.43, 49.84, 50, 49.82, 49.37, 48.83, 48.44, 48.18,
+        ...Array(105).fill(46.66), 47.46, 47.97, ...Array(11).fill(48),
+      ]
+
+      // Medidas en mm. Los modelos con stl usan su malla y su perfil medido; el resto es un vaso de revolución
+      const MODELOS = {
+        chop650: {
+          stl: 'modelos/chop-650.stl', alto: 149.83, perfil: PERFIL_CHOP, zona: [33, 138],
+          // Alturas de corte entre zonas de color (en los escalones del modelo), de abajo hacia arriba
+          cortes: [20.1, 31.85],
+          zonas: ['Cuerpo', 'Franja media', 'Franja inferior'],
+        },
+        conico: { alto: 150, dBase: 64, dBoca: 86, pared: 2 },
+        recto: { alto: 110, dBase: 76, dBoca: 76, pared: 2 },
+        bajo: { alto: 90, dBase: 78, dBoca: 84, pared: 2.4 },
+      }
+      const SAMPLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <path fill="#f9d72c" d="M50 5 L90 27 L50 49 L10 27 Z"/>
+  <path fill="#ffffff" d="M10 33 L47 54 L47 95 L10 74 Z"/>
+  <path fill="#e8541e" d="M53 54 L90 33 L90 74 L53 95 Z"/>
+</svg>`
+
+      const $ = (id) => document.getElementById(id)
+      const num = (id) => Number($(id).value)
+
+      // ---------- Escena ----------
+      const view = $('view')
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+      // Neutral respeta el tono del filamento elegido (ACES desatura amarillos y naranjas)
+      renderer.toneMapping = THREE.NeutralToneMapping
+      renderer.shadowMap.enabled = true
+      renderer.localClippingEnabled = true
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap
+      view.prepend(renderer.domElement)
+
+      const scene = new THREE.Scene()
+      scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture
+      const camera = new THREE.PerspectiveCamera(32, 1, 1, 3000)
+      camera.position.set(90, 160, 330)
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.maxPolarAngle = Math.PI * 0.55
+
+      const sol = new THREE.DirectionalLight(0xffffff, 1.4)
+      sol.position.set(120, 260, 180)
+      sol.castShadow = true
+      sol.shadow.mapSize.set(2048, 2048)
+      Object.assign(sol.shadow.camera, { left: -160, right: 160, top: 160, bottom: -160, near: 10, far: 700 })
+      sol.shadow.radius = 6
+      scene.add(sol)
+      const piso = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), new THREE.ShadowMaterial({ opacity: 0.18 }))
+      piso.rotation.x = -Math.PI / 2
+      piso.receiveShadow = true
+      scene.add(piso)
+
+      const plastico = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0, side: THREE.DoubleSide })
+      const matPlaca = plastico($('colorPlaca').value)
+
+      // Zonas de color del vaso por altura, como un cambio de filamento por capa.
+      // Comparten la malla y se recortan con planos; índice 0 = zona de arriba
+      const coloresZona = ['#2b2d31', '#f9d72c', '#c8102e']
+      const zonasVaso = coloresZona.map((c) => {
+        const m = new THREE.Mesh(undefined, plastico(c))
+        m.material.clipShadows = true
+        m.castShadow = m.receiveShadow = true
+        m.visible = false
+        scene.add(m)
+        return m
+      })
+      const logoGrupo = new THREE.Group()
+      scene.add(logoGrupo)
+
+      function ajustarTamano() {
+        const { clientWidth: w, clientHeight: h } = view
+        renderer.setSize(w, h, false)
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+      }
+      new ResizeObserver(ajustarTamano).observe(view)
+      renderer.setAnimationLoop(() => {
+        controls.update()
+        renderer.render(scene, camera)
+      })
+
+      // ---------- Vaso ----------
+      const vaso = () => {
+        const m = MODELOS[$('modelo').value]
+        if (m?.stl) return m
+        return { alto: num('alto'), dBase: num('dBase'), dBoca: num('dBoca'), pared: m?.pared ?? 2 }
+      }
+      // Radio exterior a una altura h: perfil medido si hay, si no pared recta entre base y boca
+      function radio(v, h) {
+        if (v.perfil) {
+          const i = Math.min(Math.max(h, 0), v.perfil.length - 1)
+          const a = Math.floor(i)
+          const b = Math.min(a + 1, v.perfil.length - 1)
+          return v.perfil[a] + (v.perfil[b] - v.perfil[a]) * (i - a)
+        }
+        return v.dBase / 2 + ((v.dBoca - v.dBase) / 2) * (h / v.alto)
+      }
+      const zonaUtil = (v) => v.zona ?? [3, v.alto - 3]
+
+      // STL en Z arriba con el frente hacia -Y: al pasar a Y arriba el frente mira a +Z, donde se centra el logo
+      const mallas = new Map()
+      function cargarMalla(url) {
+        if (!mallas.has(url)) {
+          mallas.set(url, new STLLoader().loadAsync(url).then((g) => {
+            g.rotateX(-Math.PI / 2)
+            g.computeVertexNormals()
+            g.userData.cache = true
+            return g
+          }))
+        }
+        return mallas.get(url)
+      }
+
+      async function construirVaso() {
+        const v = vaso()
+        $('medidasVaso').hidden = !!v.stl
+        $('altura').min = zonaUtil(v)[0]
+        $('altura').max = zonaUtil(v)[1]
+        controls.target.set(0, v.alto * 0.5, 0)
+        if (v.stl) {
+          const g = await cargarMalla(v.stl)
+          if (vaso() === v) ponerGeometriaVaso(g, v)
+          return
+        }
+        const fondo = Math.max(v.pared * 2, 3)
+        const ch = 1.5
+        const perfil = [
+          [0, 0], [v.dBase / 2 - ch, 0], [radio(v, ch), ch],
+          [v.dBoca / 2, v.alto - 0.6], [v.dBoca / 2 - 0.6, v.alto], [v.dBoca / 2 - v.pared + 0.6, v.alto],
+          [v.dBoca / 2 - v.pared, v.alto - 0.6], [radio(v, fondo) - v.pared, fondo], [0, fondo],
+        ].map(([x, y]) => new THREE.Vector2(x, y))
+        ponerGeometriaVaso(new THREE.LatheGeometry(perfil, 160), v)
+      }
+
+      function ponerGeometriaVaso(g, v) {
+        const vieja = zonasVaso[0].geometry
+        if (vieja && vieja !== g && !vieja.userData.cache) vieja.dispose()
+        const bordes = [-Infinity, ...(v.cortes ?? []), Infinity]
+        const nZonas = bordes.length - 1
+        zonasVaso.forEach((m, i) => {
+          m.visible = i < nZonas
+          if (!m.visible) return
+          // i cuenta desde arriba; el tramo j desde abajo
+          const j = nZonas - 1 - i
+          const planos = []
+          if (bordes[j] > -Infinity) planos.push(new THREE.Plane(new THREE.Vector3(0, 1, 0), -bordes[j]))
+          if (bordes[j + 1] < Infinity) planos.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), bordes[j + 1]))
+          m.geometry = g
+          m.material.clippingPlanes = planos
+        })
+        pintarColoresVaso(v.zonas ?? ['Vaso'])
+      }
+
+      function pintarColoresVaso(nombres) {
+        const cont = $('coloresVaso')
+        cont.innerHTML = ''
+        nombres.forEach((nombre, i) => {
+          const label = document.createElement('label')
+          label.textContent = nombre
+          const input = document.createElement('input')
+          input.type = 'color'
+          input.value = coloresZona[i]
+          input.addEventListener('input', () => {
+            coloresZona[i] = input.value
+            zonasVaso[i].material.color.set(input.value)
+          })
+          label.prepend(input)
+          cont.appendChild(label)
+        })
+      }
+
+      // ---------- Logo ----------
+      const estado = { svg: SAMPLE_SVG, capas: [] } // capas: [{ color, shapes }]
+      const coloresElegidos = new Map() // color del SVG -> color de filamento elegido
+
+      function leerSvg(texto) {
+        const data = new SVGLoader().parse(texto)
+        const porColor = new Map()
+        for (const path of data.paths) {
+          if (path.userData?.style?.fill === 'none') continue
+          const color = '#' + path.color.getHexString()
+          const shapes = SVGLoader.createShapes(path)
+          if (!shapes.length) continue
+          if (!porColor.has(color)) porColor.set(color, [])
+          porColor.get(color).push(...shapes)
+        }
+        return [...porColor].map(([color, shapes]) => ({ color, shapes }))
+      }
+
+      // Pieza plana en mm: x centrado, y hacia arriba, z de 0 (cara pegada) al frente
+      function piezaPlana() {
+        const ancho = num('ancho')
+        const conPlaca = $('placa').checked
+        const zLogo = conPlaca ? num('espesorPlaca') : 0
+        const t = num('espesor')
+
+        const caja = new THREE.Box2()
+        for (const c of estado.capas) for (const s of c.shapes) for (const p of s.getPoints()) caja.expandByPoint(p)
+        const centro = caja.getCenter(new THREE.Vector2())
+        const s = ancho / (caja.max.x - caja.min.x)
+        const alto = (caja.max.y - caja.min.y) * s
+
+        const piezas = estado.capas.map((c) => {
+          const g = new THREE.ExtrudeGeometry(c.shapes, { depth: t / s, bevelEnabled: false, curveSegments: 16 })
+          // SVG tiene y hacia abajo: invertir y y z (dos espejos = rotación, conserva la orientación de las caras)
+          g.translate(-centro.x, -centro.y, 0).scale(s, -s, -s).translate(0, 0, zLogo + t)
+          return { nombre: `logo-${c.color.slice(1)}`, colorSvg: c.color, geom: g }
+        })
+        if (conPlaca) {
+          const m = num('margen')
+          const w = ancho + 2 * m
+          const h = alto + 2 * m
+          piezas.unshift({ nombre: 'placa', geom: new THREE.ExtrudeGeometry(rectRedondeado(w, h, Math.min(m * 1.5, h / 2)), { depth: num('espesorPlaca'), bevelEnabled: false }) })
+        }
+        return { piezas, ancho: conPlaca ? ancho + 2 * num('margen') : ancho, alto: conPlaca ? alto + 2 * num('margen') : alto }
+      }
+
+      function rectRedondeado(w, h, r) {
+        const s = new THREE.Shape()
+        const x = -w / 2, y = -h / 2
+        s.moveTo(x + r, y)
+        s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r)
+        s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+        s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r)
+        s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y)
+        return s
+      }
+
+      // Envuelve la pieza plana sobre la pared: x es longitud de arco, y es altura, z sale de la pared
+      function curvar(geomPlana, v, hCentro) {
+        const g = new TessellateModifier(1.2, 40).modify(geomPlana)
+        const pos = g.attributes.position
+        for (let i = 0; i < pos.count; i++) {
+          const h = hCentro + pos.getY(i)
+          const r = radio(v, h)
+          const ang = pos.getX(i) / r
+          const rr = r + pos.getZ(i) + 0.05
+          pos.setXYZ(i, rr * Math.sin(ang), h, rr * Math.cos(ang))
+        }
+        g.computeVertexNormals()
+        return g
+      }
+
+      function colorDe(pieza) {
+        return pieza.colorSvg ? coloresElegidos.get(pieza.colorSvg) ?? pieza.colorSvg : $('colorPlaca').value
+      }
+
+      function construirLogo() {
+        for (const m of logoGrupo.children) m.geometry.dispose()
+        logoGrupo.clear()
+        if (!estado.capas.length) return
+        const v = vaso()
+        const hCentro = num('altura')
+        const { piezas, ancho, alto } = piezaPlana()
+        for (const p of piezas) {
+          const mesh = new THREE.Mesh(curvar(p.geom, v, hCentro), p.colorSvg ? plastico(colorDe(p)) : matPlaca)
+          mesh.userData.colorSvg = p.colorSvg
+          mesh.castShadow = true
+          logoGrupo.add(mesh)
+          p.geom.dispose()
+        }
+        informar(v, hCentro, ancho, alto)
+      }
+
+      function informar(v, hCentro, ancho, alto) {
+        const grados = Math.round((ancho / radio(v, hCentro)) * (180 / Math.PI))
+        const avisos = []
+        if (grados > 160) avisos.push(`envuelve ${grados}°: va a costar curvarla y pegarla`)
+        const [zMin, zMax] = zonaUtil(v)
+        if (hCentro - alto / 2 < zMin || hCentro + alto / 2 > zMax) avisos.push('se sale de la zona lisa del vaso: bajá el tamaño o movela')
+        // Pendiente de la pared bajo la pieza: en vasos cónicos una pieza recta no apoya pareja
+        const pendiente = Math.abs(radio(v, hCentro + alto / 2) - radio(v, hCentro - alto / 2)) / alto
+        if (pendiente > 0.05 && ancho > 50) avisos.push('vaso muy cónico: una pieza recta y ancha queda con leve “sonrisa” al pegarla')
+        $('medidas').innerHTML =
+          `Pieza plana: <b>${ancho.toFixed(1)} × ${alto.toFixed(1)} mm</b> · envuelve ${grados}° del vaso` +
+          avisos.map((a) => `<div class="warn">⚠ ${a}</div>`).join('')
+      }
+
+      function pintarSelectoresColor() {
+        const cont = $('coloresLogo')
+        cont.innerHTML = ''
+        estado.capas.forEach((c, i) => {
+          const label = document.createElement('label')
+          label.textContent = `Color ${i + 1}`
+          const input = document.createElement('input')
+          input.type = 'color'
+          input.value = coloresElegidos.get(c.color) ?? c.color
+          input.addEventListener('input', () => {
+            coloresElegidos.set(c.color, input.value)
+            for (const m of logoGrupo.children) if (m.userData.colorSvg === c.color) m.material.color.set(input.value)
+          })
+          label.prepend(input)
+          cont.appendChild(label)
+        })
+      }
+
+      function cargarLogo(texto, nombre) {
+        let capas
+        try {
+          capas = leerSvg(texto)
+        } catch {
+          capas = []
+        }
+        if (!capas.length) {
+          $('logoMsg').textContent = 'No encontré formas rellenas en ese SVG.'
+          $('logoMsg').classList.add('warn')
+          return
+        }
+        Object.assign(estado, { svg: texto, capas })
+        coloresElegidos.clear()
+        $('logoNombre').textContent = nombre
+        $('logoMsg').textContent = capas.length > 1 ? `${capas.length} colores detectados: un STL por color.` : ''
+        $('logoMsg').classList.remove('warn')
+        pintarSelectoresColor()
+        construirLogo()
+      }
+
+      // ---------- Descargas ----------
+      function descargar(nombre, blob) {
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = nombre
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+      }
+
+      $('png').addEventListener('click', () => {
+        renderer.render(scene, camera)
+        renderer.domElement.toBlob((b) => descargar('vaso-vista-previa.png', b), 'image/png')
+      })
+
+      $('stl').addEventListener('click', () => {
+        const exporter = new STLExporter()
+        piezaPlana().piezas.forEach((p, i) => {
+          const datos = exporter.parse(new THREE.Mesh(p.geom), { binary: true })
+          setTimeout(() => descargar(`${p.nombre}.stl`, new Blob([datos], { type: 'model/stl' })), i * 300)
+        })
+      })
+
+      // ---------- Controles ----------
+      const etiquetas = { alto: 'mm', dBase: 'mm', dBoca: 'mm', ancho: 'mm', altura: 'mm', espesor: 'mm', margen: 'mm', espesorPlaca: 'mm' }
+      const refrescarEtiquetas = () => {
+        for (const [id, u] of Object.entries(etiquetas)) $(id + 'V').textContent = `${$(id).value} ${u}`
+      }
+
+      // Agrupa cambios en un frame; el vaso se rehace si algún cambio del frame lo pidió
+      let pendiente = 0
+      let vasoPendiente = false
+      const reconstruir = (conVaso) => {
+        refrescarEtiquetas()
+        vasoPendiente ||= conVaso
+        cancelAnimationFrame(pendiente)
+        pendiente = requestAnimationFrame(() => {
+          if (vasoPendiente) construirVaso()
+          vasoPendiente = false
+          construirLogo()
+        })
+      }
+
+      $('modelo').addEventListener('change', () => {
+        const m = MODELOS[$('modelo').value]
+        if (m) {
+          for (const k of ['alto', 'dBase', 'dBoca']) if (m[k] != null) $(k).value = m[k]
+          const [zMin, zMax] = zonaUtil(m.stl ? m : { alto: m.alto })
+          $('altura').min = zMin
+          $('altura').max = zMax
+          $('altura').value = Math.round((zMin + zMax) / 2)
+        }
+        reconstruir(true)
+      })
+      for (const id of ['alto', 'dBase', 'dBoca']) {
+        $(id).addEventListener('input', () => {
+          $('modelo').value = 'custom'
+          reconstruir(true)
+        })
+      }
+      for (const id of ['ancho', 'altura', 'espesor', 'margen', 'espesorPlaca', 'placa']) $(id).addEventListener('input', () => reconstruir(false))
+      $('colorPlaca').addEventListener('input', (e) => matPlaca.color.set(e.target.value))
+
+      const drop = $('drop')
+      const leer = async (f) => f && cargarLogo(await f.text(), f.name)
+      drop.addEventListener('click', () => $('file').click())
+      drop.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && $('file').click())
+      $('file').addEventListener('change', (e) => leer(e.target.files[0]))
+      drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over') })
+      drop.addEventListener('dragleave', () => drop.classList.remove('over'))
+      drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); leer(e.dataTransfer.files[0]) })
+
+      $('modelo').dispatchEvent(new Event('change'))
+      construirVaso()
+      cargarLogo(SAMPLE_SVG, 'logo de ejemplo')
+    </script>
+  </body>
+</html>

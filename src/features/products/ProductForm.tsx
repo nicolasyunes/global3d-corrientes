@@ -1,7 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Icon from '@/components/Icon'
-import { parseMoney } from '@/features/orders/orderDraft'
+import { useOperator } from '@/features/operators/operator-context'
 import { colorSwatch } from '@/features/production/pieces'
 import {
   createProduct,
@@ -10,18 +10,33 @@ import {
   listProductParts,
   saveProductParts,
   updateProduct,
+  uploadProductImage,
   type ProductImageRow,
   type ProductRow,
 } from './products.api'
 import { cleanParts, newPartDraft, partQty, type PartDraft } from './parts'
 import {
+  buildProductPatch,
   emptyProductDraft,
-  parseNonNegativeInt,
   validateProduct,
+  withoutPriceUnlessAdmin,
   type FieldErrors,
   type ProductDraft,
 } from './validation'
-import ProductImageGallery from './ProductImageGallery'
+import ProductActivity from './ProductActivity'
+import ProductImageGallery, { PhotoGrid } from './ProductImageGallery'
+import { ShopLinkSection } from './ShopLinkSection'
+import {
+  emptyShopLink,
+  validateShopLink,
+  type ShopFamilyOption,
+  type ShopLinkDraft,
+} from './shopLink'
+import {
+  draftFromFamilies,
+  listShopFamilies,
+  saveProductShopLink,
+} from './shopLink.api'
 import './products.css'
 
 const COMMON_COLORS = [
@@ -170,8 +185,11 @@ export default function ProductForm() {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
   const navigate = useNavigate()
+  const { current, isAdmin } = useOperator()
 
   const [draft, setDraft] = useState<ProductDraft>(emptyProductDraft())
+  // Stock al abrir la ficha: solo se manda si el usuario lo cambió.
+  const [loadedStock, setLoadedStock] = useState<number | null>(null)
   const [parts, setParts] = useState<PartDraft[]>([])
   const [errors, setErrors] = useState<FieldErrors>({})
   const [images, setImages] = useState<ProductImageRow[]>([])
@@ -179,6 +197,65 @@ export default function ProductForm() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [shopLink, setShopLink] = useState<ShopLinkDraft>(emptyShopLink())
+  const [families, setFamilies] = useState<ShopFamilyOption[]>([])
+  const [shopStatus, setShopStatus] = useState<'loading' | 'ready' | 'error'>(
+    'loading',
+  )
+  const [shopError, setShopError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    listShopFamilies()
+      .then((list) => {
+        if (cancelled) return
+        setFamilies(list)
+        if (id) setShopLink(draftFromFamilies(id, list) ?? emptyShopLink())
+        setShopStatus('ready')
+      })
+      .catch(() => {
+        if (!cancelled) setShopStatus('error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+  // New products: photos wait here and upload right after the product exists.
+  const [pendingPhotos, setPendingPhotos] = useState<
+    { key: string; file: File; url: string }[]
+  >([])
+  const pendingRef = useRef(pendingPhotos)
+  pendingRef.current = pendingPhotos
+  useEffect(
+    () => () => pendingRef.current.forEach((p) => URL.revokeObjectURL(p.url)),
+    [],
+  )
+
+  function addPendingPhotos(files: File[]) {
+    setPendingPhotos((prev) => [
+      ...prev,
+      ...files.map((file) => ({
+        key: crypto.randomUUID(),
+        file,
+        url: URL.createObjectURL(file),
+      })),
+    ])
+  }
+
+  function movePendingPhoto(index: number, delta: number) {
+    setPendingPhotos((prev) => {
+      const next = [...prev]
+      ;[next[index], next[index + delta]] = [next[index + delta], next[index]]
+      return next
+    })
+  }
+
+  function removePendingPhoto(index: number) {
+    setPendingPhotos((prev) => {
+      URL.revokeObjectURL(prev[index].url)
+      return prev.filter((_, i) => i !== index)
+    })
+  }
 
   useEffect(() => {
     if (!id) {
@@ -194,6 +271,7 @@ export default function ProductForm() {
           return
         }
         setDraft(draftFromProduct(product))
+        setLoadedStock(product.stock_quantity)
         setImages(imgs)
         setParts(
           rows.map((r) =>
@@ -237,7 +315,12 @@ export default function ProductForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const nextErrors = validateProduct(draft)
-    if (Object.keys(nextErrors).length > 0) {
+    const shopProblem =
+      shopStatus === 'ready'
+        ? validateShopLink(shopLink, families, id ?? null)
+        : null
+    setShopError(shopProblem)
+    if (Object.keys(nextErrors).length > 0 || shopProblem) {
       setErrors(nextErrors)
       return
     }
@@ -245,19 +328,46 @@ export default function ProductForm() {
     setSubmitting(true)
     setSubmitError(null)
     try {
+      // El precio de lista lo ve todo el equipo, pero solo el admin lo cambia.
       const patch = {
-        name: draft.name.trim(),
-        description: draft.description.trim() || null,
-        base_price: parseMoney(draft.basePrice),
-        stock_quantity: parseNonNegativeInt(draft.stockQuantity) ?? 0,
-        active: draft.active,
+        ...withoutPriceUnlessAdmin(
+          buildProductPatch(draft, isEdit ? loadedStock : null),
+          isAdmin,
+        ),
+        // Queda en el historial quién lo creó o cambió.
+        updated_by: current?.id ?? null,
       }
       const saved =
         isEdit && id
           ? await updateProduct(id, patch)
           : await createProduct(patch)
       await saveProductParts(saved.id, cleanParts(parts))
-      navigate(isEdit ? '/admin/productos' : `/admin/productos/${saved.id}`)
+      if (shopStatus === 'ready') {
+        try {
+          await saveProductShopLink(saved.id, shopLink, families)
+        } catch (err) {
+          // El producto ya existe: se abre para reintentar solo la tienda.
+          setSubmitError(
+            `El producto se guardó, pero no se pudo actualizar la tienda${
+              err instanceof Error ? `: ${err.message}` : '.'
+            }`,
+          )
+          if (!isEdit) navigate(`/admin/productos/${saved.id}`)
+          return
+        }
+      }
+      if (!isEdit && pendingPhotos.length) {
+        try {
+          for (const [position, photo] of pendingPhotos.entries())
+            await uploadProductImage(saved.id, photo.file, position)
+        } catch {
+          // The product exists already: open it so the photos can be retried
+          // there instead of saving (and duplicating) it again.
+          navigate(`/admin/productos/${saved.id}`)
+          return
+        }
+      }
+      navigate('/admin/productos')
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : 'No se pudo guardar el producto.',
@@ -284,6 +394,7 @@ export default function ProductForm() {
 
   const filled = cleanParts(parts)
   const totalPerUnit = filled.reduce((sum, p) => sum + partQty(p.quantity), 0)
+  const cover = isEdit ? images[0]?.url : pendingPhotos[0]?.url
 
   return (
     <form className="pform" onSubmit={handleSubmit} noValidate>
@@ -299,15 +410,6 @@ export default function ProductForm() {
             {draft.name.trim() || (isEdit ? 'Producto' : 'Nuevo producto')}
           </h1>
         </div>
-        <div className="page-head__actions">
-          <button
-            type="submit"
-            className="btn btn--primary"
-            disabled={submitting}
-          >
-            {submitting ? 'Guardando…' : 'Guardar producto'}
-          </button>
-        </div>
       </div>
 
       {submitError && (
@@ -316,8 +418,100 @@ export default function ProductForm() {
         </p>
       )}
 
-      <div className="pform__grid">
-        <section className="card pform__parts">
+      <div className="pform__stack">
+        <section className="card pform__hero">
+          <div className="pform__cover" aria-hidden="true">
+            {cover ? <img src={cover} alt="" /> : <Icon name="box" size={34} />}
+          </div>
+          <div className="pform__fields">
+            <label className="field-label" htmlFor="product-name">
+              Nombre del producto
+            </label>
+            <input
+              id="product-name"
+              className="input pform__name"
+              placeholder="Ej: Vaso milkshake Spiderman"
+              value={draft.name}
+              onChange={(e) => setField('name', e.target.value)}
+              aria-invalid={Boolean(errors.name)}
+            />
+            {errors.name ? (
+              <p className="pform__err">{errors.name}</p>
+            ) : (
+              <p className="muted pform__hint">
+                Es el nombre que se escribe al cargar el pedido.
+              </p>
+            )}
+
+            <div className="pform__row">
+              <div>
+                <label className="field-label" htmlFor="product-price">
+                  Precio de lista ($)
+                </label>
+                <input
+                  id="product-price"
+                  className="input num"
+                  inputMode="decimal"
+                  placeholder={isAdmin ? '0' : '—'}
+                  value={draft.basePrice}
+                  readOnly={!isAdmin}
+                  title={isAdmin ? undefined : 'Solo el admin cambia el precio'}
+                  onChange={(e) => setField('basePrice', e.target.value)}
+                  aria-invalid={Boolean(errors.basePrice)}
+                />
+                {errors.basePrice && (
+                  <p className="pform__err">{errors.basePrice}</p>
+                )}
+              </div>
+              <div>
+                <label className="field-label" htmlFor="product-stock">
+                  Stock armado
+                </label>
+                <input
+                  id="product-stock"
+                  className="input num"
+                  inputMode="numeric"
+                  value={draft.stockQuantity}
+                  onChange={(e) => setField('stockQuantity', e.target.value)}
+                  aria-invalid={Boolean(errors.stockQuantity)}
+                />
+                {errors.stockQuantity && (
+                  <p className="pform__err">{errors.stockQuantity}</p>
+                )}
+              </div>
+              <label className="pform__switch">
+                <input
+                  type="checkbox"
+                  checked={draft.active}
+                  onChange={(e) => setField('active', e.target.checked)}
+                />
+                <span className="pform__switch-track" aria-hidden="true" />
+                <span>
+                  <strong>{draft.active ? 'Activo' : 'Pausado'}</strong>
+                  <small>
+                    {draft.active
+                      ? 'Aparece al cargar pedidos'
+                      : 'No aparece en pedidos'}
+                  </small>
+                </span>
+              </label>
+            </div>
+
+            <label className="field-label" htmlFor="product-description">
+              Notas para el taller
+            </label>
+            <textarea
+              id="product-description"
+              className="input pform__textarea"
+              rows={2}
+              placeholder="Archivo, tiempos, relleno, cómo se arma…"
+              value={draft.description}
+              onChange={(e) => setField('description', e.target.value)}
+            />
+          </div>
+        </section>
+
+        <section className="card">
           <div className="card__head">
             <h2 className="card__title">Piezas para imprimir</h2>
             <span className="spacer" />
@@ -336,101 +530,57 @@ export default function ProductForm() {
           <PartsEditor parts={parts} onChange={setParts} />
         </section>
 
-        <div className="pform__side">
-          <section className="card">
-            <div className="card__head">
-              <h2 className="card__title">Datos</h2>
-            </div>
-            <label className="field-label" htmlFor="product-name">
-              Nombre
-            </label>
-            <input
-              id="product-name"
-              className="input"
-              placeholder="Ej: Vaso milkshake Spiderman"
-              value={draft.name}
-              onChange={(e) => setField('name', e.target.value)}
-              aria-invalid={Boolean(errors.name)}
+        <section className="card">
+          <div className="card__head">
+            <h2 className="card__title">Fotos</h2>
+            <span className="muted pform__optional">opcional</span>
+          </div>
+          {isEdit && id ? (
+            <ProductImageGallery
+              productId={id}
+              images={images}
+              onChange={setImages}
             />
-            {errors.name && <p className="pform__err">{errors.name}</p>}
-            <p className="muted pform__hint">
-              Es el nombre que se escribe al cargar el pedido.
-            </p>
-
-            <div className="pform__row">
-              <div>
-                <label className="field-label" htmlFor="product-price">
-                  Precio de lista ($)
-                </label>
-                <input
-                  id="product-price"
-                  className="input"
-                  inputMode="decimal"
-                  value={draft.basePrice}
-                  onChange={(e) => setField('basePrice', e.target.value)}
-                  aria-invalid={Boolean(errors.basePrice)}
-                />
-                {errors.basePrice && (
-                  <p className="pform__err">{errors.basePrice}</p>
-                )}
-              </div>
-              <div>
-                <label className="field-label" htmlFor="product-stock">
-                  Stock armado
-                </label>
-                <input
-                  id="product-stock"
-                  className="input"
-                  inputMode="numeric"
-                  value={draft.stockQuantity}
-                  onChange={(e) => setField('stockQuantity', e.target.value)}
-                  aria-invalid={Boolean(errors.stockQuantity)}
-                />
-                {errors.stockQuantity && (
-                  <p className="pform__err">{errors.stockQuantity}</p>
-                )}
-              </div>
-            </div>
-
-            <label className="field-label" htmlFor="product-description">
-              Notas para el taller
-            </label>
-            <textarea
-              id="product-description"
-              className="input pform__textarea"
-              rows={3}
-              placeholder="Archivo, tiempos, relleno, cómo se arma…"
-              value={draft.description}
-              onChange={(e) => setField('description', e.target.value)}
+          ) : (
+            <PhotoGrid
+              tiles={pendingPhotos.map((p) => ({ key: p.key, url: p.url }))}
+              onAdd={addPendingPhotos}
+              onMove={movePendingPhoto}
+              onRemove={removePendingPhoto}
             />
+          )}
+        </section>
 
-            <label className="pform__check">
-              <input
-                type="checkbox"
-                checked={draft.active}
-                onChange={(e) => setField('active', e.target.checked)}
-              />
-              Aparece al cargar pedidos
-            </label>
-          </section>
+        <ShopLinkSection
+          draft={shopLink}
+          onChange={(next) => {
+            setShopLink(next)
+            setShopError(null)
+          }}
+          families={families}
+          status={shopStatus}
+          error={shopError}
+          productName={draft.name}
+        />
 
-          <section className="card">
-            <div className="card__head">
-              <h2 className="card__title">Fotos</h2>
-            </div>
-            {isEdit && id ? (
-              <ProductImageGallery
-                productId={id}
-                images={images}
-                onChange={setImages}
-              />
-            ) : (
-              <p className="muted pform__hint">
-                Guardá el producto para poder cargar fotos.
-              </p>
-            )}
-          </section>
-        </div>
+        {isEdit && id && <ProductActivity productId={id} />}
+      </div>
+
+      <div className="pform__footer">
+        <Link to="/admin/productos" className="btn btn--ghost">
+          Cancelar
+        </Link>
+        <button
+          type="submit"
+          className="btn btn--primary"
+          disabled={submitting}
+        >
+          {submitting
+            ? pendingPhotos.length
+              ? 'Guardando y subiendo fotos…'
+              : 'Guardando…'
+            : 'Guardar producto'}
+        </button>
       </div>
     </form>
   )

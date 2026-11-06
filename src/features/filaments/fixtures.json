@@ -1,0 +1,358 @@
+[
+  {
+    "brand": "3N3",
+    "name": "PLA",
+    "material": "PLA",
+    "presentation": "spool",
+    "price": 22100,
+    "refill_price": null,
+    "accent": "#b8a3d9",
+    "colors": [
+      ["Blanco", "#f7f5f0", "Estándar", 21150, 2, null, true],
+      ["Negro", "#1d1b19", "Estándar", 21150, 2, null, true],
+      ["Rojo", "#d0312d", "Estándar", 21150, 15, null, true],
+      ["Azul", "#2450b8", "Estándar", 21150, 0, null, true],
+      ["Amarillo", "#f2c230", "Estándar", 21150, 0, null, true],
+      ["Amarillo Fluo", "#e3f00a", "Fluo", null, 0, null, true],
+      ["Gris Plomo", "#6b6e72", "Estándar", 21150, 1, null, true],
+      ["Gris Acero", "#8a9097", "Estándar", null, 0, null, true],
+      ["Verde", "#2e8b4a", "Estándar", null, 0, null, true],
+      ["Verde Fluo", "#43e02a", "Fluo", null, 0, null, true],
+      ["Naranja", "#f07b22", "Estándar", null, 0, null, true],
+      ["Fucsia", "#d6317e", "Estándar", null, 0, null, true],
+      ["Rosa", "#f3a0b8", "Estándar", null, 6, null, true],
+      ["Violeta", "#7b4bb3", "Estándar", null, 0, null, true],
+      ["Celeste", "#7cc4ec", "Estándar", null, 0, null, true],
+      ["Hueso", "#efe6d2", "Estándar", null, 0, null, true],
+      ["Rústico", "#a5714a", "Estándar", null, 0, null, true],
+      ["Habano", "#8b5a2b", "Estándar", null, 0, null, true],
+      ["Oro", "#caa13a", "Estándar", null, 0, null, true],
+      ["Cobre", "#b87333", "Estándar", null, 0, null, true],
+      ["Bronce", "#a0703c", "Estándar", null, 0, null, true],
+      ["Natural", "#efe8d8", "Estándar", null, 1, null, true]
+    ]
+  },
+  {
+    "brand": "3N3",
+    "name": "3nMax PLA",
+    "material": "PLA",
+    "presentation": "spool",
+    "price": 21000,
+    "refill_price": null,
+    "accent": "#d9a3c0",
+    "colors": [
+      ["Blanco", "#f7f5f0", "Estándar", null, 0, null, true],
+      ["Negro", "#1d1b19", "Estándar", null, 0, null, true],
+      ["Rojo", "#d0312d", "Estándar", null, 0, null, true],
+      ["Azul", "#2450b8", "Estándar", null, 1, null, true],
+      ["Amarillo", "#f2c230", "Estándar", null, 0, null, true],
+      ["Celeste", "#7cc4ec", "Estándar", null, 4, null, true],
+      ["Rosa", "#f3a0b8", "Estándar", null, 0, null, true],
+      ["Gris Plomo", "#6b6e72", "Estándar", null, 0, null, true],
+      ["Verde", "#2e8b4a", "Estándar", null, 0, null, true],
+      ["Lila", "#b39ddb", "Estándar", null, 0, null, true],
+      ["Uva", "#5b2a6e", "Estándar", null, 1, null, true],
+      ["Chocolate", "#5a3a24", "Estándar", null, 0, null, true],
+      ["Bronce", "#a0703c", "Estándar", null, 0, null, true]
+    ]
+  },
+  {
+    "brand": "3N3",
+    "name": "PETG",
+    "material": "PETG",
+    "presentation": "spool",
+    "price": 20500,
+    "refill_price": null,
+    "accent": "#f0dca0",
+    "colors": [
+      ["Blanco", "#f7f5f0", "Estándar", null, 0, null, true],
+      ["Negro", "#1d1b19", "Estándar", null, 5, null, true],
+      ["Azul", "#2450b8", "Estándar", null, 0, null, true],
+      ["Rojo", "#d0312d", "Estándar", null, 0, null, true],
+      ["Gris Espacial", "#4a4e55", "Estándar", null, 0, null, true],
+      ["Bronce", "#a0703c", "Estándar", null, 0, null, true]
+    ]
+  },
+  {
+    "brand": "3N3",
+    "name": "3NFLEX",
+    "material": "TPU",
+    "presentation": "spool",
+    "price": 30000,
+    "refill_price": null,
+    "accent": "#cfc3e6",
+    "colors": [["Blanco TPU", "#f7f5f0", "Estándar", null, 1, null, true]]
+  },
+  {
+    "brand": "Flashforge",
+    "name": "PLA",
+    "material": "PLA",
+    "presentation": "spool",
+    "price": 18000,
+    "refill_price": null,
+    "accent": "#cfe0e3",
+    "colors": [["Negro", "#1d1b19", "Estándar", null, 1, null, true]]
+  },
+  {
+    "brand": "Elegoo",
+    "name": "PLA",
+    "material": "PLA",
+    "presentation": "spool",
+    "price": 25000,
+    "refill_price": null,
+    "accent": "#f5d6b8",
+    "colors": [
+      ["Blanco Rapid", "#f7f5f0", "Rapid", null, 6, null, true],
+      ["Amarillo Rapid", "#f2c230", "Rapid", null, 2, null, true],
+      ["Gris", "#8f9296", "Estándar", null, 1, null, true],
+      ["Traslúcido", "rgba(220,230,235,.6)", "Traslúcido", null, 1, null, true],
+      [
+        "Tricolor black-purple-blue",
+        "conic-gradient(#d0312d,#caa13a,#6a3d9a,#2e8b4a,#d0312d)",
+        "Multicolor",
+        30000,
+        0,
+        null,
+        true
+      ],
+      [
+        "Bicolor rojo-verde",
+        "conic-gradient(#d0312d,#caa13a,#6a3d9a,#2e8b4a,#d0312d)",
+        "Multicolor",
+        30000,
+        0,
+        null,
+        true
+      ]
+    ]
+  },
+  {
+    "brand": "Grilon3",
+    "name": "PLA",
+    "material": "PLA",
+    "presentation": "spool",
+    "price": 26600,
+    "refill_price": null,
+    "accent": "#a9c4ef",
+    "colors": [
+      ["Blanco", "#f7f5f0", "Estándar", 25500, 1, null, true],
+      ["Negro", "#1d1b19", "Estándar", 25500, 3, null, true],
+      ["Gris Plata", "#b9bcc0", "Estándar", 25500, 0, null, true],
+      ["Gris Espacial", "#4a4e55", "Estándar", 25500, 0, null, true],
+      ["Rojo", "#d0312d", "Estándar", 25500, 0, null, true],
+      ["Azul", "#2450b8", "Estándar", 25500, 1, null, true],
+      ["Violeta", "#7b4bb3", "Estándar", null, 0, null, true],
+      ["Verde", "#2e8b4a", "Estándar", null, 2, null, true],
+      ["Verde Manzana", "#7ac943", "Estándar", null, 0, null, true],
+      ["Rosa", "#f3a0b8", "Estándar", null, 0, null, true],
+      ["Fucsia", "#d6317e", "Estándar", null, 2, null, true],
+      ["Celeste", "#7cc4ec", "Estándar", null, 0, null, true],
+      ["Turquesa", "#2bb3b1", "Estándar", null, 0, null, true],
+      ["Azul Prusia", "#1f3a68", "Estándar", null, 1, null, true],
+      ["Bordó", "#6e1a2a", "Estándar", null, 0, null, true],
+      ["Dorado", "#caa13a", "Estándar", null, 3, null, true],
+      ["Bronce", "#a0703c", "Estándar", null, 1, null, true],
+      ["Cobre", "#b87333", "Estándar", null, 0, null, true],
+      ["Amarillo Fluo", "#e3f00a", "Fluo", null, 0, null, true],
+      ["Magenta Fluo", "#ff2fb3", "Fluo", null, 0, null, true],
+      ["Naranja Fluo", "#ff6a13", "Fluo", null, 1, null, true],
+      ["Verde Fluo", "#43e02a", "Fluo", null, 0, null, true],
+      ["Piel 162", "#f0c7a4", "Estándar", null, 0, null, true],
+      ["Piel 720", "#d9a07a", "Estándar", null, 5, null, true]
+    ]
+  },
+  {
+    "brand": "Grilon3",
+    "name": "PLA especial",
+    "material": "PLA especial",
+    "presentation": "spool",
+    "price": 31000,
+    "refill_price": null,
+    "accent": "#f3b8d6",
+    "colors": [
+      [
+        "Dorado Silk",
+        "linear-gradient(135deg,#caa13a,#fff 55%,#caa13a)",
+        "Silk",
+        null,
+        0,
+        null,
+        true
+      ],
+      [
+        "Platino Silk",
+        "linear-gradient(135deg,#d8d8d4,#fff 55%,#d8d8d4)",
+        "Silk",
+        null,
+        0,
+        null,
+        true
+      ],
+      [
+        "Blanco Perla Silk",
+        "linear-gradient(135deg,#f7f5f0,#fff 55%,#f7f5f0)",
+        "Silk",
+        null,
+        0,
+        null,
+        true
+      ],
+      [
+        "Tutti Frutti Silk",
+        "conic-gradient(#d0312d,#caa13a,#6a3d9a,#2e8b4a,#d0312d)",
+        "Silk",
+        null,
+        0,
+        null,
+        true
+      ],
+      ["Chocolate Boutique", "#5a3a24", "Boutique", 28800, 0, null, true],
+      ["Dulce de leche Boutique", "#c89559", "Boutique", 28800, 0, null, true],
+      ["Salmón Boutique", "#f4a28c", "Boutique", 28800, 1, null, true],
+      ["Carpincho", "#9c7b56", "Estándar", 28800, 3, null, true],
+      ["Caoba Wood", "#6a2e1f", "Wood", 35500, 0, null, true],
+      ["Cerezo Wood", "#8e3b2e", "Wood", 35500, 0, null, true],
+      ["Nogal Wood", "#5e4230", "Wood", 35500, 0, null, true],
+      ["Pino Wood", "#d8b98a", "Wood", 35500, 0, null, true]
+    ]
+  },
+  {
+    "brand": "Grilon3",
+    "name": "PETG",
+    "material": "PETG",
+    "presentation": "spool",
+    "price": 21500,
+    "refill_price": null,
+    "accent": "#8fb8bf",
+    "colors": [
+      ["Blanco", "#f7f5f0", "Estándar", null, 0, null, true],
+      ["Negro", "#1d1b19", "Estándar", null, 0, null, true],
+      ["Gris Plata", "#b9bcc0", "Estándar", null, 0, null, true],
+      ["Gris Acero", "#8a9097", "Estándar", null, 0, null, true],
+      ["NOVA", "#9aa7b5", "Estándar", null, 0, null, true],
+      ["Natural", "#efe8d8", "Estándar", null, 0, null, true],
+      ["Rojo Clear", "#d0312d99", "Clear", null, 1, null, true],
+      ["Amarillo Clear", "#f2c23099", "Clear", null, 1, null, true],
+      ["Verde Clear", "#2e8b4a99", "Clear", null, 0, null, true],
+      ["Azul Clear", "#2450b899", "Clear", null, 0, null, true],
+      ["Ámbar Clear", "#d98c1f99", "Clear", null, 1, null, true]
+    ]
+  },
+  {
+    "brand": "GST3D",
+    "name": "PLA Lite",
+    "material": "PLA",
+    "presentation": "spool",
+    "price": 16500,
+    "refill_price": null,
+    "accent": "#f5c79a",
+    "colors": [
+      ["Black", "#1d1b19", "Estándar", null, 0, null, true],
+      ["White", "#f7f5f0", "Estándar", null, 0, null, true],
+      ["Sky blue", "#7cc4ec", "Estándar", null, 0, null, true],
+      ["Red", "#d0312d", "Estándar", null, 0, null, true],
+      ["Gold", "#caa13a", "Estándar", null, 0, null, true],
+      [
+        "Gold Silk",
+        "linear-gradient(135deg,#caa13a,#fff 55%,#caa13a)",
+        "Silk",
+        null,
+        0,
+        null,
+        true
+      ],
+      ["Blue Silk", "#cfc7bd", "Silk", 20000, 0, null, true],
+      ["Silver", "#c0c3c7", "Estándar", null, 0, null, true],
+      [
+        "Tricolor Silk Red Gold Orange Fluo",
+        "conic-gradient(#d0312d,#caa13a,#6a3d9a,#2e8b4a,#d0312d)",
+        "Silk",
+        null,
+        0,
+        null,
+        true
+      ]
+    ]
+  },
+  {
+    "brand": "Fila Nova",
+    "name": "PLA",
+    "material": "PLA",
+    "presentation": "spool",
+    "price": 18000,
+    "refill_price": null,
+    "accent": "#a9c4ef",
+    "colors": [
+      ["Police Blue", "#1c2f6b", "Estándar", null, 0, null, true],
+      ["Gold World Cup", "#caa13a", "Estándar", null, 2, null, true]
+    ]
+  },
+  {
+    "brand": "Freemover",
+    "name": "PLA",
+    "material": "PLA",
+    "presentation": "spool",
+    "price": 25000,
+    "refill_price": null,
+    "accent": "#e58a7a",
+    "colors": [
+      [
+        "Tricolor Silk Rose Red Green",
+        "conic-gradient(#d0312d,#caa13a,#6a3d9a,#2e8b4a,#d0312d)",
+        "Silk",
+        null,
+        0,
+        null,
+        true
+      ],
+      [
+        "Bicolor Silk Black Purple",
+        "conic-gradient(#d0312d,#caa13a,#6a3d9a,#2e8b4a,#d0312d)",
+        "Silk",
+        null,
+        0,
+        null,
+        true
+      ],
+      ["Matte Graphite Purple", "#4a4458", "Mate", 22000, 0, null, true],
+      ["Earth Brown", "#7a5230", "Estándar", 16500, 0, null, true],
+      ["Matte Lavender", "#b7a6d9", "Mate", 20000, 0, null, true],
+      ["Esmeralda", "#1f8a5e", "Estándar", 20000, 0, null, true],
+      ["Lava Orange", "#e5572a", "Estándar", 16500, 0, null, true]
+    ]
+  },
+  {
+    "brand": "Bambu Lab",
+    "name": "PLA Lite",
+    "material": "PLA",
+    "presentation": "both",
+    "price": 25000,
+    "refill_price": 21000,
+    "accent": "#e98a8a",
+    "colors": [
+      ["Blanco", "#f7f5f0", "Estándar", null, 0, 5, true],
+      ["Negro", "#1d1b19", "Estándar", null, 3, 2, true],
+      ["Gris", "#8f9296", "Estándar", null, 0, 0, true],
+      ["Azul", "#2450b8", "Estándar", null, 4, 0, true],
+      ["Rojo", "#d0312d", "Estándar", null, 2, 1, true],
+      ["Celeste", "#7cc4ec", "Estándar", null, 1, 2, true],
+      ["Naranja", "#f07b22", "Estándar", null, 0, 1, false],
+      ["Verde", "#2e8b4a", "Estándar", null, 0, 1, true],
+      ["Amarillo Sunflower", "#f2b705", "Estándar", null, 2, 1, true],
+      ["Mate Beige", "#e5d3b3", "Estándar", null, 1, 0, true]
+    ]
+  },
+  {
+    "brand": "Bambu Lab",
+    "name": "PLA",
+    "material": "PLA",
+    "presentation": "spool",
+    "price": 56000,
+    "refill_price": null,
+    "accent": "#f5d98a",
+    "colors": [
+      ["Beige", "#e5d3b3", "Estándar", null, 2, null, true],
+      ["Silver", "#c0c3c7", "Estándar", null, 1, null, true]
+    ]
+  }
+]

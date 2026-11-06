@@ -13,14 +13,7 @@ function product(overrides: Partial<ProductRow>): ProductRow {
     active: true,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
-    slug: null,
-    sku: null,
-    compare_at_price: null,
-    custom_on_request: false,
-    personalizable: false,
-    weight_grams: null,
-    category_id: null,
-    subcategory: null,
+    updated_by: null,
     ...overrides,
   }
 }
@@ -48,7 +41,6 @@ describe('filterProducts', () => {
       filterProducts(products, {
         query: '',
         activeOnly: false,
-        categoryId: '',
       }),
     ).toHaveLength(2)
   })
@@ -61,7 +53,6 @@ describe('filterProducts', () => {
     const result = filterProducts(products, {
       query: 'zelda',
       activeOnly: false,
-      categoryId: '',
     })
     expect(result.map((p) => p.id)).toEqual(['a'])
   })
@@ -74,9 +65,23 @@ describe('filterProducts', () => {
     const result = filterProducts(products, {
       query: 'especial',
       activeOnly: false,
-      categoryId: '',
     })
     expect(result.map((p) => p.id)).toEqual(['a'])
+  })
+
+  it('busca por palabras en cualquier orden, sin acentos ni mayúsculas', () => {
+    const products = [
+      product({ id: 'a', name: 'Vaso camiseta 650 ml BOCA' }),
+      product({ id: 'b', name: 'Vaso Camiseta 650 ml RIVER' }),
+      product({ id: 'c', name: 'Vaso Camiseta 650ml Mandiyú' }),
+    ]
+    const ids = (query: string) =>
+      filterProducts(products, { query, activeOnly: false }).map((p) => p.id)
+    expect(ids('vaso boca')).toEqual(['a'])
+    expect(ids('boca 650')).toEqual(['a'])
+    expect(ids('MANDIYU')).toEqual(['c'])
+    expect(ids('vaso camiseta')).toEqual(['a', 'b', 'c'])
+    expect(ids('vaso talleres')).toEqual([])
   })
 
   it('excludes inactive products when activeOnly is set', () => {
@@ -87,36 +92,7 @@ describe('filterProducts', () => {
     const result = filterProducts(products, {
       query: '',
       activeOnly: true,
-      categoryId: '',
     })
     expect(result.map((p) => p.id)).toEqual(['a'])
-  })
-
-  it('filtra por categoría cuando categoryId está seteado', () => {
-    const products = [
-      product({ id: 'a', category_id: 'cat-1' }),
-      product({ id: 'b', category_id: 'cat-2' }),
-      product({ id: 'c', category_id: null }),
-    ]
-    const result = filterProducts(products, {
-      query: '',
-      activeOnly: false,
-      categoryId: 'cat-1',
-    })
-    expect(result.map((p) => p.id)).toEqual(['a'])
-  })
-
-  it('devuelve todo cuando categoryId es ""', () => {
-    const products = [
-      product({ id: 'a', category_id: 'cat-1' }),
-      product({ id: 'b', category_id: null }),
-    ]
-    expect(
-      filterProducts(products, {
-        query: '',
-        activeOnly: false,
-        categoryId: '',
-      }),
-    ).toHaveLength(2)
   })
 })

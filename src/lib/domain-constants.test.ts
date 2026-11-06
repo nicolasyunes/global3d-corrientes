@@ -33,6 +33,7 @@ describe('open-list constants', () => {
       'facebook',
       'local',
       'web',
+      'mercadolibre',
       'other',
     ])
   })

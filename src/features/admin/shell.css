@@ -44,7 +44,7 @@
   right: 0;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: var(--color-white);
   border-top: 1px solid var(--color-carbon-line);
   padding: 6px 6px calc(8px + env(safe-area-inset-bottom));
@@ -200,4 +200,15 @@
     width: 100%;
     padding: 28px 32px 60px;
   }
+}
+.shell-nav__badge {
+  margin-left: auto;
+  min-width: 26px;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: var(--color-orange);
+  color: var(--color-carbon);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-align: center;
 }
