@@ -77,6 +77,26 @@ export interface ShopSettings {
   mercadopago?: { enabled: boolean; publicKey: string }
   /** % de descuento pagando en efectivo o transferencia */
   descuento_efectivo?: { porcentaje: number }
+  /** Reseñas de Google elegidas a mano y link para dejar una (ver lib/reviews.ts) */
+  resenas?: ReviewSettings
+}
+
+export interface ReviewSettings {
+  /** Place ID de Google del local; arma el link directo al formulario de reseña */
+  placeId?: string
+  /** Nota promedio en Google (1 a 5) */
+  nota?: number
+  /** Cantidad de reseñas en Google */
+  total?: number
+  items?: ShopReview[]
+}
+
+export interface ShopReview {
+  nombre: string
+  texto: string
+  estrellas: number
+  /** Texto libre, como lo muestra Google: "hace 2 meses" */
+  fecha?: string
 }
 
 export interface InstagramPost {

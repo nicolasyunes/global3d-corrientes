@@ -4,6 +4,7 @@ import { CategoryTile } from '../components/CategoryTile'
 import { InstagramFeed } from '../components/InstagramFeed'
 import { Perks } from '../components/Perks'
 import { ProductCard } from '../components/ProductCard'
+import { Reviews } from '../components/Reviews'
 import {
   CATEGORIES,
   heroPhotos,
@@ -258,6 +259,8 @@ export function Home() {
         handle={settings.instagram}
         links={settings.instagram_posts}
       />
+
+      <Reviews settings={settings} />
 
       <section className="section" aria-labelledby="faq-title">
         <div className="container faq">

@@ -1044,6 +1044,86 @@ p {
 .faq-list details {
   border-bottom: 1px solid var(--line-strong);
 }
+
+/* Reseñas */
+.rev-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.rev-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.rev-summary strong {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.rev-stars {
+  display: inline-flex;
+  gap: 1px;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--line-strong);
+}
+.rev-stars .on {
+  color: var(--accent);
+}
+.rev-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+@media (min-width: 700px) {
+  .rev-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .rev-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.rev-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rev-card blockquote {
+  margin: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.rev-author {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.rev-more {
+  margin: 14px 0 0;
+}
+.rev-more a {
+  font-weight: 700;
+}
+.rev-ask {
+  border-color: var(--accent);
+  border-width: 2px;
+}
+.rev-ask .btn {
+  align-self: flex-start;
+}
 .faq-list summary {
   list-style: none;
   cursor: pointer;

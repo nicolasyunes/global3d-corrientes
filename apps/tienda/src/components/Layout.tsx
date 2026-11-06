@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { cartCount, useCart } from '../lib/cart'
 import { CATEGORIES } from '../lib/catalog'
 import { useShop } from '../lib/data'
+import { writeReviewUrl } from '../lib/reviews'
 import { useTheme } from '../lib/theme'
 import { waLink } from '../lib/whatsapp'
 import { ToastProvider } from './bits'
@@ -181,6 +182,18 @@ export function Layout() {
                 rel="noreferrer"
               >
                 Instagram @{settings.instagram}
+              </a>
+            </p>
+            <p>
+              <a
+                href={writeReviewUrl(
+                  settings.resenas,
+                  settings.local.mapsQuery,
+                )}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Dejá tu reseña en Google
               </a>
             </p>
             <p>Transferencia · Efectivo en el local</p>
