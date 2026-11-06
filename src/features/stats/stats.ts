@@ -1,11 +1,7 @@
 import type { PaymentMethod } from '@/lib/domain-constants'
 import type { FilamentLogRow, FilamentSale } from '@/features/filaments/filaments'
-import {
-  orderToVentaRow,
-  productSaleToVentaRow,
-} from '@/features/orders/deliveredOrders'
-import type { OrderWithCustomer } from '@/features/orders/orders.api'
-import type { ProductSaleRow } from '@/features/orders/productSales.api'
+import { itemsSummary } from '@/features/sales/sales'
+import type { SaleWithRefs } from '@/features/sales/sales.api'
 
 export type PeriodKind = 'today' | 'week' | 'month' | 'year' | 'custom'
 
@@ -109,46 +105,20 @@ export interface DeliveredRow {
   href: string | null
 }
 
-// Orders count on the day they really moved to "Entregado" when that was
-// recorded; older ones fall back to their promised date.
-export function toDeliveredRows(
-  orders: readonly OrderWithCustomer[],
-  productSales: readonly ProductSaleRow[],
-  deliveredAt: ReadonlyMap<string, string>,
-): DeliveredRow[] {
-  const rows: DeliveredRow[] = [
-    ...orders.map((o): DeliveredRow => {
-      const v = orderToVentaRow(o)
-      const at = deliveredAt.get(o.id)
-      return {
-        id: v.id,
-        kind: 'order',
-        at: at ?? o.due_date,
-        exact: at != null,
-        customerName: v.customerName,
-        productLabel: v.productLabel,
-        amount: v.amount,
-        method: null,
-        href: v.href,
-      }
-    }),
-    ...productSales.map((s): DeliveredRow => {
-      const v = productSaleToVentaRow(s)
-      const method = (s.method ?? null) as PaymentMethod | null
-      return {
-        id: v.id,
-        kind: 'product',
-        at: s.transacted_at,
-        exact: true,
-        customerName: v.customerName,
-        productLabel: v.productLabel,
-        amount: v.amount,
-        method,
-        href: null,
-      }
-    }),
-  ]
-  return rows.sort((a, b) => toDate(b.at).getTime() - toDate(a.at).getTime())
+// One row per sale in the ledger. Order sales were stamped when the order
+// moved to "Entregado"; counter sales when they were made.
+export function saleToDeliveredRow(s: SaleWithRefs): DeliveredRow {
+  return {
+    id: s.id,
+    kind: s.order_id ? 'order' : 'product',
+    at: s.sold_at,
+    exact: true,
+    customerName: s.customers?.name ?? null,
+    productLabel: itemsSummary(s.sale_items),
+    amount: Number(s.amount),
+    method: (s.method ?? null) as PaymentMethod | null,
+    href: s.order_id ? `/admin/orders/${s.order_id}` : null,
+  }
 }
 
 export function salesSummary(sales: readonly FilamentSale[]) {

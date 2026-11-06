@@ -33,7 +33,11 @@ import type { OrderRow } from './orders.api'
 import { toISODate } from './validation'
 import { useOperator } from '@/features/operators/operator-context'
 import { listProductTemplates } from '@/features/products/products.api'
-import { findTemplate, type ProductTemplate } from '@/features/products/parts'
+import {
+  findTemplate,
+  productSuggestions,
+  type ProductTemplate,
+} from '@/features/products/parts'
 import { colorSwatch } from '@/features/production/pieces'
 import { AddAttachment, AttachmentGrid } from './attachments'
 import {
@@ -156,6 +160,8 @@ export default function OrderModal({
   const [fileError, setFileError] = useState<string | null>(null)
   const [hits, setHits] = useState<CustomerHit[]>([])
   const [showHits, setShowHits] = useState(false)
+  // Ítem cuyo campo "Producto" muestra sugerencias (null: ninguno).
+  const [productFocus, setProductFocus] = useState<number | null>(null)
   const firstField = useRef<HTMLInputElement>(null)
   const dirty = useRef(false)
   const today = toISODate(new Date())
@@ -491,7 +497,7 @@ export default function OrderModal({
               {draft.items.map((item, index) => (
                 <div key={item.id ?? `new-${index}`} className="omodal__item">
                   <div className="omodal__row">
-                    <div className="omodal__field omodal__field--grow">
+                    <div className="omodal__field omodal__field--grow omodal__combo">
                       <label
                         className="field-label"
                         htmlFor={`om-prod-${index}`}
@@ -501,11 +507,67 @@ export default function OrderModal({
                       <input
                         id={`om-prod-${index}`}
                         className="input"
-                        list="om-products"
+                        autoComplete="off"
                         placeholder="Ej: Vaso texturizado 1 L Boca, trofeo pádel, algo nuevo…"
                         value={item.product}
-                        onChange={(e) => setProduct(index, e.target.value)}
+                        onChange={(e) => {
+                          setProduct(index, e.target.value)
+                          setProductFocus(index)
+                        }}
+                        onFocus={() => setProductFocus(index)}
+                        onBlur={() =>
+                          setTimeout(
+                            () =>
+                              setProductFocus((f) => (f === index ? null : f)),
+                            150,
+                          )
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape' && productFocus === index) {
+                            e.stopPropagation()
+                            setProductFocus(null)
+                          }
+                        }}
                       />
+                      {productFocus === index &&
+                        (() => {
+                          const hits = productSuggestions(
+                            item.product,
+                            templates,
+                            suggestions,
+                          )
+                          return hits.length > 0 ? (
+                            <ul
+                              className="omodal__hits"
+                              role="listbox"
+                              aria-label="Productos sugeridos"
+                            >
+                              {hits.map((hit) => (
+                                <li key={hit.name}>
+                                  <button
+                                    type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                      setProduct(index, hit.name)
+                                      setProductFocus(null)
+                                    }}
+                                  >
+                                    <strong>{hit.name}</strong>
+                                    {hit.template && (
+                                      <span className="muted">
+                                        {' '}
+                                        · Guardado
+                                        {hit.template.parts.length
+                                          ? ` · ${hit.template.parts.length} piezas`
+                                          : ''}
+                                      </span>
+                                    )}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null
+                        })()}
                     </div>
                     <div className="omodal__field omodal__field--qty">
                       <label
@@ -572,24 +634,6 @@ export default function OrderModal({
                 <Icon name="plus" size={16} />
                 Agregar otro producto
               </button>
-              <datalist id="om-products">
-                {templates.map((t) => (
-                  <option
-                    key={t.id}
-                    value={t.name}
-                    label={
-                      t.parts.length
-                        ? `Guardado · ${t.parts.length} piezas`
-                        : 'Guardado'
-                    }
-                  />
-                ))}
-                {suggestions
-                  .filter((s) => !findTemplate(s, templates))
-                  .map((s) => (
-                    <option key={s} value={s} />
-                  ))}
-              </datalist>
               <datalist id="om-colors">
                 {[
                   ...new Set(

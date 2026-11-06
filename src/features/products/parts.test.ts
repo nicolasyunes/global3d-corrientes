@@ -5,6 +5,7 @@ import {
   newPartDraft,
   partsSummary,
   piecesForItem,
+  productSuggestions,
   type ProductTemplate,
 } from './parts'
 
@@ -29,6 +30,46 @@ describe('findTemplate', () => {
   it('does not match partial or free text', () => {
     expect(findTemplate('Vaso milkshake', [spiderman])).toBeNull()
     expect(findTemplate('', [spiderman])).toBeNull()
+  })
+})
+
+describe('productSuggestions', () => {
+  const boca: ProductTemplate = {
+    ...spiderman,
+    id: 'p2',
+    name: 'Vaso Camiseta 650 ml BOCA',
+  }
+  const templates = [spiderman, boca]
+
+  it('busca por palabras en guardados y en nombres usados', () => {
+    const names = productSuggestions('vaso boca', templates, [
+      'Vaso texturizado 1 L Boca',
+      'Trofeo pádel',
+    ]).map((s) => s.name)
+    expect(names).toEqual([
+      'Vaso Camiseta 650 ml BOCA',
+      'Vaso texturizado 1 L Boca',
+    ])
+  })
+
+  it('marca los productos guardados y no repite nombres', () => {
+    const hits = productSuggestions('camiseta', templates, [
+      'vaso camiseta 650 ml boca',
+    ])
+    expect(hits).toEqual([{ name: boca.name, template: boca }])
+  })
+
+  it('no sugiere nada sin texto ni lo que ya está escrito igual', () => {
+    expect(productSuggestions('  ', templates, [])).toEqual([])
+    expect(
+      productSuggestions('vaso milkshake spiderman', templates, []),
+    ).toEqual([])
+  })
+
+  it('ignora acentos', () => {
+    expect(
+      productSuggestions('padel', [], ['Trofeo pádel']).map((s) => s.name),
+    ).toEqual(['Trofeo pádel'])
   })
 })
 

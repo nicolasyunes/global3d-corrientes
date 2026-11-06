@@ -3,6 +3,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
+  operator,
   getProductMock,
   createProductMock,
   updateProductMock,
@@ -11,6 +12,7 @@ const {
   saveProductPartsMock,
   uploadProductImageMock,
 } = vi.hoisted(() => ({
+  operator: { isAdmin: true },
   uploadProductImageMock: vi.fn(),
   getProductMock: vi.fn(),
   createProductMock: vi.fn(),
@@ -41,6 +43,10 @@ vi.mock('./products.api', () => ({
   listProductLog: () => Promise.resolve([]),
   deleteProductImage: vi.fn(),
   reorderProductImages: vi.fn(),
+}))
+
+vi.mock('@/features/operators/operator-context', () => ({
+  useOperator: () => ({ current: { id: 'op-1' }, isAdmin: operator.isAdmin }),
 }))
 
 const { listShopFamiliesMock, saveProductShopLinkMock } = vi.hoisted(() => ({
@@ -78,6 +84,7 @@ import ProductForm from './ProductForm'
 
 beforeEach(() => {
   vi.clearAllMocks()
+  operator.isAdmin = true
   listShopFamiliesMock.mockResolvedValue([VASO])
   saveProductShopLinkMock.mockResolvedValue(undefined)
   listProductImagesMock.mockResolvedValue([])
@@ -138,11 +145,29 @@ describe('ProductForm', () => {
     expect(createProductMock.mock.calls[0][0]).toMatchObject({
       name: 'Vaso milkshake Spiderman',
       base_price: 15000,
+      updated_by: 'op-1',
     })
     expect(saveProductPartsMock).toHaveBeenCalledWith('new-1', [
       { label: 'cabeza', color: 'rojo', quantity: 1 },
       { label: 'ojos', color: 'negro', quantity: 2 },
     ])
+  })
+
+  it('a quien no es admin le muestra el precio sin poder cambiarlo ni mandarlo', async () => {
+    operator.isAdmin = false
+    renderAt('/admin/productos/nuevo')
+    fireEvent.change(await screen.findByLabelText('Nombre del producto'), {
+      target: { value: 'Llavero Zelda' },
+    })
+    expect(screen.getByLabelText('Precio de lista ($)')).toHaveAttribute(
+      'readonly',
+    )
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+
+    await waitFor(() => expect(createProductMock).toHaveBeenCalledTimes(1))
+    const sent = createProductMock.mock.calls[0][0]
+    expect(sent).toMatchObject({ name: 'Llavero Zelda', updated_by: 'op-1' })
+    expect(sent).not.toHaveProperty('base_price')
   })
 
   it('carga las piezas guardadas al editar', async () => {
@@ -246,6 +271,28 @@ describe('ProductForm', () => {
       ),
     ).toBeInTheDocument()
     expect(createProductMock).not.toHaveBeenCalled()
+  })
+
+  it('cambia el precio de un producto que ya tuvo ventas sin tocar su stock', async () => {
+    getProductMock.mockResolvedValue({
+      id: 'p1',
+      name: 'Vaso Camiseta 650 ml BOCA',
+      description: null,
+      base_price: 24800,
+      stock_quantity: 0, // la venta lo dejó en 0
+      active: true,
+    })
+    renderAt('/admin/productos/p1')
+    const price = await screen.findByLabelText('Precio de lista ($)')
+    expect(price).toHaveValue('24800')
+    fireEvent.change(price, { target: { value: '26.500' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar producto/i }))
+    await waitFor(() => expect(updateProductMock).toHaveBeenCalledTimes(1))
+    const [id, patch] = updateProductMock.mock.calls[0]
+    expect(id).toBe('p1')
+    expect(patch).toMatchObject({ base_price: 26500, updated_by: 'op-1' })
+    expect(patch).not.toHaveProperty('stock_quantity')
+    expect(await screen.findByText('lista')).toBeInTheDocument()
   })
 
   it('al editar muestra la ficha en la que ya está el producto', async () => {

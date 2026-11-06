@@ -6,25 +6,28 @@ import type { ProductRow } from './products.api'
 const {
   listProductsMock,
   listAllPartsMock,
-  updateProductMock,
+  moveProductStockMock,
   listProductLogMock,
+  operator,
 } = vi.hoisted(() => ({
   listProductsMock: vi.fn(),
   listAllPartsMock: vi.fn(),
-  updateProductMock: vi.fn(),
+  moveProductStockMock: vi.fn(),
   listProductLogMock: vi.fn(),
+  operator: { isAdmin: false },
 }))
 
 vi.mock('./products.api', () => ({
   listProducts: listProductsMock,
   listAllParts: listAllPartsMock,
-  updateProduct: updateProductMock,
+  moveProductStock: moveProductStockMock,
   listProductLog: listProductLogMock,
 }))
 
 vi.mock('@/features/operators/operator-context', () => ({
   useOperator: () => ({
     current: { id: 'op-1', name: 'nicolas' },
+    isAdmin: operator.isAdmin,
     byId: (id: string | null) =>
       id === 'op-1'
         ? { id: 'op-1', name: 'nicolas', initials: 'NI', color: '#f60' }
@@ -53,6 +56,7 @@ function row(over: Partial<ProductRow> = {}): ProductRow {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  operator.isAdmin = false
   listProductLogMock.mockResolvedValue([])
   listProductsMock.mockResolvedValue([
     row(),
@@ -64,7 +68,8 @@ beforeEach(() => {
       { label: 'ojos', color: 'negro', quantity: 2 },
     ],
   })
-  updateProductMock.mockResolvedValue(row())
+  operator.isAdmin = false
+  moveProductStockMock.mockResolvedValue(row({ stock_quantity: 3 }))
 })
 
 function renderList() {
@@ -91,7 +96,7 @@ describe('ProductsList', () => {
     expect(screen.queryByText('Vaso milkshake Spiderman')).toBeNull()
   })
 
-  it('suma stock desde la fila', async () => {
+  it('suma stock desde la fila, a nombre de quien está trabajando', async () => {
     renderList()
     fireEvent.click(
       await screen.findByRole('button', {
@@ -99,11 +104,22 @@ describe('ProductsList', () => {
       }),
     )
     await waitFor(() =>
-      expect(updateProductMock).toHaveBeenCalledWith('p1', {
-        stock_quantity: 3,
-        updated_by: 'op-1',
-      }),
+      expect(moveProductStockMock).toHaveBeenCalledWith('p1', 1, 'op-1'),
     )
+  })
+
+  it('todo el equipo ve los precios; el link a movimientos es solo del admin', async () => {
+    renderList()
+    await screen.findByText('Llavero Zelda')
+    expect(screen.getAllByText(/15\.000/).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Movimientos')).toBeNull()
+  })
+
+  it('al admin le muestra el link a movimientos', async () => {
+    operator.isAdmin = true
+    renderList()
+    await screen.findByText('Llavero Zelda')
+    expect(screen.getByText('Movimientos')).toBeVisible()
   })
 
   it('muestra quién creó o cambió cada producto', async () => {

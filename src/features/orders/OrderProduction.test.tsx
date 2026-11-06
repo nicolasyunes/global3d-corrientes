@@ -49,6 +49,10 @@ vi.mock('./payments.api', () => ({
   voidOrderPayment: voidOrderPaymentMock,
   listOrderPayments: listOrderPaymentsMock,
 }))
+const { getOrderSaleMock } = vi.hoisted(() => ({ getOrderSaleMock: vi.fn() }))
+vi.mock('@/features/sales/sales.api', () => ({
+  getOrderSale: getOrderSaleMock,
+}))
 vi.mock('./OrderImages', () => ({ default: () => <div>IMAGES</div> }))
 vi.mock('@/features/production/OrderPieces', () => ({
   default: () => <div>PIECES</div>,
@@ -111,6 +115,7 @@ async function renderAt(id = 'order-1') {
 }
 
 beforeEach(() => {
+    getOrderSaleMock.mockReset().mockResolvedValue(null)
   vi.clearAllMocks()
   getOrderMock.mockResolvedValue(order())
   listOrderItemsMock.mockResolvedValue([])
@@ -444,5 +449,37 @@ describe('OrderProduction', () => {
       screen.getByRole('button', { name: /Editar datos/i }).click()
     })
     expect(openEditMock).toHaveBeenCalledWith('order-1', expect.any(Function))
+  })
+
+  it('al entregar avisa que quedó registrada la venta', async () => {
+    getOrderMock.mockResolvedValue(order({ status: 'finished' }))
+    getOrderSaleMock.mockResolvedValue({ id: 'sale-1', amount: 24800 })
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    await renderAt()
+    const step = within(
+      screen.getByRole('list', { name: 'Etapas del pedido' }),
+    ).getByRole('button', { name: /Entregado/ })
+    await act(async () => {
+      step.click()
+    })
+    expect(getOrderSaleMock).toHaveBeenCalledWith('order-1')
+    expect(screen.getByText('Venta registrada: $24.800')).toBeInTheDocument()
+    confirm.mockRestore()
+  })
+
+  it('si no se puede leer la venta, entregar igual no falla', async () => {
+    getOrderMock.mockResolvedValue(order({ status: 'finished' }))
+    getOrderSaleMock.mockRejectedValue(new Error('sin red'))
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    await renderAt()
+    const step = within(
+      screen.getByRole('list', { name: 'Etapas del pedido' }),
+    ).getByRole('button', { name: /Entregado/ })
+    await act(async () => {
+      step.click()
+    })
+    expect(updateOrderMock).toHaveBeenCalled()
+    expect(screen.queryByText(/Venta registrada/)).toBeNull()
+    confirm.mockRestore()
   })
 })

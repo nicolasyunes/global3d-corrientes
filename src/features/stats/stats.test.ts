@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FilamentLogRow, FilamentSale } from '@/features/filaments/filaments'
-import type { OrderWithCustomer } from '@/features/orders/orders.api'
-import type { ProductSaleRow } from '@/features/orders/productSales.api'
+import type { SaleWithRefs } from '@/features/sales/sales.api'
 import {
   comparisonRange,
   deliveredSummary,
@@ -12,8 +11,8 @@ import {
   pctChange,
   periodRange,
   previousRange,
+  saleToDeliveredRow,
   salesSummary,
-  toDeliveredRows,
   topColors,
 } from './stats'
 
@@ -154,46 +153,28 @@ describe('inRange', () => {
   })
 })
 
-describe('toDeliveredRows', () => {
-  const order = {
-    id: 'o1',
-    due_date: '2026-10-01',
-    total_amount: 55000,
-    title: 'Trofeo',
-    product_type: 'other',
-    origin_channel: null,
-    customers: { name: 'María', phone: null },
-  } as unknown as OrderWithCustomer
-  const direct = {
-    id: 't1',
-    transacted_at: new Date(2026, 9, 7, 18, 0).toISOString(),
-    amount: 8000,
-    method: 'transfer',
-    note: 'Llavero',
-    customers: null,
-    products: null,
-  } as unknown as ProductSaleRow
+describe('saleToDeliveredRow', () => {
+  const base = {
+    sold_at: '2026-11-06T15:00:00Z',
+    amount: 1000,
+    list_total: 1000,
+    method: 'cash',
+    voided_at: null,
+    customers: { name: 'Ana', wholesale: false },
+    sale_items: [{ description: 'Vaso', quantity: 2, position: 0 }],
+  }
 
-  it('usa la fecha real de entrega si existe', () => {
-    const at = new Date(2026, 9, 3, 11, 20).toISOString()
-    const [row] = toDeliveredRows([order], [], new Map([['o1', at]]))
-    expect(row).toMatchObject({ id: 'o1', kind: 'order', at, exact: true, amount: 55000, method: null })
+  it('venta de pedido: enlaza al pedido', () => {
+    const row = saleToDeliveredRow({ ...base, id: 's1', order_id: 'o1', orders: { id: 'o1', title: 'Vaso' } } as unknown as SaleWithRefs)
+    expect(row).toMatchObject({
+      id: 's1', kind: 'order', at: '2026-11-06T15:00:00Z', exact: true, amount: 1000,
+      customerName: 'Ana', productLabel: 'Vaso ×2', href: '/admin/orders/o1',
+    })
   })
-  it('si no, la fecha prometida', () => {
-    const [row] = toDeliveredRows([order], [], new Map())
-    expect(row).toMatchObject({ at: '2026-10-01', exact: false })
-  })
-  it('ventas directas con forma de cobro, más nuevo primero', () => {
-    const rows = toDeliveredRows([order], [direct], new Map())
-    expect(rows.map((r) => r.id)).toEqual(['t1', 'o1'])
-    expect(rows[0]).toMatchObject({ kind: 'product', exact: true, method: 'transfer', amount: 8000 })
-  })
-  it('conserva la forma de cobro tal cual y null si falta', () => {
-    const one = (method: string | null) =>
-      toDeliveredRows([], [{ ...direct, method } as ProductSaleRow], new Map())[0].method
-    expect(one('uala')).toBe('uala')
-    expect(one('mercadopago')).toBe('mercadopago')
-    expect(one(null)).toBeNull()
+
+  it('venta de mostrador: con medio de pago y sin enlace', () => {
+    const row = saleToDeliveredRow({ ...base, id: 's2', order_id: null, orders: null } as unknown as SaleWithRefs)
+    expect(row).toMatchObject({ kind: 'product', method: 'cash', href: null })
   })
 })
 

@@ -11,9 +11,9 @@ import { useOperator } from '@/features/operators/operator-context'
 import PeoplePage from '@/features/operators/PeoplePage'
 import OrdersList from '@/features/orders/OrdersList'
 import OrderProduction from '@/features/orders/OrderProduction'
-import DeliveredOrdersList from '@/features/orders/DeliveredOrdersList'
 import ProductForm from '@/features/products/ProductForm'
 import ProductsList from '@/features/products/ProductsList'
+import MovementsPage from '@/features/products/MovementsPage'
 import TodayPage from '@/features/production/TodayPage'
 import WeekPage from '@/features/production/WeekPage'
 import WorkshopPage from '@/features/production/WorkshopPage'
@@ -23,6 +23,7 @@ import IdeasPage from '@/features/ideas/IdeasPage'
 import FilamentsPage from '@/features/filaments/FilamentsPage'
 import CountPage from '@/features/filaments/CountPage'
 import ResourcesPage from '@/features/resources/ResourcesPage'
+import SalesPage from '@/features/sales/SalesPage'
 import AdminLayout from './AdminLayout'
 
 // The QR and vectorizer libraries are only needed on this page: keep them out
@@ -88,7 +89,11 @@ export function Component() {
           <Route path="conteo" element={<CountPage />} />
           <Route path="orders" element={<OrdersList />} />
           <Route path="orders/:id" element={<OrderProduction />} />
-          <Route path="ventas-pedidos" element={<DeliveredOrdersList />} />
+          <Route path="ventas" element={<SalesPage />} />
+          <Route
+            path="ventas-pedidos"
+            element={<Navigate to="/admin/ventas" replace />}
+          />
           <Route path="calculadora" element={<CalculatorPage />} />
           <Route
             path="envios"
@@ -112,6 +117,14 @@ export function Component() {
               <ProductsAccess>
                 <ProductForm />
               </ProductsAccess>
+            }
+          />
+          <Route
+            path="productos/movimientos"
+            element={
+              <OperatorAdminOnly>
+                <MovementsPage />
+              </OperatorAdminOnly>
             }
           />
           <Route

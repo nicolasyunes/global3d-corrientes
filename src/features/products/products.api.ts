@@ -233,3 +233,46 @@ export async function listProductLog(
   if (error) throw error
   return data ?? []
 }
+
+export type ProductLogKind =
+  'created' | 'in' | 'out' | 'adjust' | 'sale' | 'edited'
+
+// Fila del registro con el tipo acotado, para el panel de movimientos.
+export type ProductMovementRow = Omit<ProductLogRow, 'kind'> & {
+  kind: ProductLogKind
+}
+
+// Suma o resta stock en un solo paso y deja la fila en el registro. Es la
+// única forma de mover stock desde los botones +/−: así dos personas tocando
+// a la vez no se pisan.
+export async function moveProductStock(
+  productId: string,
+  delta: number,
+  operatorId: string,
+  note: string | null = null,
+): Promise<ProductRow> {
+  const { data, error } = await supabase.rpc('move_product_stock', {
+    p_product: productId,
+    p_delta: delta,
+    p_operator: operatorId,
+    p_note: note,
+  })
+  if (error) throw error
+  return data as ProductRow
+}
+
+// Para el panel de movimientos: solo un admin puede leerlo (la base valida a
+// la persona) y se pagina con `before`.
+export async function listProductMovements(
+  operatorId: string,
+  before: string | null = null,
+  limit = 100,
+): Promise<ProductMovementRow[]> {
+  const { data, error } = await supabase.rpc('list_product_log', {
+    p_operator: operatorId,
+    p_before: before,
+    p_limit: limit,
+  })
+  if (error) throw error
+  return (data ?? []) as ProductMovementRow[]
+}
