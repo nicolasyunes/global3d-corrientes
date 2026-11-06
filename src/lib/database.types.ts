@@ -1586,6 +1586,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      move_product_stock: {
+        Args: {
+          p_product: string
+          p_delta: number
+          p_operator: string
+          p_note?: string | null
+        }
+        Returns: Database['public']['Tables']['products']['Row']
+      }
+      list_product_log: {
+        Args: {
+          p_operator: string
+          p_before?: string | null
+          p_limit?: number
+        }
+        Returns: Database['public']['Tables']['product_log']['Row'][]
+      }
       move_filament: {
         Args: {
           p_color: string

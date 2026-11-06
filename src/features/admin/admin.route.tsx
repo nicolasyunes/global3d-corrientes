@@ -14,6 +14,7 @@ import OrderProduction from '@/features/orders/OrderProduction'
 import DeliveredOrdersList from '@/features/orders/DeliveredOrdersList'
 import ProductForm from '@/features/products/ProductForm'
 import ProductsList from '@/features/products/ProductsList'
+import MovementsPage from '@/features/products/MovementsPage'
 import TodayPage from '@/features/production/TodayPage'
 import WeekPage from '@/features/production/WeekPage'
 import WorkshopPage from '@/features/production/WorkshopPage'
@@ -103,6 +104,14 @@ export function Component() {
               <ProductsAccess>
                 <ProductForm />
               </ProductsAccess>
+            }
+          />
+          <Route
+            path="productos/movimientos"
+            element={
+              <OperatorAdminOnly>
+                <MovementsPage />
+              </OperatorAdminOnly>
             }
           />
           <Route

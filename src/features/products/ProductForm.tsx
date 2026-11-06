@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Icon from '@/components/Icon'
-import { parseMoney } from '@/features/orders/orderDraft'
 import { useOperator } from '@/features/operators/operator-context'
+import { parseMoney } from '@/features/orders/orderDraft'
 import { colorSwatch } from '@/features/production/pieces'
 import {
   createProduct,
@@ -185,7 +185,7 @@ export default function ProductForm() {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
   const navigate = useNavigate()
-  const { current } = useOperator()
+  const { current, isAdmin } = useOperator()
 
   const [draft, setDraft] = useState<ProductDraft>(emptyProductDraft())
   const [parts, setParts] = useState<PartDraft[]>([])
@@ -325,10 +325,11 @@ export default function ProductForm() {
     setSubmitting(true)
     setSubmitError(null)
     try {
+      // El precio de lista lo ve todo el equipo, pero solo el admin lo cambia.
       const patch = {
         name: draft.name.trim(),
         description: draft.description.trim() || null,
-        base_price: parseMoney(draft.basePrice),
+        ...(isAdmin ? { base_price: parseMoney(draft.basePrice) } : {}),
         stock_quantity: parseNonNegativeInt(draft.stockQuantity) ?? 0,
         active: draft.active,
         // Queda en el historial quién lo creó o cambió.
@@ -449,8 +450,10 @@ export default function ProductForm() {
                   id="product-price"
                   className="input num"
                   inputMode="decimal"
-                  placeholder="0"
+                  placeholder={isAdmin ? '0' : '—'}
                   value={draft.basePrice}
+                  readOnly={!isAdmin}
+                  title={isAdmin ? undefined : 'Solo el admin cambia el precio'}
                   onChange={(e) => setField('basePrice', e.target.value)}
                   aria-invalid={Boolean(errors.basePrice)}
                 />
