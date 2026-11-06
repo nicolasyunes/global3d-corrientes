@@ -867,6 +867,7 @@ export type Database = {
           color: string
           role: string
           active: boolean
+          can_manage_products: boolean
           created_at: string
         }
         Insert: {
@@ -876,6 +877,7 @@ export type Database = {
           color?: string
           role?: string
           active?: boolean
+          can_manage_products?: boolean
           created_at?: string
         }
         Update: {
@@ -884,6 +886,7 @@ export type Database = {
           color?: string
           role?: string
           active?: boolean
+          can_manage_products?: boolean
         }
         Relationships: []
       }
@@ -1284,8 +1287,20 @@ export type Database = {
           stock_after: number | null
           note: string | null
         }
-        Insert: never
-        Update: never
+        Insert: {
+          id?: string
+          created_at?: string
+          operator_id?: string | null
+          kind: string
+          product_id?: string | null
+          product_label: string
+          delta?: number | null
+          stock_after?: number | null
+          note?: string | null
+        }
+        Update: {
+          note?: string | null
+        }
         Relationships: []
       }
       products: {
@@ -1552,6 +1567,15 @@ export type Database = {
           p_admin_pin?: string | null
         }
         Returns: string
+      }
+      set_operator_products: {
+        Args: {
+          p_operator: string
+          p_value: boolean
+          p_admin: string
+          p_admin_pin: string
+        }
+        Returns: undefined
       }
       set_operator_pin: {
         Args: {

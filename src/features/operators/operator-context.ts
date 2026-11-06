@@ -7,6 +7,8 @@ export interface OperatorContextValue {
   loading: boolean
   error: string | null
   isAdmin: boolean
+  // Admin, o alguien a quien el admin le habilitó la carga de productos.
+  canManageProducts: boolean
   select: (id: string, pin: string) => Promise<boolean>
   lock: () => void
   refresh: () => Promise<void>

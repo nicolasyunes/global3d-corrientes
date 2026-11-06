@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react'
 import {
+  canManageProducts,
   listOperators,
   verifyOperatorPin,
   type Operator,
@@ -98,6 +99,7 @@ export function OperatorProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       isAdmin: current?.role === 'admin',
+      canManageProducts: canManageProducts(current),
       select,
       lock,
       refresh,

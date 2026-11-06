@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import {
   AvailabilityBadge,
   Img,
@@ -17,7 +17,9 @@ import {
   valueExists,
   variantAvailability,
 } from '../lib/catalog'
+import { selectionForVariant } from '../lib/catalogCards'
 import { useShop } from '../lib/data'
+import { cashDiscountPct, cashPrice } from '../lib/discount'
 import { ars, businessDays } from '../lib/format'
 import type { Family } from '../lib/types'
 import { usePageTitle } from '../lib/usePageTitle'
@@ -51,9 +53,11 @@ export function Product() {
 
 function ProductView({ f, related }: { f: Family; related: Family[] }) {
   const { settings } = useShop()
+  const cashPct = cashDiscountPct(settings)
   const toast = useToast()
-  const [sel, setSel] = useState<Record<string, string>>(() =>
-    initialSelection(f),
+  const [params] = useSearchParams()
+  const [sel, setSel] = useState<Record<string, string>>(
+    () => selectionForVariant(f, params.get('v')) ?? initialSelection(f),
   )
   const [qty, setQty] = useState(f.minQty)
   const [perso, setPerso] = useState<Record<string, string>>({})
@@ -179,6 +183,12 @@ function ProductView({ f, related }: { f: Family; related: Family[] }) {
                 <span className="muted">c/u · mínimo {f.minQty}</span>
               )}
             </div>
+            {unit !== null && cashPct > 0 && (
+              <p className="pdp-cash">
+                <strong>{ars(cashPrice(unit, cashPct))}</strong> pagando en
+                efectivo o transferencia ({cashPct}% off)
+              </p>
+            )}
             {f.description && <p className="muted">{f.description}</p>}
           </div>
 

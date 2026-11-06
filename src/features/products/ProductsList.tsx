@@ -11,6 +11,7 @@ import {
   type ProductRow,
 } from './products.api'
 import { emptyProductFilter, filterProducts, type ProductFilter } from './list'
+import ProductActivity from './ProductActivity'
 import { partsSummary, type PartLine } from './parts'
 import '@/features/production/production.css'
 import './products.css'
@@ -221,6 +222,8 @@ export default function ProductsList() {
           })}
         </ul>
       )}
+
+      {!loading && <ProductActivity limit={20} />}
     </>
   )
 }

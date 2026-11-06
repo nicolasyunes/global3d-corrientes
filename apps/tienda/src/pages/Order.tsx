@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { CopyButton } from '../components/bits'
 import { IconWhatsApp } from '../components/Icons'
+import { MpCardPayment } from '../components/MpCardPayment'
 import { api } from '../lib/api'
 import { useShop } from '../lib/data'
 import { ars, shortDate } from '../lib/format'
@@ -41,6 +42,22 @@ export function Order() {
     'loading',
   )
   usePageTitle(order ? `Pedido #${order.code}` : 'Tu pedido')
+  const [reloadKey, setReloadKey] = useState(0)
+  // El pago se registra en el servidor: se vuelve a leer el pedido un momento
+  // después para mostrar la seña cobrada y el estado confirmado.
+  const refresh = useCallback(() => {
+    setTimeout(() => setReloadKey((k) => k + 1), 1500)
+  }, [])
+  // Vuelta de "Pagar con Mercado Pago": el resultado viene en la dirección y
+  // el pago lo registra el aviso de Mercado Pago unos segundos después.
+  const mpReturn = new URLSearchParams(loc.search).get('collection_status')
+  useEffect(() => {
+    if (mpReturn !== 'approved' && mpReturn !== 'in_process') return
+    const timers = [3000, 8000].map((ms) =>
+      setTimeout(() => setReloadKey((k) => k + 1), ms),
+    )
+    return () => timers.forEach(clearTimeout)
+  }, [mpReturn])
 
   useEffect(() => {
     let alive = true
@@ -55,7 +72,7 @@ export function Order() {
     return () => {
       alive = false
     }
-  }, [token])
+  }, [token, reloadKey])
 
   if (state === 'loading')
     return (
@@ -95,6 +112,8 @@ export function Order() {
   const balance = order.pendingBalance ?? Math.max(0, total - paid)
   const toTransfer = fresh ? fresh.deposit : order.payment.deposit
   const isTransfer = (fresh?.method ?? order.payment.method) === 'transfer'
+  const isCard = (fresh?.method ?? order.payment.method) === 'mercadopago'
+  const mpKey = settings.mercadopago?.publicKey
   const waText =
     fresh?.waText ??
     `¡Hola Global3D! Consulto por mi pedido #${order.code}: ${window.location.href}`
@@ -116,6 +135,30 @@ export function Order() {
       </div>
 
       <div className="stack" style={{ gap: 18 }}>
+        {mpReturn === 'approved' && (
+          <div className="notice n-ok" role="status">
+            ¡Pago aprobado con Mercado Pago! En unos segundos lo vas a ver
+            acreditado acá.
+          </div>
+        )}
+        {(mpReturn === 'in_process' || mpReturn === 'pending') && (
+          <div className="notice n-info" role="status">
+            Tu pago con Mercado Pago quedó en revisión. Te avisamos apenas se
+            acredite; no hace falta pagar de nuevo.
+          </div>
+        )}
+        {isCard &&
+          mpKey &&
+          !cancelled &&
+          paid < toTransfer &&
+          mpReturn !== 'approved' && (
+            <MpCardPayment
+              orderToken={token}
+              amount={toTransfer - paid}
+              publicKey={mpKey}
+              onPaid={refresh}
+            />
+          )}
         {(fresh || order.pendingConfirmation) && (
           <section
             className="panel"

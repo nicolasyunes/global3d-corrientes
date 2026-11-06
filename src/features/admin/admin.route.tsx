@@ -31,6 +31,16 @@ import AdminLayout from './AdminLayout'
 const ToolsPage = lazy(() => import('@/features/tools/ToolsPage'))
 const StatsPage = lazy(() => import('@/features/stats/StatsPage'))
 
+// Productos: admin o quien tenga la carga habilitada en Personas.
+function ProductsAccess({ children }: { children: ReactNode }) {
+  const { canManageProducts } = useOperator()
+  return canManageProducts ? (
+    <>{children}</>
+  ) : (
+    <Navigate to="/admin/hoy" replace />
+  )
+}
+
 function OperatorAdminOnly({ children }: { children: ReactNode }) {
   const { isAdmin } = useOperator()
   return isAdmin ? <>{children}</> : <Navigate to="/admin/hoy" replace />
@@ -80,8 +90,22 @@ export function Component() {
           <Route path="orders/:id" element={<OrderProduction />} />
           <Route path="ventas-pedidos" element={<DeliveredOrdersList />} />
           <Route path="calculadora" element={<CalculatorPage />} />
-          <Route path="productos" element={<ProductsList />} />
-          <Route path="productos/nuevo" element={<ProductForm />} />
+          <Route
+            path="productos"
+            element={
+              <ProductsAccess>
+                <ProductsList />
+              </ProductsAccess>
+            }
+          />
+          <Route
+            path="productos/nuevo"
+            element={
+              <ProductsAccess>
+                <ProductForm />
+              </ProductsAccess>
+            }
+          />
           <Route
             path="productos/movimientos"
             element={
@@ -90,7 +114,14 @@ export function Component() {
               </OperatorAdminOnly>
             }
           />
-          <Route path="productos/:id" element={<ProductForm />} />
+          <Route
+            path="productos/:id"
+            element={
+              <ProductsAccess>
+                <ProductForm />
+              </ProductsAccess>
+            }
+          />
           <Route
             path="estadisticas"
             element={

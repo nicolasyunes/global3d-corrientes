@@ -1,5 +1,5 @@
 import { logDayKey, logDayLabel } from '@/features/filaments/filaments'
-import type { ProductLogKind, ProductLogRow } from './products.api'
+import type { ProductLogKind, ProductMovementRow } from './products.api'
 
 export type MovementFilter = 'all' | 'in' | 'out' | 'other'
 
@@ -15,7 +15,7 @@ export const KIND_TEXT: Record<ProductLogKind, string> = {
 
 // "Entran" suma stock, "Salen" lo resta; lo demás (altas, ediciones) va aparte.
 export function movementGroup(
-  row: ProductLogRow,
+  row: ProductMovementRow,
 ): Exclude<MovementFilter, 'all'> {
   if (row.kind === 'created' || row.kind === 'edited') return 'other'
   if (row.kind === 'sale' || row.kind === 'out') return 'out'
@@ -24,13 +24,13 @@ export function movementGroup(
 }
 
 export function filterMovements(
-  rows: readonly ProductLogRow[],
+  rows: readonly ProductMovementRow[],
   {
     kind,
     person,
     query,
   }: { kind: MovementFilter; person: string; query: string },
-): ProductLogRow[] {
+): ProductMovementRow[] {
   const q = query.trim().toLowerCase()
   return rows.filter((r) => {
     if (kind !== 'all' && movementGroup(r) !== kind) return false
@@ -44,11 +44,11 @@ export function filterMovements(
 export interface MovementDay {
   key: string
   label: string
-  rows: ProductLogRow[]
+  rows: ProductMovementRow[]
 }
 
 // Agrupa por día manteniendo el orden (más nuevo primero).
-export function groupByDay(rows: readonly ProductLogRow[]): MovementDay[] {
+export function groupByDay(rows: readonly ProductMovementRow[]): MovementDay[] {
   const days: MovementDay[] = []
   for (const r of rows) {
     const key = logDayKey(r.created_at)

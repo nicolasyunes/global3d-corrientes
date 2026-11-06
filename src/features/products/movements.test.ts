@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { filterMovements, groupByDay, movementGroup } from './movements'
-import type { ProductLogRow } from './products.api'
+import type { ProductMovementRow } from './products.api'
 
-function log(over: Partial<ProductLogRow>): ProductLogRow {
+function log(over: Partial<ProductMovementRow>): ProductMovementRow {
   return {
     id: 'l1',
     created_at: '2026-10-19T15:00:00Z',

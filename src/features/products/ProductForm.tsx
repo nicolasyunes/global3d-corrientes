@@ -23,6 +23,7 @@ import {
   type FieldErrors,
   type ProductDraft,
 } from './validation'
+import ProductActivity from './ProductActivity'
 import ProductImageGallery, { PhotoGrid } from './ProductImageGallery'
 import { ShopLinkSection } from './ShopLinkSection'
 import {
@@ -331,6 +332,7 @@ export default function ProductForm() {
         ...(isAdmin ? { base_price: parseMoney(draft.basePrice) } : {}),
         stock_quantity: parseNonNegativeInt(draft.stockQuantity) ?? 0,
         active: draft.active,
+        // Queda en el historial quién lo creó o cambió.
         updated_by: current?.id ?? null,
       }
       const saved =
@@ -558,6 +560,8 @@ export default function ProductForm() {
           error={shopError}
           productName={draft.name}
         />
+
+        {isEdit && id && <ProductActivity productId={id} />}
       </div>
 
       <div className="pform__footer">

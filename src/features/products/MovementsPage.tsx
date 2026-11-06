@@ -10,7 +10,7 @@ import {
   movementGroup,
   type MovementFilter,
 } from './movements'
-import { listProductLog, type ProductLogRow } from './products.api'
+import { listProductMovements, type ProductMovementRow } from './products.api'
 import './products.css'
 
 const PAGE = 100
@@ -25,7 +25,7 @@ const FILTERS: [MovementFilter, string][] = [
 // y las fichas, con quién y a qué hora. Solo lee: no se edita ni se borra.
 export default function MovementsPage() {
   const { current, operators, byId } = useOperator()
-  const [rows, setRows] = useState<ProductLogRow[] | null>(null)
+  const [rows, setRows] = useState<ProductMovementRow[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [more, setMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -37,7 +37,7 @@ export default function MovementsPage() {
   useEffect(() => {
     if (!operatorId) return
     let alive = true
-    listProductLog(operatorId, null, PAGE)
+    listProductMovements(operatorId, null, PAGE)
       .then((r) => {
         if (!alive) return
         setRows(r)
@@ -60,7 +60,7 @@ export default function MovementsPage() {
     if (!operatorId || !rows?.length) return
     setLoadingMore(true)
     try {
-      const next = await listProductLog(
+      const next = await listProductMovements(
         operatorId,
         rows[rows.length - 1].created_at,
         PAGE,

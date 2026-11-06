@@ -3,22 +3,36 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProductRow } from './products.api'
 
-const { listProductsMock, listAllPartsMock, moveProductStockMock, operator } =
-  vi.hoisted(() => ({
-    listProductsMock: vi.fn(),
-    listAllPartsMock: vi.fn(),
-    moveProductStockMock: vi.fn(),
-    operator: { isAdmin: false },
-  }))
+const {
+  listProductsMock,
+  listAllPartsMock,
+  moveProductStockMock,
+  listProductLogMock,
+  operator,
+} = vi.hoisted(() => ({
+  listProductsMock: vi.fn(),
+  listAllPartsMock: vi.fn(),
+  moveProductStockMock: vi.fn(),
+  listProductLogMock: vi.fn(),
+  operator: { isAdmin: false },
+}))
 
 vi.mock('./products.api', () => ({
   listProducts: listProductsMock,
   listAllParts: listAllPartsMock,
   moveProductStock: moveProductStockMock,
+  listProductLog: listProductLogMock,
 }))
 
 vi.mock('@/features/operators/operator-context', () => ({
-  useOperator: () => ({ current: { id: 'op-1' }, isAdmin: operator.isAdmin }),
+  useOperator: () => ({
+    current: { id: 'op-1', name: 'nicolas' },
+    isAdmin: operator.isAdmin,
+    byId: (id: string | null) =>
+      id === 'op-1'
+        ? { id: 'op-1', name: 'nicolas', initials: 'NI', color: '#f60' }
+        : undefined,
+  }),
 }))
 
 import ProductsList from './ProductsList'
@@ -41,6 +55,8 @@ function row(over: Partial<ProductRow> = {}): ProductRow {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  operator.isAdmin = false
+  listProductLogMock.mockResolvedValue([])
   listProductsMock.mockResolvedValue([
     row(),
     row({ id: 'p2', name: 'Llavero Zelda' }),
@@ -104,5 +120,35 @@ describe('ProductsList', () => {
     await screen.findByText('Llavero Zelda')
     expect(screen.getAllByText(/15\.000/).length).toBeGreaterThan(0)
     expect(screen.getByText('Movimientos')).toBeVisible()
+  })
+
+  it('muestra quién creó o cambió cada producto', async () => {
+    listProductsMock.mockResolvedValue([row()])
+    listAllPartsMock.mockResolvedValue({})
+    listProductLogMock.mockResolvedValue([
+      {
+        id: 'l1',
+        created_at: new Date().toISOString(),
+        operator_id: 'op-1',
+        kind: 'created',
+        product_id: 'p1',
+        product_label: 'Vaso milkshake Spiderman',
+        delta: 2,
+        stock_after: 2,
+        note: null,
+      },
+    ])
+    render(
+      <MemoryRouter>
+        <ProductsList />
+      </MemoryRouter>,
+    )
+    const activity = await screen.findByRole('region', { name: 'Actividad' })
+    await waitFor(() =>
+      expect(activity.textContent).toContain(
+        'nicolas creó Vaso milkshake Spiderman',
+      ),
+    )
+    expect(activity.textContent).toContain('Stock inicial 2')
   })
 })

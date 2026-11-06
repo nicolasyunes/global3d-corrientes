@@ -22,6 +22,16 @@ const {
   saveProductPartsMock: vi.fn(),
 }))
 
+vi.mock('@/features/operators/operator-context', () => ({
+  useOperator: () => ({
+    current: { id: 'op-1', name: 'nicolas' },
+    byId: (id: string | null) =>
+      id === 'op-1'
+        ? { id: 'op-1', name: 'nicolas', initials: 'NI', color: '#f60' }
+        : undefined,
+  }),
+}))
+
 vi.mock('./products.api', () => ({
   getProduct: getProductMock,
   createProduct: createProductMock,
@@ -30,6 +40,7 @@ vi.mock('./products.api', () => ({
   listProductParts: listProductPartsMock,
   saveProductParts: saveProductPartsMock,
   uploadProductImage: uploadProductImageMock,
+  listProductLog: () => Promise.resolve([]),
   deleteProductImage: vi.fn(),
   reorderProductImages: vi.fn(),
 }))
