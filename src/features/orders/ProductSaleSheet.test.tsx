@@ -18,6 +18,10 @@ vi.mock('./productSales.api', () => ({
   createProductSale: createProductSaleMock,
 }))
 
+vi.mock('@/features/operators/operator-context', () => ({
+  useOperator: () => ({ current: { id: 'op-1' } }),
+}))
+
 vi.mock('./orders.api', () => ({
   upsertCustomer: upsertCustomerMock,
 }))
@@ -137,6 +141,7 @@ describe('ProductSaleSheet', () => {
         quantity: 2,
         amount: 3000,
         productName: null,
+        operatorId: 'op-1',
       }),
     )
     expect(onCreated).toHaveBeenCalledWith(

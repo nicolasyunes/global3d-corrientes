@@ -3,6 +3,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
+  operator,
   getProductMock,
   createProductMock,
   updateProductMock,
@@ -11,6 +12,7 @@ const {
   saveProductPartsMock,
   uploadProductImageMock,
 } = vi.hoisted(() => ({
+  operator: { isAdmin: true },
   uploadProductImageMock: vi.fn(),
   getProductMock: vi.fn(),
   createProductMock: vi.fn(),
@@ -41,6 +43,10 @@ vi.mock('./products.api', () => ({
   listProductLog: () => Promise.resolve([]),
   deleteProductImage: vi.fn(),
   reorderProductImages: vi.fn(),
+}))
+
+vi.mock('@/features/operators/operator-context', () => ({
+  useOperator: () => ({ current: { id: 'op-1' }, isAdmin: operator.isAdmin }),
 }))
 
 const { listShopFamiliesMock, saveProductShopLinkMock } = vi.hoisted(() => ({
@@ -78,6 +84,7 @@ import ProductForm from './ProductForm'
 
 beforeEach(() => {
   vi.clearAllMocks()
+  operator.isAdmin = true
   listShopFamiliesMock.mockResolvedValue([VASO])
   saveProductShopLinkMock.mockResolvedValue(undefined)
   listProductImagesMock.mockResolvedValue([])
@@ -138,11 +145,29 @@ describe('ProductForm', () => {
     expect(createProductMock.mock.calls[0][0]).toMatchObject({
       name: 'Vaso milkshake Spiderman',
       base_price: 15000,
+      updated_by: 'op-1',
     })
     expect(saveProductPartsMock).toHaveBeenCalledWith('new-1', [
       { label: 'cabeza', color: 'rojo', quantity: 1 },
       { label: 'ojos', color: 'negro', quantity: 2 },
     ])
+  })
+
+  it('a quien no es admin le muestra el precio sin poder cambiarlo ni mandarlo', async () => {
+    operator.isAdmin = false
+    renderAt('/admin/productos/nuevo')
+    fireEvent.change(await screen.findByLabelText('Nombre del producto'), {
+      target: { value: 'Llavero Zelda' },
+    })
+    expect(screen.getByLabelText('Precio de lista ($)')).toHaveAttribute(
+      'readonly',
+    )
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+
+    await waitFor(() => expect(createProductMock).toHaveBeenCalledTimes(1))
+    const sent = createProductMock.mock.calls[0][0]
+    expect(sent).toMatchObject({ name: 'Llavero Zelda', updated_by: 'op-1' })
+    expect(sent).not.toHaveProperty('base_price')
   })
 
   it('carga las piezas guardadas al editar', async () => {
