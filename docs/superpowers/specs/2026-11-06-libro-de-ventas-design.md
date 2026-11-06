@@ -86,7 +86,7 @@ Grants: `execute` a `authenticated`, revocado a `public`/`anon`.
 
 ### Trigger de entrega
 
-`after update of status on orders` cuando `new.status = 'delivered'` y `old.status <> 'delivered'` → `record_order_sale(new.id, <operador de la sesión si está disponible>)`:
+`after update of status on orders` cuando `new.status = 'delivered'` y `old.status <> 'delivered'` → `record_order_sale(new.id, null)`. El cambio de estado hoy no lleva operador (`log_order_stage_event` tampoco lo guarda), así que la venta de un pedido queda con `operator_id` null:
 
 - Si no existe venta para el pedido: la crea con `sold_at = now()`, `channel = origin_channel`, `customer_id`, `method = payment_method`, `amount = list_total = total_amount` (0 si es null), líneas desde `order_items` (descripción, cantidad, `unit_price`); si no hay ítems, una línea con el título del pedido. Escribe `created`.
 - Si ya existe (re-entrega): actualiza fecha, monto y líneas con los valores actuales del pedido; si estaba anulada la reactiva (`restored`). Escribe `edited`/`restored`.
@@ -118,7 +118,7 @@ Montos con `parseMoney` (formato argentino: "13.200" = 13200, "13.200,50" = 1320
 
 ### Detalle de venta
 
-Líneas, totales e historial (`sale_log`). Botones **Corregir** (abre la misma hoja prellenada → `edit_sale`) y **Anular** (motivo → `void_sale`), ambos piden PIN de admin. En ventas de pedido, Corregir no está; se ofrece abrir el pedido.
+Líneas, totales e historial (`sale_log`). Botones **Corregir** (abre la misma hoja prellenada → `edit_sale`) y **Anular** (motivo → `void_sale`). Igual que los cobros de pedidos, se habilitan cuando la persona activa (elegida con su PIN) es admin; si no, se ve "Solo un admin puede corregir o anular" y la base lo rechaza igual. En ventas de pedido, Corregir no está; se ofrece abrir el pedido.
 
 ### Otros
 
@@ -129,7 +129,7 @@ Líneas, totales e historial (`sale_log`). Botones **Corregir** (abre la misma h
 ## Copia de datos existentes (en la migración, idempotente)
 
 - Las 52 `transactions` `product_sale` → `sales` con una línea cada una: fecha, monto, medio, cliente, producto/cantidad o `note` como descripción; `list_total = amount`, `discount = 0`, `channel = 'local'`, `operator_id = null`, `source_tx_id = transactions.id`. No se toca stock. `on conflict (source_tx_id) do nothing`.
-- Pedidos con `status = 'delivered'` → una venta cada uno con `total_amount` actual, `sold_at` = último evento `production_events` `kind = 'stage'`, `to_status = 'delivered'` (o `updated_at` si no hay), `channel = origin_channel` (null si no tiene). `on conflict (order_id) do nothing`.
+- Pedidos con `status = 'delivered'` → una venta cada uno con `total_amount` actual, `sold_at` = último evento `production_events` `kind = 'stage'`, `to_status = 'delivered'` (o `due_date` a las 12:00 de Argentina si no hay, igual que hoy calcula Estadísticas), `channel = origin_channel` (null si no tiene). `on conflict (order_id) do nothing`.
 - Las filas viejas de `transactions` no se borran.
 
 ## Estadísticas
