@@ -6,6 +6,7 @@ import { MpCardPayment } from '../components/MpCardPayment'
 import { api } from '../lib/api'
 import { useShop } from '../lib/data'
 import { ars, shortDate } from '../lib/format'
+import { writeReviewUrl } from '../lib/reviews'
 import type { OrderStatus, OrderStatusResult } from '../lib/types'
 import { usePageTitle } from '../lib/usePageTitle'
 import { DELIVERY_LABEL, waLink } from '../lib/whatsapp'
@@ -135,6 +136,23 @@ export function Order() {
       </div>
 
       <div className="stack" style={{ gap: 18 }}>
+        {order.status === 'delivered' && (
+          <section className="panel rev-ask" aria-labelledby="rev-ask-title">
+            <h2 id="rev-ask-title">¿Te gustó tu pedido?</h2>
+            <p className="muted">
+              Dejanos tu reseña en Google. Nos ayuda mucho a que otros nos
+              encuentren.
+            </p>
+            <a
+              className="btn btn-primary"
+              href={writeReviewUrl(settings.resenas, settings.local.mapsQuery)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Dejá tu reseña
+            </a>
+          </section>
+        )}
         {mpReturn === 'approved' && (
           <div className="notice n-ok" role="status">
             ¡Pago aprobado con Mercado Pago! En unos segundos lo vas a ver
