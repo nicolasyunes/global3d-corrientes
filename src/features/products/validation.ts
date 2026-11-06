@@ -75,7 +75,8 @@ export function withoutPriceUnlessAdmin(
   isAdmin: boolean,
 ): ProductPatch {
   if (isAdmin) return patch
-  const { base_price: _omit, ...rest } = patch
+  const rest = { ...patch }
+  delete rest.base_price
   return rest
 }
 
