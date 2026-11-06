@@ -273,6 +273,28 @@ describe('ProductForm', () => {
     expect(createProductMock).not.toHaveBeenCalled()
   })
 
+  it('cambia el precio de un producto que ya tuvo ventas sin tocar su stock', async () => {
+    getProductMock.mockResolvedValue({
+      id: 'p1',
+      name: 'Vaso Camiseta 650 ml BOCA',
+      description: null,
+      base_price: 24800,
+      stock_quantity: 0, // la venta lo dejó en 0
+      active: true,
+    })
+    renderAt('/admin/productos/p1')
+    const price = await screen.findByLabelText('Precio de lista ($)')
+    expect(price).toHaveValue('24800')
+    fireEvent.change(price, { target: { value: '26.500' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar producto/i }))
+    await waitFor(() => expect(updateProductMock).toHaveBeenCalledTimes(1))
+    const [id, patch] = updateProductMock.mock.calls[0]
+    expect(id).toBe('p1')
+    expect(patch).toMatchObject({ base_price: 26500, updated_by: 'op-1' })
+    expect(patch).not.toHaveProperty('stock_quantity')
+    expect(await screen.findByText('lista')).toBeInTheDocument()
+  })
+
   it('al editar muestra la ficha en la que ya está el producto', async () => {
     getProductMock.mockResolvedValue({
       id: 'p1',

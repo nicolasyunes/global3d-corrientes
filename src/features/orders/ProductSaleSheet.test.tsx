@@ -107,6 +107,30 @@ describe('ProductSaleSheet', () => {
     ).toBeInTheDocument()
   })
 
+  it('filtra el selector por palabras en cualquier orden', async () => {
+    listSellableProductsMock.mockResolvedValue([
+      PRODUCT,
+      {
+        ...PRODUCT,
+        id: 'prod-2',
+        name: 'Vaso camiseta 650 ml BOCA',
+        stock_quantity: 1,
+      },
+    ])
+    await renderOpen()
+    fireEvent.change(screen.getByLabelText('Buscar producto'), {
+      target: { value: 'vaso boca' },
+    })
+    expect(
+      screen.getByRole('option', {
+        name: 'Vaso camiseta 650 ml BOCA · 1 en stock',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('option', { name: 'Llavero Batman · 4 en stock' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('reveals the free-text name field when "Otro" is chosen', async () => {
     await renderOpen()
     expect(

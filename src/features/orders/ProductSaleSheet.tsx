@@ -12,6 +12,7 @@ import {
 } from '@/lib/domain-constants'
 import Icon from '@/components/Icon'
 import type { ProductRow } from '@/features/products/products.api'
+import { productMatchesQuery } from '@/features/products/list'
 import { listSellableProducts, type ProductSaleRow } from './productSales.api'
 import { useProductSaleDraft } from './useProductSaleDraft'
 import './order-modal.css'
@@ -45,6 +46,7 @@ export default function ProductSaleSheet({
 }: ProductSaleSheetProps) {
   const [products, setProducts] = useState<ProductRow[]>([])
   const [productsLoading, setProductsLoading] = useState(true)
+  const [productQuery, setProductQuery] = useState('')
   const productSelectRef = useRef<HTMLSelectElement>(null)
 
   const { draft, errors, submitting, submitError, setField, reset, submit } =
@@ -76,6 +78,10 @@ export default function ProductSaleSheet({
 
   const isFreeText = draft.productId === FREE_TEXT_PRODUCT
   const catalogProduct = selectedCatalogProduct(draft, products)
+  // El elegido queda en la lista aunque la búsqueda ya no lo incluya.
+  const shownProducts = products.filter(
+    (p) => p.id === draft.productId || productMatchesQuery(p, productQuery),
+  )
   const quantity = parsePositiveInt(draft.quantity)
   const remaining = remainingStockAfterSale(catalogProduct, quantity)
 
@@ -94,6 +100,7 @@ export default function ProductSaleSheet({
 
   function handleClose() {
     reset()
+    setProductQuery('')
     onClose()
   }
 
@@ -101,6 +108,7 @@ export default function ProductSaleSheet({
     event.preventDefault()
     const created = await submit()
     if (created) {
+      setProductQuery('')
       onCreated(created)
       onClose()
     }
@@ -151,6 +159,18 @@ export default function ProductSaleSheet({
               Algo que ya estaba hecho y se vendió en el momento. Si es un
               producto guardado, se descuenta de su stock.
             </p>
+            <label className="field-label" htmlFor="sale-product-search">
+              Buscar producto
+            </label>
+            <input
+              id="sale-product-search"
+              className="input"
+              type="search"
+              autoComplete="off"
+              placeholder="Ej: vaso boca"
+              value={productQuery}
+              onChange={(e) => setProductQuery(e.target.value)}
+            />
             <label className="field-label" htmlFor="sale-product">
               Producto
             </label>
@@ -163,9 +183,13 @@ export default function ProductSaleSheet({
               onChange={(e) => handleProductChange(e.target.value)}
             >
               <option value="">
-                {productsLoading ? 'Cargando productos…' : 'Elegí un producto'}
+                {productsLoading
+                  ? 'Cargando productos…'
+                  : productQuery.trim() && shownProducts.length === 0
+                    ? 'Ningún producto coincide'
+                    : 'Elegí un producto'}
               </option>
-              {products.map((product) => (
+              {shownProducts.map((product) => (
                 <option key={product.id} value={product.id}>
                   {productOptionLabel(product)}
                 </option>
