@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { CategoryTile } from '../components/CategoryTile'
-import { HeroVideo } from '../components/HeroVideo'
 import { InstagramFeed } from '../components/InstagramFeed'
 import { Perks } from '../components/Perks'
 import { ProductCard } from '../components/ProductCard'
@@ -62,7 +61,7 @@ export function Home() {
     <>
       <section className="hero">
         <div className="container">
-          <HeroVideo />
+          <h1 className="sr-only">Global3D · Impresión 3D en Corrientes</h1>
           {status === 'ready' ? (
             <div className="bento">
               {tiles.map((t, i) => (
