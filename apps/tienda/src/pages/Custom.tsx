@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { QuoteFiles, type QuoteAttachment } from '../components/QuoteFiles'
-import { Showcase } from '../components/Showcase'
 import { useShop } from '../lib/data'
 import { onlyDigits } from '../lib/format'
 import { usePageTitle } from '../lib/usePageTitle'
@@ -71,7 +70,6 @@ export function Custom() {
           seña del 50%.
         </p>
       </div>
-      <Showcase />
       <div
         className="chips"
         role="group"
