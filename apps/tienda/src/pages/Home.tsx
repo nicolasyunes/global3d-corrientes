@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { CategoryTile } from '../components/CategoryTile'
 import { InstagramFeed } from '../components/InstagramFeed'
+import { LazyMap } from '../components/LazyMap'
 import { Perks } from '../components/Perks'
 import { ProductCard } from '../components/ProductCard'
 import { Reels } from '../components/Reels'
@@ -281,6 +282,7 @@ export function Home() {
       <InstagramFeed
         handle={settings.instagram}
         links={settings.instagram_posts}
+        settled={status === 'ready'}
       />
 
       <Reviews settings={settings} />
@@ -347,11 +349,9 @@ export function Home() {
           </div>
           <aside className="faq-map" aria-labelledby="map-title">
             <h2 id="map-title">Dónde estamos</h2>
-            <iframe
+            <LazyMap
               title={`Mapa: ${settings.local.direccion}`}
               src={`https://www.google.com/maps?q=${encodeURIComponent(settings.local.mapsQuery)}&z=16&output=embed`}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
             />
             <p>
               <strong>{settings.local.direccion}</strong>

@@ -101,6 +101,7 @@ export function CategoryTile({
           label={label}
           size={size}
           eager={big && cur === 0}
+          priority={big && cur === 0}
         />
       </span>
     </Link>
