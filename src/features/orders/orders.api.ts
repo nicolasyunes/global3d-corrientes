@@ -118,6 +118,18 @@ export async function listOrders(): Promise<OrderWithCustomer[]> {
   return (data ?? []) as OrderWithCustomer[]
 }
 
+// Only what is still in play (Hoy): delivered orders pile up forever and Hoy
+// never shows them.
+export async function listOpenOrders(): Promise<OrderWithCustomer[]> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, customers(name, phone)')
+    .not('status', 'in', '(delivered,cancelled)')
+    .order('due_date', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as OrderWithCustomer[]
+}
+
 // Every order regardless of status — the "Planilla" tab shows the full
 // lifecycle (pendiente, listo, entregado, cancelado) and merges these with the
 // rows read from the Google Sheet, so unlike listOrders() it filters nothing.
@@ -157,9 +169,15 @@ export type OrderItemInsert =
 
 // One order_id per row, no relation columns — cheapest shape for the list
 // view to reduce into a per-order count client-side (a table this small
-// doesn't need a grouped-count RPC).
-export async function listOrderItemCounts(): Promise<Record<string, number>> {
-  const { data, error } = await supabase.from('order_items').select('order_id')
+// doesn't need a grouped-count RPC). Pass `orderIds` to count only those.
+export async function listOrderItemCounts(
+  orderIds?: readonly string[],
+): Promise<Record<string, number>> {
+  if (orderIds?.length === 0) return {}
+  const query = supabase.from('order_items').select('order_id')
+  const { data, error } = await (orderIds
+    ? query.in('order_id', [...orderIds])
+    : query)
   if (error) throw error
   const counts: Record<string, number> = {}
   for (const row of data ?? []) {
