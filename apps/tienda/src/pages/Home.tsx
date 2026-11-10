@@ -61,7 +61,24 @@ export function Home() {
     <>
       <section className="hero">
         <div className="container">
-          <h1 className="sr-only">Global3D · Impresión 3D en Corrientes</h1>
+          <div className="hero-intro">
+            <div className="hero-copy">
+              <p className="hero-eyebrow">Impresión 3D en Corrientes</p>
+              <h1>Regalos impresos en 3D con tu nombre, tu club o tu logo</h1>
+              <p className="lead">
+                Vasos, trofeos, figuras y llaveros. Retiralo en el local o te
+                lo enviamos a todo el país.
+              </p>
+            </div>
+            <div className="hero-cta">
+              <Link to="/catalogo" className="btn btn-primary">
+                Ver catálogo
+              </Link>
+              <Link to="/a-medida" className="btn btn-ghost">
+                Pedir a medida
+              </Link>
+            </div>
+          </div>
           {status === 'ready' ? (
             <div className="bento">
               {tiles.map((t, i) => (
