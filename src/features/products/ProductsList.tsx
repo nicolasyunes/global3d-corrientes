@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from '@/components/Icon'
+import { useOperator } from '@/features/operators/operator-context'
 import { formatMoney } from '@/features/orders/format'
 import { colorSwatch } from '@/features/production/pieces'
 import {
   listAllParts,
   listProducts,
-  updateProduct,
+  moveProductStock,
   type ProductRow,
 } from './products.api'
 import { emptyProductFilter, filterProducts, type ProductFilter } from './list'
+import ProductActivity from './ProductActivity'
 import { partsSummary, type PartLine } from './parts'
 import '@/features/production/production.css'
 import './products.css'
@@ -17,6 +19,7 @@ import './products.css'
 // `/admin/productos`: los productos que se repiten, con sus piezas. Tocar uno
 // abre la ficha; el stock se ajusta desde la fila.
 export default function ProductsList() {
+  const { current, isAdmin } = useOperator()
   const [products, setProducts] = useState<ProductRow[]>([])
   const [parts, setParts] = useState<Record<string, PartLine[]>>({})
   const [filter, setFilter] = useState<ProductFilter>(emptyProductFilter())
@@ -45,26 +48,16 @@ export default function ProductsList() {
     [products, filter],
   )
 
-  async function setStock(product: ProductRow, stock: number) {
-    const next = Math.max(0, stock)
-    if (next === product.stock_quantity) return
+  // Siempre por la base (suma o resta atómica): deja en el registro quién fue.
+  async function moveStock(product: ProductRow, delta: number) {
+    if (!current) return
+    if (product.stock_quantity + delta < 0) return
     setBusyId(product.id)
     setError(null)
-    setProducts((rows) =>
-      rows.map((r) =>
-        r.id === product.id ? { ...r, stock_quantity: next } : r,
-      ),
-    )
     try {
-      await updateProduct(product.id, { stock_quantity: next })
+      const saved = await moveProductStock(product.id, delta, current.id)
+      setProducts((rows) => rows.map((r) => (r.id === saved.id ? saved : r)))
     } catch {
-      setProducts((rows) =>
-        rows.map((r) =>
-          r.id === product.id
-            ? { ...r, stock_quantity: product.stock_quantity }
-            : r,
-        ),
-      )
       setError('No se pudo guardar el stock.')
     } finally {
       setBusyId(null)
@@ -83,6 +76,12 @@ export default function ProductsList() {
           </p>
         </div>
         <div className="page-head__actions">
+          {isAdmin && (
+            <Link to="/admin/productos/movimientos" className="btn btn--ghost">
+              <Icon name="list" size={18} />
+              Movimientos
+            </Link>
+          )}
           <Link to="/admin/productos/nuevo" className="btn btn--primary">
             <Icon name="plus" size={18} />
             Nuevo producto
@@ -199,9 +198,7 @@ export default function ProductsList() {
                     disabled={
                       busyId === product.id || product.stock_quantity <= 0
                     }
-                    onClick={() =>
-                      void setStock(product, product.stock_quantity - 1)
-                    }
+                    onClick={() => void moveStock(product, -1)}
                   >
                     −
                   </button>
@@ -213,9 +210,7 @@ export default function ProductsList() {
                     className="icon-btn"
                     aria-label={`Sumar stock de ${product.name}`}
                     disabled={busyId === product.id}
-                    onClick={() =>
-                      void setStock(product, product.stock_quantity + 1)
-                    }
+                    onClick={() => void moveStock(product, 1)}
                   >
                     +
                   </button>
@@ -225,6 +220,8 @@ export default function ProductsList() {
           })}
         </ul>
       )}
+
+      {!loading && <ProductActivity limit={20} />}
     </>
   )
 }

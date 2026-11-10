@@ -6,6 +6,7 @@ import { useOperator } from '@/features/operators/operator-context'
 import { countOpenTasks } from '@/features/notices/notices.api'
 import { useOrderModal } from '@/features/orders/order-modal-context'
 import { OrderModalProvider } from '@/features/orders/OrderModalProvider'
+import { WebOrdersAlert } from '@/features/orders/WebOrdersAlert'
 import './shell.css'
 
 function NewOrderFab() {
@@ -28,6 +29,8 @@ interface NavItem {
   short?: string
   icon: IconName
   adminOnly?: boolean
+  // Admin o quien tenga la carga de productos habilitada.
+  productsOnly?: boolean
   // Sidebar only; on the phone it lives in "Más".
   sideOnly?: boolean
 }
@@ -65,18 +68,18 @@ const MAIN: NavItem[] = [
 ]
 
 const SECONDARY: NavItem[] = [
-  { to: '/admin/ventas-pedidos', label: 'Entregados', icon: 'receipt' },
+  { to: '/admin/ventas', label: 'Ventas', icon: 'receipt' },
   { to: '/admin/calculadora', label: 'Calculadora', icon: 'calc' },
   { to: '/admin/conteo', label: 'Conteo', icon: 'list' },
   {
     to: '/admin/productos',
     label: 'Productos y stock',
     icon: 'layers',
-    adminOnly: true,
+    productsOnly: true,
   },
   {
     to: '/admin/estadisticas',
-    label: 'Estadísticas',
+    label: 'Números',
     icon: 'spark',
     adminOnly: true,
   },
@@ -100,10 +103,12 @@ export default function AdminLayout() {
     )
       void signOut()
   }
-  const { current, isAdmin, lock } = useOperator()
+  const { current, isAdmin, canManageProducts, lock } = useOperator()
   const [moreOpen, setMoreOpen] = useState(false)
   const location = useLocation()
-  const secondary = SECONDARY.filter((item) => !item.adminOnly || isAdmin)
+  const secondary = SECONDARY.filter((item) =>
+    item.productsOnly ? canManageProducts : !item.adminOnly || isAdmin,
+  )
   const [pendingTasks, setPendingTasks] = useState(0)
 
   useEffect(() => setMoreOpen(false), [location.pathname])
@@ -172,6 +177,7 @@ export default function AdminLayout() {
         </div>
 
         <NewOrderFab />
+        <WebOrdersAlert />
 
         <nav className="shell-bottom" aria-label="Navegación">
           {MAIN.filter((item) => !item.sideOnly).map((item) => (

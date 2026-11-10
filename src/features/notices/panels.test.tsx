@@ -10,6 +10,13 @@ const mocks = vi.hoisted(() => ({
   deleteNotice: vi.fn(),
 }))
 vi.mock('./notices.api', () => mocks)
+vi.mock('./noticeImages.api', () => ({
+  listNoticeImages: vi.fn().mockResolvedValue([]),
+  uploadNoticeImage: vi.fn(),
+  deleteNoticeImage: vi.fn(),
+  removeNoticeFiles: vi.fn().mockResolvedValue(undefined),
+  noticeImageUrl: (p: string) => p,
+}))
 
 const people = [
   {
@@ -109,6 +116,26 @@ describe('TaskPanel', () => {
     })
     expect(mocks.deleteNotice).toHaveBeenCalledWith('t1')
     expect(onDeleted).toHaveBeenCalledWith('t1')
+  })
+
+  it('offers files only on budget tasks', () => {
+    const props = {
+      operators: people,
+      operatorId: 'op-1',
+      onClose: vi.fn(),
+      onSaved: vi.fn(),
+      onArchive: vi.fn(),
+      onDeleted: vi.fn(),
+    }
+    const { unmount } = render(
+      <TaskPanel task={null} sector="taller" {...props} />,
+    )
+    expect(screen.queryByText('Archivos')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Presupuesto' }))
+    expect(screen.getByText('Archivos')).toBeInTheDocument()
+    unmount()
+    render(<TaskPanel task={null} sector="presupuesto" {...props} />)
+    expect(screen.getByText('Archivos')).toBeInTheDocument()
   })
 })
 

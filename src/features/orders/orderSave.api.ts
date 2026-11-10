@@ -18,6 +18,7 @@ import { piecesForItem } from '@/features/products/parts'
 import { DEFAULT_WAITING_REASON, followUpFrom } from './orderFlow'
 import { toISODate } from './validation'
 import type { OrderRow } from './orders.api'
+import { registerOrderPayment } from './payments.api'
 
 export interface CustomerHit {
   id: string
@@ -58,6 +59,9 @@ export async function listProductSuggestions(): Promise<string[]> {
   return [...new Set(names)].slice(0, 200)
 }
 
+// Deposit and pending balance are not here on purpose: they come from the
+// payments ledger (created below on insert; kept in step by the database on
+// update), so editing an order can never overwrite a cobro made meanwhile.
 function orderFields(draft: OrderDraft) {
   const items = filledItems(draft.items)
   return {
@@ -68,8 +72,6 @@ function orderFields(draft: OrderDraft) {
     // two weeks out (it's replaced when the order is confirmed).
     due_date: draft.dueDate || followUpFrom(toISODate(new Date()), 14),
     total_amount: parseMoney(draft.total),
-    deposit: parseMoney(draft.deposit),
-    pending_balance: balanceOf(draft),
     origin_channel: draft.channel,
     reference_link: draft.referenceLink.trim() || null,
     waiting_reason: draft.waiting
@@ -161,7 +163,7 @@ async function insertPresetPieces(
 export async function createOrderFromDraft(
   draft: OrderDraft,
   operatorId: string | null = null,
-): Promise<OrderRow> {
+): Promise<OrderRow & { paymentWarning?: string }> {
   const customerId = await resolveCustomer(draft)
   const { data: order, error } = await supabase
     .from('orders')
@@ -169,6 +171,9 @@ export async function createOrderFromDraft(
       customer_id: customerId,
       product_type: 'other',
       ...orderFields(draft),
+      // The deposit is registered as a payment below, not stored on the order.
+      deposit: null,
+      pending_balance: balanceOf({ total: draft.total, deposit: '' }),
     })
     .select('*')
     .single()
@@ -194,7 +199,18 @@ export async function createOrderFromDraft(
     (inserted ?? []).map((row) => ({ id: row.id, item: filled[row.position] })),
     operatorId,
   )
-  return order
+  const deposit = parseMoney(draft.deposit)
+  let paymentWarning: string | undefined
+  if (deposit && !Number.isNaN(deposit) && deposit > 0 && draft.depositMethod) {
+    try {
+      await registerOrderPayment(order.id, deposit, draft.depositMethod, operatorId)
+    } catch (err) {
+      paymentWarning = `Pedido guardado, pero no se pudo registrar la seña: ${
+        err instanceof Error ? err.message : 'error desconocido'
+      }. Registrala desde el pedido.`
+    }
+  }
+  return { ...order, paymentWarning }
 }
 
 // Item-by-item upsert: replacing all items would cascade-delete the pieces
@@ -312,6 +328,7 @@ export async function loadDraft(orderId: string): Promise<OrderDraft> {
     total: money(order.total_amount),
     deposit: money(order.deposit),
     channel: (order.origin_channel as OriginChannel | null) ?? null,
+    depositMethod: null,
     referenceLink: order.reference_link ?? '',
     notes: order.observations ?? '',
     waiting: Boolean(order.waiting_reason),

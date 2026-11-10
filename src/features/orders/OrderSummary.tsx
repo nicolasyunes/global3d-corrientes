@@ -1,10 +1,17 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import Icon from '@/components/Icon'
 import { daysBetween } from '@/features/production/due'
 import { colorSpecEntries, swatchFor } from './colorSpec'
 import { formatDueDate, formatMoney } from './format'
+import {
+  PAYMENT_METHOD,
+  PAYMENT_METHOD_LABELS,
+  type PaymentMethod,
+} from '@/lib/domain-constants'
 import { parseMoney } from './orderDraft'
+import OrderPayments from './OrderPayments'
 import type { OrderItemRow, OrderWithCustomer } from './orders.api'
+import { validatePayment } from './payments'
 import { stageOf } from './stage'
 import { ClientAvatar } from './stage-ui'
 
@@ -39,17 +46,26 @@ export default function OrderSummary({
   today,
   channel,
   onPay,
+  paymentsKey,
+  onPaymentVoided,
 }: {
   order: OrderWithCustomer
   items: OrderItemRow[]
   today: string
   channel: string | null
-  onPay: (amount: number) => Promise<boolean>
+  onPay: (
+    amount: number,
+    method: PaymentMethod,
+  ) => Promise<{ ok: true } | { ok: false; message: string }>
+  paymentsKey: number
+  onPaymentVoided: () => void
 }) {
   const [paying, setPaying] = useState(false)
   const [amount, setAmount] = useState('')
+  const [method, setMethod] = useState<PaymentMethod | null>(null)
   const [payError, setPayError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const submitting = useRef(false)
 
   const stage = stageOf(order)
   const closed = stage === 'delivered' || stage === 'cancelled'
@@ -67,6 +83,8 @@ export default function OrderSummary({
           : diff === 0
             ? 'Es hoy'
             : `${diff === 1 ? 'falta' : 'faltan'} ${diff} ${diff === 1 ? 'día' : 'días'}`
+  const deliveredOwing =
+    stage === 'delivered' && (order.pending_balance ?? 0) > 0
   const late = !closed && stage !== 'on_hold' && !order.flexible && diff < 0
 
   const created = order.created_at.slice(0, 10)
@@ -94,19 +112,27 @@ export default function OrderSummary({
 
   async function submitPay(e: FormEvent) {
     e.preventDefault()
-    const value = parseMoney(amount)
-    if (!value || value <= 0) {
-      setPayError('Escribí el monto que pagó.')
+    if (saving || submitting.current) return
+    const problem = validatePayment({ amount, method, balance })
+    if (problem || !method) {
+      setPayError(problem)
       return
     }
+    const value = parseMoney(amount) as number
+    submitting.current = true
     setSaving(true)
     setPayError(null)
-    const ok = await onPay(value)
-    setSaving(false)
-    if (ok) {
-      setAmount('')
-      setPaying(false)
-    } else setPayError('No se pudo registrar el pago.')
+    try {
+      const result = await onPay(value, method)
+      if (result.ok) {
+        setAmount('')
+        setMethod(null)
+        setPaying(false)
+      } else setPayError(result.message)
+    } finally {
+      submitting.current = false
+      setSaving(false)
+    }
   }
 
   return (
@@ -158,7 +184,8 @@ export default function OrderSummary({
       <div className="osum2__block">
         <div className="osum2__label">
           <span>Saldo</span>
-          {!closed && balance > 0 && !paying && (
+          {deliveredOwing && <span>Entregado con saldo pendiente</span>}
+          {stage !== 'cancelled' && balance > 0 && !paying && (
             <button
               type="button"
               className="osum2__link"
@@ -209,7 +236,24 @@ export default function OrderSummary({
                 Todo el saldo
               </button>
             </div>
-            {payError && <p className="omodal__err">{payError}</p>}
+            <div className="chips" role="group" aria-label="Medio de pago">
+              {PAYMENT_METHOD.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  className="chip"
+                  aria-pressed={method === m}
+                  onClick={() => setMethod(m)}
+                >
+                  {PAYMENT_METHOD_LABELS[m]}
+                </button>
+              ))}
+            </div>
+            {payError && (
+              <p className="omodal__err" role="alert">
+                {payError}
+              </p>
+            )}
             <div className="osum2__pay-row">
               <button
                 type="submit"
@@ -224,6 +268,7 @@ export default function OrderSummary({
                 onClick={() => {
                   setPaying(false)
                   setPayError(null)
+                  setMethod(null)
                 }}
               >
                 Cancelar
@@ -231,6 +276,11 @@ export default function OrderSummary({
             </div>
           </form>
         )}
+        <OrderPayments
+          orderId={order.id}
+          reloadKey={paymentsKey}
+          onVoided={onPaymentVoided}
+        />
       </div>
 
       {(showDescription || hasLegacy || notes) && (

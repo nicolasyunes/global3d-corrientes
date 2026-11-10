@@ -25,3 +25,30 @@
 @media (max-width: 640px) {
   .st-period { justify-items: start; }
 }
+/* Resumen */
+.st-tabs { display: inline-flex; gap: 0.25rem; padding: 0.25rem; border-radius: var(--radius-lg); background: var(--color-divider); }
+.st-tabs button { padding: 0.4rem 0.9rem; border: 0; border-radius: var(--radius-md, 0.5rem); background: transparent; font: inherit; cursor: pointer; }
+.st-tabs button[aria-pressed='true'] { background: var(--color-white); box-shadow: var(--shadow-card); font-weight: 600; }
+.st-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.st-nav__title { font-weight: 600; min-width: 10rem; text-align: center; }
+.st-nav__compare { font-size: 0.85rem; color: var(--color-carbon-muted); }
+.st-banner { padding: 0.6rem 0.9rem; border-radius: var(--radius-lg); background: var(--color-white); border-left: 4px solid #c2500e; font-size: 0.9rem; margin: 0; }
+.st-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 0.75rem; }
+.st-card { display: grid; gap: 0.75rem; align-content: start; padding: 1rem; border-radius: var(--radius-lg); background: var(--color-white); box-shadow: var(--shadow-card); min-width: 0; }
+.st-card h2 { font-size: 1.05rem; margin: 0; }
+.st-chart { width: 100%; height: auto; max-height: 14rem; }
+.st-axis { stroke: var(--color-divider); stroke-width: 1; }
+.st-bar { fill: #2f5fd0; }
+.st-bar.is-partial { fill: #2f5fd0; opacity: 0.45; }
+.st-bar__value { font-size: 12px; font-weight: 600; fill: var(--color-carbon); }
+.st-bar__label { font-size: 11px; fill: var(--color-carbon-muted); }
+.st-shares { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.st-share { display: grid; grid-template-columns: minmax(6rem, 9rem) 1fr auto; align-items: center; gap: 0.6rem; font-size: 0.9rem; }
+.st-share__track { height: 0.6rem; border-radius: 999px; background: var(--color-divider); overflow: hidden; }
+.st-share__fill { display: block; height: 100%; background: #2f5fd0; }
+.st-share__value { text-align: right; white-space: nowrap; }
+.st-link { font-size: 0.85rem; }
+@media (max-width: 760px) {
+  .st-grid { grid-template-columns: minmax(0, 1fr); }
+  .st-share { grid-template-columns: minmax(5rem, 7rem) 1fr auto; }
+}

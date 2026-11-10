@@ -13,6 +13,7 @@ function product(overrides: Partial<ProductRow>): ProductRow {
     active: true,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
+    updated_by: null,
     ...overrides,
   }
 }
@@ -66,6 +67,21 @@ describe('filterProducts', () => {
       activeOnly: false,
     })
     expect(result.map((p) => p.id)).toEqual(['a'])
+  })
+
+  it('busca por palabras en cualquier orden, sin acentos ni mayúsculas', () => {
+    const products = [
+      product({ id: 'a', name: 'Vaso camiseta 650 ml BOCA' }),
+      product({ id: 'b', name: 'Vaso Camiseta 650 ml RIVER' }),
+      product({ id: 'c', name: 'Vaso Camiseta 650ml Mandiyú' }),
+    ]
+    const ids = (query: string) =>
+      filterProducts(products, { query, activeOnly: false }).map((p) => p.id)
+    expect(ids('vaso boca')).toEqual(['a'])
+    expect(ids('boca 650')).toEqual(['a'])
+    expect(ids('MANDIYU')).toEqual(['c'])
+    expect(ids('vaso camiseta')).toEqual(['a', 'b', 'c'])
+    expect(ids('vaso talleres')).toEqual([])
   })
 
   it('excludes inactive products when activeOnly is set', () => {

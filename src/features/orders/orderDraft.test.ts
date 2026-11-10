@@ -98,3 +98,28 @@ describe('validateDraft', () => {
     expect(validateDraft(d)).toEqual({})
   })
 })
+
+describe('validateDraft al crear', () => {
+  const base = () => ({
+    ...emptyDraft(),
+    customerName: 'Ana',
+    items: [{ product: 'Vaso', quantity: '1', details: '' }],
+    dueDate: '2026-10-20',
+    total: '10000',
+  })
+  it('sin opciones no pide canal ni medio (editar pedidos viejos)', () => {
+    expect(validateDraft({ ...base(), deposit: '3000' })).toEqual({})
+  })
+  it('al crear pide canal', () => {
+    expect(validateDraft(base(), { creating: true }).channel).toBe('Elegí el canal.')
+    expect(validateDraft({ ...base(), channel: 'instagram' }, { creating: true })).toEqual({})
+  })
+  it('al crear con seña pide el medio y el total', () => {
+    const d = { ...base(), channel: 'instagram' as const, deposit: '3000' }
+    expect(validateDraft(d, { creating: true }).depositMethod).toBe('Elegí cómo pagó la seña.')
+    expect(validateDraft({ ...d, depositMethod: 'cash' }, { creating: true })).toEqual({})
+    expect(
+      validateDraft({ ...d, total: '', depositMethod: 'cash' }, { creating: true }).total,
+    ).toBe('Poné el total para registrar la seña.')
+  })
+})

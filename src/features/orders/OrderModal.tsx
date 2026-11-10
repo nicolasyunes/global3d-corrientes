@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import Icon from '@/components/Icon'
-import { ORIGIN_CHANNEL, ORIGIN_CHANNEL_LABELS } from '@/lib/domain-constants'
+import {
+  ORIGIN_CHANNEL,
+  ORIGIN_CHANNEL_LABELS,
+  PAYMENT_METHOD,
+  PAYMENT_METHOD_LABELS,
+} from '@/lib/domain-constants'
 import { addDaysISO } from './list'
 import { formatMoney } from './format'
 import {
@@ -9,6 +14,7 @@ import {
   buildTitle,
   emptyDraft,
   emptyItem,
+  parseMoney,
   qtyOf,
   validateDraft,
   type DraftErrors,
@@ -27,7 +33,11 @@ import type { OrderRow } from './orders.api'
 import { toISODate } from './validation'
 import { useOperator } from '@/features/operators/operator-context'
 import { listProductTemplates } from '@/features/products/products.api'
-import { findTemplate, type ProductTemplate } from '@/features/products/parts'
+import {
+  findTemplate,
+  productSuggestions,
+  type ProductTemplate,
+} from '@/features/products/parts'
 import { colorSwatch } from '@/features/production/pieces'
 import { AddAttachment, AttachmentGrid } from './attachments'
 import {
@@ -150,6 +160,8 @@ export default function OrderModal({
   const [fileError, setFileError] = useState<string | null>(null)
   const [hits, setHits] = useState<CustomerHit[]>([])
   const [showHits, setShowHits] = useState(false)
+  // Ítem cuyo campo "Producto" muestra sugerencias (null: ninguno).
+  const [productFocus, setProductFocus] = useState<number | null>(null)
   const firstField = useRef<HTMLInputElement>(null)
   const dirty = useRef(false)
   const today = toISODate(new Date())
@@ -330,7 +342,13 @@ export default function OrderModal({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const found = validateDraft(draft)
+    const found = validateDraft(draft, { creating: !editing })
+    // Editing: the deposit is locked, so the over-total error belongs on Total.
+    if (editing && found.deposit && !found.total) {
+      delete found.deposit
+      found.total =
+        'El total no puede ser menor a lo ya cobrado. Anulá un cobro desde el pedido si hace falta.'
+    }
     setErrors(found)
     if (Object.keys(found).length > 0) return
     setSaving(true)
@@ -349,11 +367,14 @@ export default function OrderModal({
           failed.push(pending.file.name)
         }
       }
+      const uploadWarning = failed.length
+        ? `Pedido guardado, pero no se pudo subir: ${failed.join(', ')}. Subilo desde el pedido.`
+        : undefined
+      const paymentWarning =
+        'paymentWarning' in order ? order.paymentWarning : undefined
       onSaved(
         order,
-        failed.length
-          ? `Pedido guardado, pero no se pudo subir: ${failed.join(', ')}. Subilo desde el pedido.`
-          : undefined,
+        [uploadWarning, paymentWarning].filter(Boolean).join(' ') || undefined,
       )
     } catch (err) {
       setSaveError(
@@ -476,7 +497,7 @@ export default function OrderModal({
               {draft.items.map((item, index) => (
                 <div key={item.id ?? `new-${index}`} className="omodal__item">
                   <div className="omodal__row">
-                    <div className="omodal__field omodal__field--grow">
+                    <div className="omodal__field omodal__field--grow omodal__combo">
                       <label
                         className="field-label"
                         htmlFor={`om-prod-${index}`}
@@ -486,11 +507,67 @@ export default function OrderModal({
                       <input
                         id={`om-prod-${index}`}
                         className="input"
-                        list="om-products"
+                        autoComplete="off"
                         placeholder="Ej: Vaso texturizado 1 L Boca, trofeo pádel, algo nuevo…"
                         value={item.product}
-                        onChange={(e) => setProduct(index, e.target.value)}
+                        onChange={(e) => {
+                          setProduct(index, e.target.value)
+                          setProductFocus(index)
+                        }}
+                        onFocus={() => setProductFocus(index)}
+                        onBlur={() =>
+                          setTimeout(
+                            () =>
+                              setProductFocus((f) => (f === index ? null : f)),
+                            150,
+                          )
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape' && productFocus === index) {
+                            e.stopPropagation()
+                            setProductFocus(null)
+                          }
+                        }}
                       />
+                      {productFocus === index &&
+                        (() => {
+                          const hits = productSuggestions(
+                            item.product,
+                            templates,
+                            suggestions,
+                          )
+                          return hits.length > 0 ? (
+                            <ul
+                              className="omodal__hits"
+                              role="listbox"
+                              aria-label="Productos sugeridos"
+                            >
+                              {hits.map((hit) => (
+                                <li key={hit.name}>
+                                  <button
+                                    type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                      setProduct(index, hit.name)
+                                      setProductFocus(null)
+                                    }}
+                                  >
+                                    <strong>{hit.name}</strong>
+                                    {hit.template && (
+                                      <span className="muted">
+                                        {' '}
+                                        · Guardado
+                                        {hit.template.parts.length
+                                          ? ` · ${hit.template.parts.length} piezas`
+                                          : ''}
+                                      </span>
+                                    )}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null
+                        })()}
                     </div>
                     <div className="omodal__field omodal__field--qty">
                       <label
@@ -557,24 +634,6 @@ export default function OrderModal({
                 <Icon name="plus" size={16} />
                 Agregar otro producto
               </button>
-              <datalist id="om-products">
-                {templates.map((t) => (
-                  <option
-                    key={t.id}
-                    value={t.name}
-                    label={
-                      t.parts.length
-                        ? `Guardado · ${t.parts.length} piezas`
-                        : 'Guardado'
-                    }
-                  />
-                ))}
-                {suggestions
-                  .filter((s) => !findTemplate(s, templates))
-                  .map((s) => (
-                    <option key={s} value={s} />
-                  ))}
-              </datalist>
               <datalist id="om-colors">
                 {[
                   ...new Set(
@@ -796,8 +855,41 @@ export default function OrderModal({
                     className="input"
                     inputMode="decimal"
                     value={draft.deposit}
+                    disabled={editing}
                     onChange={(e) => set('deposit', e.target.value)}
                   />
+                  {editing && (
+                    <p className="omodal__hint">
+                      Los cobros se registran desde el pedido.
+                    </p>
+                  )}
+                  {!editing && (parseMoney(draft.deposit) ?? 0) > 0 && (
+                    <div
+                      className="chips"
+                      role="group"
+                      aria-label="Medio de la seña"
+                    >
+                      {PAYMENT_METHOD.map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          className="chip"
+                          aria-pressed={draft.depositMethod === m}
+                          onClick={() =>
+                            set(
+                              'depositMethod',
+                              draft.depositMethod === m ? null : m,
+                            )
+                          }
+                        >
+                          {PAYMENT_METHOD_LABELS[m]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {errors.depositMethod && (
+                    <p className="omodal__err">{errors.depositMethod}</p>
+                  )}
                   {errors.deposit && (
                     <p className="omodal__err">{errors.deposit}</p>
                   )}
@@ -815,6 +907,9 @@ export default function OrderModal({
               <h3 className="omodal__step">
                 <span>4</span>Canal y notas
               </h3>
+              <span className="field-label">
+                {editing ? 'Canal' : 'Canal (obligatorio)'}
+              </span>
               <div className="chips" role="group" aria-label="Canal">
                 {ORIGIN_CHANNEL.map((ch) => (
                   <button
@@ -830,6 +925,9 @@ export default function OrderModal({
                   </button>
                 ))}
               </div>
+              {errors.channel && (
+                <p className="omodal__err">{errors.channel}</p>
+              )}
               <label className="field-label" htmlFor="om-link">
                 Link de referencia (opcional)
               </label>

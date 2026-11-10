@@ -20,13 +20,15 @@ const agustina = {
   color: '#0E7C66',
   role: 'operator',
   active: true,
+  can_manage_products: false,
   created_at: '',
 }
 
-function operatorState(isAdmin: boolean) {
+function operatorState(isAdmin: boolean, canManageProducts = isAdmin) {
   return {
     current: { ...agustina, role: isAdmin ? 'admin' : 'operator' },
     isAdmin,
+    canManageProducts,
     lock: vi.fn(),
     byId: () => undefined,
   }
@@ -85,7 +87,7 @@ describe('AdminLayout', () => {
     renderAdminLayout()
     expect(screen.queryByText('Productos y stock')).not.toBeInTheDocument()
     expect(screen.queryByText('Personas')).not.toBeInTheDocument()
-    expect(screen.queryByText('Estadísticas')).not.toBeInTheDocument()
+    expect(screen.queryByText('Números')).not.toBeInTheDocument()
     expect(screen.getByText('Conteo')).toBeInTheDocument()
   })
 
@@ -94,7 +96,20 @@ describe('AdminLayout', () => {
     renderAdminLayout()
     expect(screen.getByText('Productos y stock')).toBeInTheDocument()
     expect(screen.getByText('Personas')).toBeInTheDocument()
-    expect(screen.getByText('Estadísticas')).toBeInTheDocument()
+    expect(screen.getByText('Números')).toBeInTheDocument()
     expect(screen.getByText('Conteo')).toBeInTheDocument()
+  })
+
+  it('shows products, but not admin sections, to people allowed to load them', () => {
+    useOperatorMock.mockReturnValue(operatorState(false, true))
+    renderAdminLayout()
+    expect(screen.getByText('Productos y stock')).toBeInTheDocument()
+    expect(screen.queryByText('Personas')).not.toBeInTheDocument()
+    expect(screen.queryByText('Números')).not.toBeInTheDocument()
+  })
+
+  it('hides products from people without the permission', () => {
+    renderAdminLayout()
+    expect(screen.queryByText('Productos y stock')).not.toBeInTheDocument()
   })
 })

@@ -13,6 +13,8 @@ import {
   type Sector,
 } from './notices'
 import { createNotice, deleteNotice, updateNotice } from './notices.api'
+import { removeNoticeFiles } from './noticeImages.api'
+import NoticeFiles, { useNoticeFiles } from './NoticeFiles'
 
 const REPEATS: Repeat[] = ['day', 'week', 'month']
 
@@ -48,6 +50,9 @@ export default function TaskPanel({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirming, setConfirming] = useState(false)
+  const [created, setCreated] = useState<Notice | null>(null)
+  const files = useNoticeFiles(created?.id ?? task?.id ?? null)
+  const isBudget = sec === 'presupuesto'
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -73,11 +78,24 @@ export default function TaskPanel({
       link: link.trim() || null,
     }
     try {
-      onSaved(
-        task
-          ? await updateNotice(task.id, fields)
-          : await createNotice('task', fields, operatorId),
-      )
+      const target = created ?? task
+      const saved = target
+        ? await updateNotice(target.id, fields)
+        : await createNotice('task', fields, operatorId)
+      // The task is saved at this point; saving again must update it, not
+      // create it twice, so a failed upload keeps the panel open on it.
+      setCreated(saved)
+      if (isBudget) {
+        const failed = await files.flush(saved.id)
+        if (failed.length) {
+          setBusy(false)
+          setError(
+            `Tarea guardada, pero no se pudo subir: ${failed.join(', ')}. Probá de nuevo.`,
+          )
+          return
+        }
+      }
+      onSaved(saved)
     } catch (err) {
       setBusy(false)
       setError(err instanceof Error ? err.message : 'No se pudo guardar.')
@@ -85,11 +103,13 @@ export default function TaskPanel({
   }
 
   async function remove() {
-    if (!task) return
+    const target = created ?? task
+    if (!target) return
     setBusy(true)
     try {
-      await deleteNotice(task.id)
-      onDeleted(task.id)
+      await removeNoticeFiles(target.id).catch(() => undefined)
+      await deleteNotice(target.id)
+      onDeleted(target.id)
     } catch (err) {
       setBusy(false)
       setError(err instanceof Error ? err.message : 'No se pudo borrar.')
@@ -228,6 +248,13 @@ export default function TaskPanel({
           value={link}
           onChange={(e) => setLink(e.target.value)}
         />
+
+        {isBudget && (
+          <>
+            <p className="field-label">Archivos</p>
+            <NoticeFiles files={files} />
+          </>
+        )}
 
         <footer className="ntp__foot">
           {task &&

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Icon from '@/components/Icon'
-import { parseMoney } from '@/features/orders/orderDraft'
+import { useOperator } from '@/features/operators/operator-context'
 import { colorSwatch } from '@/features/production/pieces'
 import {
   createProduct,
@@ -16,13 +16,27 @@ import {
 } from './products.api'
 import { cleanParts, newPartDraft, partQty, type PartDraft } from './parts'
 import {
+  buildProductPatch,
   emptyProductDraft,
-  parseNonNegativeInt,
   validateProduct,
+  withoutPriceUnlessAdmin,
   type FieldErrors,
   type ProductDraft,
 } from './validation'
+import ProductActivity from './ProductActivity'
 import ProductImageGallery, { PhotoGrid } from './ProductImageGallery'
+import { ShopLinkSection } from './ShopLinkSection'
+import {
+  emptyShopLink,
+  validateShopLink,
+  type ShopFamilyOption,
+  type ShopLinkDraft,
+} from './shopLink'
+import {
+  draftFromFamilies,
+  listShopFamilies,
+  saveProductShopLink,
+} from './shopLink.api'
 import './products.css'
 
 const COMMON_COLORS = [
@@ -171,8 +185,11 @@ export default function ProductForm() {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
   const navigate = useNavigate()
+  const { current, isAdmin } = useOperator()
 
   const [draft, setDraft] = useState<ProductDraft>(emptyProductDraft())
+  // Stock al abrir la ficha: solo se manda si el usuario lo cambió.
+  const [loadedStock, setLoadedStock] = useState<number | null>(null)
   const [parts, setParts] = useState<PartDraft[]>([])
   const [errors, setErrors] = useState<FieldErrors>({})
   const [images, setImages] = useState<ProductImageRow[]>([])
@@ -180,6 +197,29 @@ export default function ProductForm() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [shopLink, setShopLink] = useState<ShopLinkDraft>(emptyShopLink())
+  const [families, setFamilies] = useState<ShopFamilyOption[]>([])
+  const [shopStatus, setShopStatus] = useState<'loading' | 'ready' | 'error'>(
+    'loading',
+  )
+  const [shopError, setShopError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    listShopFamilies()
+      .then((list) => {
+        if (cancelled) return
+        setFamilies(list)
+        if (id) setShopLink(draftFromFamilies(id, list) ?? emptyShopLink())
+        setShopStatus('ready')
+      })
+      .catch(() => {
+        if (!cancelled) setShopStatus('error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id])
   // New products: photos wait here and upload right after the product exists.
   const [pendingPhotos, setPendingPhotos] = useState<
     { key: string; file: File; url: string }[]
@@ -231,6 +271,7 @@ export default function ProductForm() {
           return
         }
         setDraft(draftFromProduct(product))
+        setLoadedStock(product.stock_quantity)
         setImages(imgs)
         setParts(
           rows.map((r) =>
@@ -274,7 +315,12 @@ export default function ProductForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const nextErrors = validateProduct(draft)
-    if (Object.keys(nextErrors).length > 0) {
+    const shopProblem =
+      shopStatus === 'ready'
+        ? validateShopLink(shopLink, families, id ?? null)
+        : null
+    setShopError(shopProblem)
+    if (Object.keys(nextErrors).length > 0 || shopProblem) {
       setErrors(nextErrors)
       return
     }
@@ -282,18 +328,34 @@ export default function ProductForm() {
     setSubmitting(true)
     setSubmitError(null)
     try {
+      // El precio de lista lo ve todo el equipo, pero solo el admin lo cambia.
       const patch = {
-        name: draft.name.trim(),
-        description: draft.description.trim() || null,
-        base_price: parseMoney(draft.basePrice),
-        stock_quantity: parseNonNegativeInt(draft.stockQuantity) ?? 0,
-        active: draft.active,
+        ...withoutPriceUnlessAdmin(
+          buildProductPatch(draft, isEdit ? loadedStock : null),
+          isAdmin,
+        ),
+        // Queda en el historial quién lo creó o cambió.
+        updated_by: current?.id ?? null,
       }
       const saved =
         isEdit && id
           ? await updateProduct(id, patch)
           : await createProduct(patch)
       await saveProductParts(saved.id, cleanParts(parts))
+      if (shopStatus === 'ready') {
+        try {
+          await saveProductShopLink(saved.id, shopLink, families)
+        } catch (err) {
+          // El producto ya existe: se abre para reintentar solo la tienda.
+          setSubmitError(
+            `El producto se guardó, pero no se pudo actualizar la tienda${
+              err instanceof Error ? `: ${err.message}` : '.'
+            }`,
+          )
+          if (!isEdit) navigate(`/admin/productos/${saved.id}`)
+          return
+        }
+      }
       if (!isEdit && pendingPhotos.length) {
         try {
           for (const [position, photo] of pendingPhotos.entries())
@@ -390,8 +452,10 @@ export default function ProductForm() {
                   id="product-price"
                   className="input num"
                   inputMode="decimal"
-                  placeholder="0"
+                  placeholder={isAdmin ? '0' : '—'}
                   value={draft.basePrice}
+                  readOnly={!isAdmin}
+                  title={isAdmin ? undefined : 'Solo el admin cambia el precio'}
                   onChange={(e) => setField('basePrice', e.target.value)}
                   aria-invalid={Boolean(errors.basePrice)}
                 />
@@ -486,6 +550,20 @@ export default function ProductForm() {
             />
           )}
         </section>
+
+        <ShopLinkSection
+          draft={shopLink}
+          onChange={(next) => {
+            setShopLink(next)
+            setShopError(null)
+          }}
+          families={families}
+          status={shopStatus}
+          error={shopError}
+          productName={draft.name}
+        />
+
+        {isEdit && id && <ProductActivity productId={id} />}
       </div>
 
       <div className="pform__footer">

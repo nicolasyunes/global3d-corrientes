@@ -1,4 +1,5 @@
 import { normalizeColor } from '@/features/production/pieces'
+import { matchesQuery, searchTokens } from '@/lib/search'
 
 // One part of a preset product, per unit: "cabeza · rojo · ×1".
 export interface PartLine {
@@ -63,6 +64,36 @@ export function findTemplate(
   const key = normalizeName(name)
   if (!key) return null
   return templates.find((t) => normalizeName(t.name) === key) ?? null
+}
+
+export interface ProductSuggestion {
+  name: string
+  template: ProductTemplate | null
+}
+
+// Sugerencias del campo "Producto" del pedido: primero los productos
+// guardados, después nombres ya usados en pedidos. Búsqueda por palabras
+// (matchesQuery), sin repetir y sin el nombre que ya está escrito tal cual.
+export function productSuggestions(
+  query: string,
+  templates: readonly ProductTemplate[],
+  usedNames: readonly string[],
+  limit = 8,
+): ProductSuggestion[] {
+  if (searchTokens(query).length === 0) return []
+  const typed = normalizeName(query)
+  const seen = new Set<string>()
+  const out: ProductSuggestion[] = []
+  const add = (name: string, template: ProductTemplate | null) => {
+    const key = normalizeName(name)
+    if (!key || key === typed || seen.has(key)) return
+    if (!matchesQuery(name, query)) return
+    seen.add(key)
+    out.push({ name, template })
+  }
+  for (const t of templates) add(t.name, t)
+  for (const name of usedNames) add(name, findTemplate(name, templates))
+  return out.slice(0, limit)
 }
 
 // Pieces to create for an order item: each part × the item quantity.
