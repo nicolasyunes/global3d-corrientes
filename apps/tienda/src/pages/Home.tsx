@@ -9,6 +9,7 @@ import {
   CATEGORIES,
   heroPhotos,
   inStock,
+  shuffle,
   type CategoryMeta,
 } from '../lib/catalog'
 import { useShop } from '../lib/data'
@@ -17,7 +18,8 @@ import { waLink } from '../lib/whatsapp'
 import { GridSkeleton, LoadError } from './states'
 
 const HERO_ORDER = ['vasos', 'trofeos', 'llaveros', 'figuras']
-const PHOTOS_PER_TILE = 8
+// Tope de seguridad: alcanza para todas las fotos de una categoría.
+const PHOTOS_PER_TILE = 60
 
 export function Home() {
   usePageTitle(null)
@@ -31,8 +33,8 @@ export function Home() {
     families.some((f) => f.category === c.slug),
   )
   // Vidriera: la primera categoría va grande, las cuatro siguientes chicas.
-  // Cada recuadro rota entre fotos de productos de su categoría, primero los
-  // destacados.
+  // Cada recuadro rota entre todas las fotos de productos de su categoría, en
+  // un orden distinto en cada visita (así no se ven siempre las mismas).
   const tiles = useMemo(
     () =>
       [
@@ -48,7 +50,7 @@ export function Home() {
           ]
           return {
             ...c,
-            images: heroPhotos(ordered, PHOTOS_PER_TILE),
+            images: shuffle(heroPhotos(ordered, PHOTOS_PER_TILE)),
             any: inCat.length > 0,
           }
         })
@@ -61,7 +63,25 @@ export function Home() {
     <>
       <section className="hero">
         <div className="container">
-          <h1 className="sr-only">Global3D · Impresión 3D en Corrientes</h1>
+          <div className="hero-intro">
+            <div className="hero-copy">
+              <h1>
+                Vasos, trofeos, llaveros y regalos con el logo de tu empresa
+              </h1>
+              <p className="lead">
+                Para empresas, clubes y eventos. Pedí tu presupuesto y lo tenés
+                antes de fin de año.
+              </p>
+            </div>
+            <div className="hero-cta">
+              <Link to="/a-medida?tipo=empresa" className="btn btn-primary">
+                Pedir presupuesto
+              </Link>
+              <Link to="/catalogo" className="btn btn-ghost">
+                Ver catálogo
+              </Link>
+            </div>
+          </div>
           {status === 'ready' ? (
             <div className="bento">
               {tiles.map((t, i) => (

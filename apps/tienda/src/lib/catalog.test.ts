@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { familyImage, heroPhotos } from './catalog'
+import { familyImage, heroPhotos, shuffle } from './catalog'
 import type { Family } from './types'
 
 const fam = (slug: string, variants: Array<[string | null, number]>) =>
@@ -52,5 +52,22 @@ describe('heroPhotos', () => {
       2,
     )
     expect(photos).toEqual(['x', 'z'])
+  })
+})
+
+describe('shuffle', () => {
+  it('devuelve las mismas fotos en otro orden y no toca el original', () => {
+    const src = ['a', 'b', 'c', 'd']
+    const seq = [0.1, 0.9, 0.5]
+    let i = 0
+    const out = shuffle(src, () => seq[i++ % seq.length])
+    expect(out).not.toEqual(src)
+    expect([...out].sort()).toEqual(src)
+    expect(src).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('con una lista vacía o de un elemento no rompe', () => {
+    expect(shuffle([])).toEqual([])
+    expect(shuffle(['x'])).toEqual(['x'])
   })
 })
