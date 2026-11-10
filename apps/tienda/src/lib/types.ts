@@ -1,4 +1,5 @@
 // Formas que devuelven las funciones shop_* de Supabase.
+import type { ReelSetting } from './reels'
 
 export type SaleMode = 'stock' | 'a_pedido' | 'cotizacion'
 
@@ -73,6 +74,8 @@ export interface ShopSettings {
   envios: { corrientes: string; pais: string }
   /** Links de publicaciones elegidas a mano; se usan si no hay token de la API */
   instagram_posts?: string[]
+  /** Videos de la sección "Mirá cómo quedan" (ver lib/reels.ts) */
+  reels?: ReelSetting[]
   /** Pago con tarjeta; apagado hasta que se active (ver lib/mercadopago.ts) */
   mercadopago?: { enabled: boolean; publicKey: string }
   /** % de descuento pagando en efectivo o transferencia */

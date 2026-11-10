@@ -4,6 +4,7 @@ import { CategoryTile } from '../components/CategoryTile'
 import { InstagramFeed } from '../components/InstagramFeed'
 import { Perks } from '../components/Perks'
 import { ProductCard } from '../components/ProductCard'
+import { Reels } from '../components/Reels'
 import { Reviews } from '../components/Reviews'
 import {
   CATEGORIES,
@@ -153,6 +154,8 @@ export function Home() {
           )}
         </div>
       </section>
+
+      <Reels settings={settings} />
 
       <section className="section" aria-labelledby="how-title">
         <div className="container">
