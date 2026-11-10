@@ -1,28 +1,31 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { OrderWithCustomer } from '@/features/orders/orders.api'
 import { toISODate } from '@/features/orders/validation'
 import { addDaysISO } from '@/features/orders/list'
-import TodayPage, { dayWord, sinceText, summarize } from './TodayPage'
+import TodayPage, {
+  dayWord,
+  progressByOrder,
+  sinceText,
+  summarize,
+} from './TodayPage'
 import type { WorkPiece } from './workshop.api'
 
 const mocks = vi.hoisted(() => ({
-  listOrders: vi.fn(),
+  listOpenOrders: vi.fn(),
   listOrderItemCounts: vi.fn(),
-  listOrderProgress: vi.fn(),
   listWorkshopPieces: vi.fn(),
   setPieceStatus: vi.fn(),
   incrementPiece: vi.fn(),
 }))
 
 vi.mock('@/features/orders/orders.api', () => ({
-  listOrders: mocks.listOrders,
+  listOpenOrders: mocks.listOpenOrders,
   listOrderItemCounts: mocks.listOrderItemCounts,
   updateOrder: vi.fn(),
 }))
 vi.mock('./production.api', () => ({
-  listOrderProgress: mocks.listOrderProgress,
   setPieceStatus: mocks.setPieceStatus,
   incrementPiece: mocks.incrementPiece,
 }))
@@ -152,15 +155,26 @@ describe('helpers', () => {
   })
 })
 
+describe('progressByOrder', () => {
+  it('adds up printed and total quantities per order', () => {
+    expect(
+      progressByOrder([
+        piece({ id: 'a', order_id: 'x', quantity_done: 2, quantity_total: 5 }),
+        piece({ id: 'b', order_id: 'x', quantity_done: 1, quantity_total: 1 }),
+        piece({ id: 'c', order_id: 'y', quantity_done: 0, quantity_total: 3 }),
+      ]),
+    ).toEqual({ x: { done: 3, total: 6 }, y: { done: 0, total: 3 } })
+  })
+})
+
 describe('TodayPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.listOrders.mockResolvedValue([
+    mocks.listOpenOrders.mockResolvedValue([
       order({ id: 'o1', due_date: addDaysISO(today, -2), title: 'Trofeos' }),
       order({ id: 'o2', waiting_reason: 'hablarle para ver qué quiere' }),
     ])
     mocks.listOrderItemCounts.mockResolvedValue({})
-    mocks.listOrderProgress.mockResolvedValue({})
     mocks.listWorkshopPieces.mockResolvedValue([
       piece({ id: 'p1', label: 'Trofeos', urgent: true }),
       piece({
@@ -182,34 +196,44 @@ describe('TodayPage', () => {
     await act(async () => {})
   }
 
-  it('shows what is printing and marks it printed', async () => {
+  it('shows what is printing, what comes next, and marks it printed', async () => {
+    mocks.setPieceStatus.mockResolvedValue({ id: 'p1', status: 'done' })
     await renderPage()
-    const now = screen.getByRole('region', { name: 'Imprimiendo ahora' })
-    expect(within(now).getByText(/sabri · Urgente/)).toBeInTheDocument()
+    const col = screen.getByRole('region', { name: 'Imprimir' })
+    expect(within(col).getByText(/Urgente/)).toBeInTheDocument()
+    expect(within(col).getByText(/Placas · amarillo/)).toBeInTheDocument()
     await act(async () => {
-      within(now)
+      within(col)
         .getByRole('button', { name: /Impresa/ })
         .click()
     })
     expect(mocks.setPieceStatus).toHaveBeenCalledWith('p1', 'done', 'op-1')
-    const next = screen.getByRole('region', {
-      name: 'Lo próximo para imprimir',
-    })
-    expect(within(next).getByText(/Placas · amarillo/)).toBeInTheDocument()
   })
 
-  it('opens the waiting orders from their card', async () => {
+  it('puts late and waiting orders under Atender', async () => {
     await renderPage()
-    fireEvent.click(screen.getByRole('button', { name: /En espera/ }))
-    const panel = screen.getByRole('region', { name: 'En espera' })
-    expect(within(panel).getByText(/No están confirmados/)).toBeInTheDocument()
-  })
-
-  it('lists the late orders from their card', async () => {
-    await renderPage()
-    fireEvent.click(screen.getByRole('button', { name: /Atrasados/ }))
+    const col = screen.getByRole('region', { name: 'Atender' })
+    expect(within(col).getByText('+2 d')).toBeInTheDocument()
     expect(
-      screen.getByRole('region', { name: 'Atrasados' }),
+      within(col).getByText('hablarle para ver qué quiere'),
     ).toBeInTheDocument()
+    expect(
+      within(col).getByRole('button', { name: /Confirmar/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('lists ready orders under Entregar', async () => {
+    mocks.listOpenOrders.mockResolvedValue([
+      order({ id: 'o3', status: 'finished', pending_balance: 700 }),
+    ])
+    await renderPage()
+    const col = screen.getByRole('region', { name: 'Entregar' })
+    expect(within(col).getByText('Listo')).toBeInTheDocument()
+    expect(within(col).getAllByText(/a cobrar/).length).toBeGreaterThan(0)
+  })
+
+  it('only counts item rows of the open orders', async () => {
+    await renderPage()
+    expect(mocks.listOrderItemCounts).toHaveBeenCalledWith(['o1', 'o2'])
   })
 })
