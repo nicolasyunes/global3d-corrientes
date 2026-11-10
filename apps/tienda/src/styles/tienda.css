@@ -1025,6 +1025,10 @@ p {
   width: 100% !important;
   max-width: none !important;
   border-radius: 16px !important;
+  /* El iframe nace con 0 px y crece hasta ~530: ese crecimiento cuenta como
+     salto de diseño aunque el contenedor ya tenga alto fijo. Con esto ocupa
+     todo el lugar desde que aparece. */
+  height: 100% !important;
 }
 .ig-embeds blockquote {
   background: var(--surface-2);
