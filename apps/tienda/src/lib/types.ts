@@ -74,6 +74,8 @@ export interface ShopSettings {
   envios: { corrientes: string; pais: string }
   /** Links de publicaciones elegidas a mano; se usan si no hay token de la API */
   instagram_posts?: string[]
+  /** Muestra la sección "En Instagram". Apagada por defecto: solo `true` la enciende */
+  instagram_visible?: boolean
   /** Videos de la sección "Mirá cómo quedan" (ver lib/reels.ts) */
   reels?: ReelSetting[]
   /** Pago con tarjeta; apagado hasta que se active (ver lib/mercadopago.ts) */
