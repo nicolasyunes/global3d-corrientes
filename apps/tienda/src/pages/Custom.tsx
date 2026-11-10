@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { QuoteFiles, type QuoteAttachment } from '../components/QuoteFiles'
-import { Showcase } from '../components/Showcase'
 import { useShop } from '../lib/data'
 import { onlyDigits } from '../lib/format'
 import { usePageTitle } from '../lib/usePageTitle'
@@ -70,8 +69,12 @@ export function Custom() {
           Te respondemos por WhatsApp con precio y plazo. Lo confirmás con una
           seña del 50%.
         </p>
+        <p className="muted">
+          {empresa
+            ? 'Algunas ideas: trofeos y medallas, llaveros con tu logo, vasos y regalos para tu equipo o tus clientes, carteles y letras. Si no está en la lista, contanos igual.'
+            : 'Algunas ideas: vasos con tu nombre o tu equipo, figuras y personajes, llaveros, regalos, lámparas y organizadores, carteles y letras. Si no está en la lista, contanos igual.'}
+        </p>
       </div>
-      <Showcase />
       <div
         className="chips"
         role="group"
