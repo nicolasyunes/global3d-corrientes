@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../lib/api'
 import { InstagramFeed } from './InstagramFeed'
 
@@ -51,5 +51,59 @@ describe('InstagramFeed', () => {
     const { container } = render(<InstagramFeed handle="x" />)
     await vi.waitFor(() => expect(api.instagram).toHaveBeenCalled())
     expect(container).toBeEmptyDOMElement()
+  })
+
+  describe('con publicaciones elegidas y IntersectionObserver', () => {
+    let trigger: (() => void) | undefined
+    beforeEach(() => {
+      trigger = undefined
+      vi.stubGlobal(
+        'IntersectionObserver',
+        class {
+          constructor(cb: (e: Array<{ isIntersecting: boolean }>) => void) {
+            trigger = () => cb([{ isIntersecting: true }])
+          }
+          observe() {}
+          disconnect() {}
+        },
+      )
+    })
+    afterEach(() => vi.unstubAllGlobals())
+
+    it('no pide la API hasta que la sección se acerca a la pantalla', async () => {
+      vi.mocked(api.instagram).mockResolvedValue([])
+      render(
+        <InstagramFeed
+          handle="global3d_corrientes"
+          links={['https://www.instagram.com/p/DexTXJyofqu/']}
+        />,
+      )
+      expect(api.instagram).not.toHaveBeenCalled()
+      act(() => trigger?.())
+      await vi.waitFor(() => expect(api.instagram).toHaveBeenCalledTimes(1))
+    })
+
+    it('no pide nada mientras los ajustes todavía no llegaron', () => {
+      vi.mocked(api.instagram).mockResolvedValue([])
+      const { rerender } = render(
+        <InstagramFeed handle="x" links={[]} settled={false} />,
+      )
+      expect(api.instagram).not.toHaveBeenCalled()
+      rerender(
+        <InstagramFeed
+          handle="x"
+          links={['https://www.instagram.com/p/DexTXJyofqu/']}
+          settled
+        />,
+      )
+      // llegaron con links elegidos: sigue esperando a que la sección se acerque
+      expect(api.instagram).not.toHaveBeenCalled()
+    })
+
+    it('sin publicaciones elegidas la pide enseguida', async () => {
+      vi.mocked(api.instagram).mockResolvedValue([])
+      render(<InstagramFeed handle="x" />)
+      await vi.waitFor(() => expect(api.instagram).toHaveBeenCalledTimes(1))
+    })
   })
 })

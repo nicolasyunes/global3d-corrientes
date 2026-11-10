@@ -9,8 +9,38 @@
         "hostname": "bukjmleercxlxbexekos.supabase.co",
         "pathname": "/storage/v1/object/public/**"
       }
-    ]
+    ],
+    "localPatterns": [{ "pathname": "/tienda/familias/**" }]
   },
+  "headers": [
+    {
+      "source": "/tienda/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/tienda/reels/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/tienda/familias/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/herramientas",

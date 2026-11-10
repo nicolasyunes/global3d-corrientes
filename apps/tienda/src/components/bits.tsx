@@ -39,12 +39,15 @@ export function Img({
   label,
   size = 'card',
   eager = false,
+  priority = false,
 }: {
   src: string | null
   alt: string
   label?: string
   size?: ImgSize
   eager?: boolean
+  /** La imagen más importante de la pantalla (LCP): carga ya y con prioridad alta */
+  priority?: boolean
 }) {
   // Primero la versión achicada; si falla, la original; si falla, placeholder.
   const [failed, setFailed] = useState<string[]>([])
@@ -66,7 +69,9 @@ export function Img({
     <img
       src={current}
       alt={alt}
-      loading={eager ? 'eager' : 'lazy'}
+      loading={eager || priority ? 'eager' : 'lazy'}
+      // React 18 solo reconoce el atributo en minúscula (el camelCase llega en 19)
+      {...(priority ? { fetchpriority: 'high' } : {})}
       decoding="async"
       onError={() => setFailed((f) => [...f, current])}
     />
