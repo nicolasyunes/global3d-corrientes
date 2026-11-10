@@ -279,11 +279,13 @@ export function Home() {
         </div>
       </section>
 
-      <InstagramFeed
-        handle={settings.instagram}
-        links={settings.instagram_posts}
-        settled={status === 'ready'}
-      />
+      {settings.instagram_visible === true && (
+        <InstagramFeed
+          handle={settings.instagram}
+          links={settings.instagram_posts}
+          settled={status === 'ready'}
+        />
+      )}
 
       <Reviews settings={settings} />
 
