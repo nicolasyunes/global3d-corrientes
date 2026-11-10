@@ -537,16 +537,9 @@ p {
   display: grid;
   gap: 10px;
 }
-.hero-eyebrow {
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-ink);
-}
 .hero-intro h1 {
   font-size: clamp(1.75rem, 3.6vw, 2.9rem);
-  max-width: 20ch;
+  max-width: 26ch;
 }
 .hero-cta {
   display: grid;
