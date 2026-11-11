@@ -17,14 +17,49 @@ declare global {
 export function InstagramFeed({
   handle,
   links,
+  settled = true,
 }: {
   handle: string
   links?: string[]
+  /** Los ajustes (de donde salen los links elegidos) ya llegaron */
+  settled?: boolean
 }) {
   const [posts, setPosts] = useState<InstagramPost[]>([])
+  const [near, setNear] = useState(false)
+  const section = useRef<HTMLElement>(null)
   const picked = cleanPostLinks(links)
 
+  // Con publicaciones elegidas a mano, la API es solo una mejora: se la pide
+  // recién cuando la sección está por verse, para no sumar una llamada (de
+  // ~1 s si la función estaba dormida) a la carga de la página. Sin
+  // elegidas, la API es la única fuente y se pide enseguida.
+  // `settled`: los ajustes ya llegaron. Antes de eso la lista elegida está
+  // vacía aunque después no lo esté, y no hay que confundirlo con "sin elegidas".
+  const hasPicked = picked.length > 0
+  const fetchNow = settled && (!hasPicked || near)
+
   useEffect(() => {
+    const el = section.current
+    if (!hasPicked || !el) return
+    if (!('IntersectionObserver' in window)) {
+      setNear(true)
+      return
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setNear(true)
+          io.disconnect()
+        }
+      },
+      { rootMargin: '600px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasPicked])
+
+  useEffect(() => {
+    if (!fetchNow) return
     let alive = true
     api
       .instagram()
@@ -33,13 +68,13 @@ export function InstagramFeed({
     return () => {
       alive = false
     }
-  }, [])
+  }, [fetchNow])
 
   const useApi = posts.length >= 3
   if (!useApi && picked.length === 0) return null
 
   return (
-    <section className="section" aria-labelledby="ig-title">
+    <section className="section" aria-labelledby="ig-title" ref={section}>
       <div className="container">
         <div className="section-head">
           <h2 id="ig-title">En Instagram</h2>

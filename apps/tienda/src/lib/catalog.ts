@@ -101,6 +101,16 @@ export function heroPhotos(families: Family[], max: number): string[] {
   return out
 }
 
+/** Copia mezclada (Fisher-Yates). `rnd` se puede inyectar para probarla. */
+export function shuffle<T>(items: readonly T[], rnd = Math.random): T[] {
+  const out = [...items]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
+
 export type Availability =
   | { kind: 'stock'; units: number }
   | { kind: 'pedido'; days: number }
