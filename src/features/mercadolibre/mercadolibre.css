@@ -1,0 +1,301 @@
+/* Sección MercadoLibre: despachos, publicaciones y precios por canal. */
+
+.ml-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.ml-tabs {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-divider);
+}
+.ml-tabs button {
+  padding: 0.4rem 0.9rem;
+  border: 0;
+  border-radius: var(--radius-md, 0.5rem);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  min-height: 40px;
+}
+.ml-tabs button[aria-pressed='true'] {
+  background: var(--color-white);
+  box-shadow: var(--shadow-card);
+  font-weight: 600;
+}
+
+.ml-run {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 16px;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  border-left: 4px solid var(--color-teal);
+  font-size: 0.875rem;
+}
+.ml-run--warn {
+  border-left-color: var(--status-amber);
+}
+
+.ml-tab {
+  display: grid;
+  gap: 12px;
+}
+.ml-search {
+  max-width: 420px;
+}
+.ml-note {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.ml-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+/* Despachos */
+.ml-fabricate ul {
+  margin: 8px 0 0;
+  padding-left: 1.1rem;
+}
+.ml-fabricate .card__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ml-order {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: var(--shadow-card);
+  border-left: 4px solid var(--color-carbon-line);
+}
+.ml-order--late {
+  border-left-color: var(--status-red);
+}
+.ml-order--today {
+  border-left-color: var(--status-amber);
+}
+.ml-order__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ml-order__items {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-weight: 600;
+}
+.ml-order__fab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--status-violet);
+  font-weight: 600;
+}
+.ml-order__meta {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.ml-order__meta a,
+.ml-pub__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.ml-urg {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-carbon-soft);
+}
+.ml-urg--late {
+  background: var(--status-red-50);
+  color: var(--status-red);
+}
+.ml-urg--today {
+  background: var(--status-amber-50);
+  color: var(--status-amber);
+}
+.ml-urg--soon {
+  background: var(--status-blue-50);
+  color: var(--status-blue);
+}
+
+/* Publicaciones */
+.ml-pub {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 16px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: var(--shadow-card);
+}
+.ml-pub__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-width: 0;
+}
+.ml-pub__name {
+  overflow-wrap: anywhere;
+}
+.ml-pub__family {
+  font-size: 0.85rem;
+}
+.ml-pub__nums {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  margin: 0;
+  font-size: 0.9rem;
+}
+.ml-pub__nums dt {
+  font-size: 0.75rem;
+  color: var(--color-carbon-muted);
+}
+.ml-pub__nums dd {
+  margin: 0;
+  display: grid;
+}
+.ml-pub__link {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 0.875rem;
+}
+.ml-price {
+  font-weight: 700;
+}
+.ml-diff {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--status-red);
+}
+.ml-state {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-carbon-soft);
+  color: var(--color-carbon-muted);
+}
+.ml-state--activa {
+  background: var(--color-teal-50);
+  color: var(--color-teal);
+}
+.ml-state--pausada {
+  background: var(--status-amber-50);
+  color: var(--status-amber);
+}
+.ml-state--revisar {
+  background: var(--status-red-50);
+  color: var(--status-red);
+}
+
+/* Precios */
+.ml-prices .card {
+  display: grid;
+  gap: 10px;
+}
+.ml-prices .card p {
+  margin: 0;
+}
+.ml-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+.ml-rule {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-carbon-line);
+  border-radius: var(--radius-lg);
+}
+.ml-rule legend {
+  font-weight: 700;
+  padding: 0 4px;
+}
+.ml-rule label {
+  display: grid;
+  gap: 4px;
+}
+.ml-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.ml-table th,
+.ml-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-carbon-line);
+}
+.ml-table th:not(:first-child),
+.ml-table td:not(:first-child) {
+  text-align: right;
+  white-space: nowrap;
+}
+.ml-overrides {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.ml-overrides li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.ml-overrides li span {
+  flex: 1;
+  min-width: 0;
+}
+.ml-override-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ml-override-form .input {
+  width: auto;
+  min-width: 0;
+  flex: 1 1 140px;
+}
+
+@media (max-width: 520px) {
+  .ml-tabs {
+    width: 100%;
+  }
+  .ml-tabs button {
+    flex: 1;
+  }
+  .ml-table {
+    font-size: 0.8rem;
+  }
+}

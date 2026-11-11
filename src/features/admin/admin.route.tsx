@@ -30,6 +30,9 @@ import AdminLayout from './AdminLayout'
 // of the bundle every admin screen loads.
 const ToolsPage = lazy(() => import('@/features/tools/ToolsPage'))
 const StatsPage = lazy(() => import('@/features/stats/StatsPage'))
+const MercadoLibrePage = lazy(
+  () => import('@/features/mercadolibre/MercadoLibrePage'),
+)
 
 // Productos: admin o quien tenga la carga habilitada en Personas.
 function ProductsAccess({ children }: { children: ReactNode }) {
@@ -92,6 +95,14 @@ export function Component() {
           <Route
             path="ventas-pedidos"
             element={<Navigate to="/admin/ventas" replace />}
+          />
+          <Route
+            path="mercadolibre"
+            element={
+              <Suspense fallback={null}>
+                <MercadoLibrePage />
+              </Suspense>
+            }
           />
           <Route path="calculadora" element={<CalculatorPage />} />
           <Route
