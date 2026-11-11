@@ -125,7 +125,8 @@ export async function listFamilies(): Promise<FamilyWithProducts[]> {
     .eq('published', true)
     .order('position', { ascending: true })
   if (error) fail(error)
-  return (data ?? []) as FamilyWithProducts[]
+  // products es una relación muchos-a-uno: PostgREST devuelve un objeto, no un array.
+  return (data ?? []) as unknown as FamilyWithProducts[]
 }
 
 export async function listProductPrices(): Promise<ProductPriceRow[]> {
@@ -173,7 +174,7 @@ export async function listOverrides(): Promise<PriceOverride[]> {
     .select('product_id, channel, price, products(name)')
     .order('channel', { ascending: true })
   if (error) fail(error)
-  return (data ?? []) as PriceOverride[]
+  return (data ?? []) as unknown as PriceOverride[]
 }
 
 export async function saveOverride(

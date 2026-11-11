@@ -46,11 +46,21 @@ vi.mock('./ml.api', () => ({
       shop_family_products: [
         {
           position: 0,
-          products: { id: 'p1', name: 'Vaso Camiseta River', stock_quantity: 0, active: true },
+          products: {
+            id: 'p1',
+            name: 'Vaso Camiseta River',
+            stock_quantity: 0,
+            active: true,
+          },
         },
         {
           position: 1,
-          products: { id: 'p2', name: 'Vaso Camiseta Boca', stock_quantity: 4, active: true },
+          products: {
+            id: 'p2',
+            name: 'Vaso Camiseta Boca',
+            stock_quantity: 4,
+            active: true,
+          },
         },
       ],
     },
@@ -71,8 +81,24 @@ vi.mock('./ml.api', () => ({
     },
   ]),
   listProductPrices: vi.fn().mockResolvedValue([
-    { product_id: 'p1', name: 'Vaso Camiseta River', price_web: 20000, price_efectivo: 18000, price_ml: 24000, efectivo_manual: false, ml_manual: false },
-    { product_id: 'p2', name: 'Vaso Camiseta Boca', price_web: 20000, price_efectivo: 18000, price_ml: 24000, efectivo_manual: false, ml_manual: false },
+    {
+      product_id: 'p1',
+      name: 'Vaso Camiseta River',
+      price_web: 20000,
+      price_efectivo: 18000,
+      price_ml: 24000,
+      efectivo_manual: false,
+      ml_manual: false,
+    },
+    {
+      product_id: 'p2',
+      name: 'Vaso Camiseta Boca',
+      price_web: 20000,
+      price_efectivo: 18000,
+      price_ml: 24000,
+      efectivo_manual: false,
+      ml_manual: false,
+    },
   ]),
 }))
 
@@ -87,7 +113,9 @@ describe('MercadoLibrePage', () => {
     )
     expect(await screen.findByText('Despachar hoy')).toBeInTheDocument()
     expect(screen.getByText('A fabricar para ML')).toBeInTheDocument()
-    expect(screen.getByText(/Imprimir: 2× Vaso Camiseta River/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/Imprimir: 2× Vaso Camiseta River/),
+    ).toBeInTheDocument()
     expect(screen.getByText(/Ventas registradas/)).toBeInTheDocument()
   })
 

@@ -24,9 +24,7 @@ function limitText(iso: string | null): string {
 // Ventas de ML que todavía hay que preparar o despachar, las más urgentes primero.
 export default function DispatchTab() {
   const [rows, setRows] = useState<MlOrder[]>([])
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
-    'loading',
-  )
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
 
   const load = useCallback(() => {
     setStatus('loading')
@@ -50,7 +48,11 @@ export default function DispatchTab() {
       {status === 'error' && (
         <p className="banner banner--error" role="alert">
           No se pudieron cargar los despachos.{' '}
-          <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={load}
+          >
             Reintentar
           </button>
         </p>
@@ -86,7 +88,9 @@ export default function DispatchTab() {
           return (
             <li key={o.ml_order_id} className={`ml-order ml-order--${u}`}>
               <div className="ml-order__top">
-                <span className={`ml-urg ml-urg--${u}`}>{URGENCY_LABELS[u]}</span>
+                <span className={`ml-urg ml-urg--${u}`}>
+                  {URGENCY_LABELS[u]}
+                </span>
                 {o.handling_limit && (
                   <span className="muted">
                     antes del {limitText(o.handling_limit)}
@@ -114,7 +118,11 @@ export default function DispatchTab() {
                 ]
                   .filter(Boolean)
                   .join(' · ')}{' '}
-                <a href={orderUrl(o.ml_order_id)} target="_blank" rel="noreferrer">
+                <a
+                  href={orderUrl(o.ml_order_id)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Ver en ML <Icon name="external" size={14} />
                 </a>
               </p>

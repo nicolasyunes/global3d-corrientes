@@ -28,9 +28,7 @@ export default function PricesTab() {
   const [draft, setDraft] = useState<PriceRule[]>([])
   const [products, setProducts] = useState<ProductPriceRow[]>([])
   const [overrides, setOverrides] = useState<PriceOverride[]>([])
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
-    'loading',
-  )
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [saving, setSaving] = useState(false)
   const [newOv, setNewOv] = useState({
     productId: '',
@@ -43,7 +41,9 @@ export default function PricesTab() {
     Promise.all([listPriceRules(), listProductPrices(), listOverrides()])
       .then(([r, p, o]) => {
         const order = (c: PriceRule['channel']) => (c === 'ml' ? 0 : 1)
-        const sorted = [...r].sort((a, b) => order(a.channel) - order(b.channel))
+        const sorted = [...r].sort(
+          (a, b) => order(a.channel) - order(b.channel),
+        )
         setRules(sorted)
         setDraft(sorted)
         setProducts(p)
@@ -68,7 +68,9 @@ export default function PricesTab() {
       ...p,
       price_ml: p.ml_manual || !ml ? p.price_ml : rulePrice(p.price_web, ml),
       price_efectivo:
-        p.efectivo_manual || !ef ? p.price_efectivo : rulePrice(p.price_web, ef),
+        p.efectivo_manual || !ef
+          ? p.price_efectivo
+          : rulePrice(p.price_web, ef),
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products, draft])
@@ -233,8 +235,7 @@ export default function PricesTab() {
           {overrides.map((o) => (
             <li key={`${o.product_id}-${o.channel}`}>
               <span>
-                {o.products?.name ?? 'Producto'} ·{' '}
-                {CHANNEL_LABELS[o.channel]}
+                {o.products?.name ?? 'Producto'} · {CHANNEL_LABELS[o.channel]}
               </span>
               <strong>{pesos(o.price)}</strong>
               {isAdmin && (
@@ -255,7 +256,9 @@ export default function PricesTab() {
               className="input"
               aria-label="Producto"
               value={newOv.productId}
-              onChange={(e) => setNewOv({ ...newOv, productId: e.target.value })}
+              onChange={(e) =>
+                setNewOv({ ...newOv, productId: e.target.value })
+              }
             >
               <option value="">Elegí un producto</option>
               {products.map((p) => (

@@ -6,30 +6,11 @@ import {
   listingDiffs,
   listingState,
   LISTING_STATE_LABELS,
-  type ListingState,
+  matchesFilter,
+  type ListingFilter as Filter,
+  type ListingRow,
 } from './ml'
-import {
-  listFamilies,
-  listListings,
-  listProductPrices,
-  type MlListing,
-} from './ml.api'
-
-export interface ListingRow {
-  productId: string
-  family: string
-  name: string
-  priceWeb: number
-  priceMl: number
-  mlManual: boolean
-  stock: number
-  expected: { stock: number; leadDays: number | null }
-  listing: MlListing | null
-  state: ListingState
-  diffs: string[]
-}
-
-type Filter = 'todas' | 'publicadas' | 'sin_publicar' | 'diferencias'
+import { listFamilies, listListings, listProductPrices } from './ml.api'
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: 'todas', label: 'Todas' },
@@ -38,19 +19,10 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'diferencias', label: 'Con diferencias' },
 ]
 
-export function matchesFilter(r: ListingRow, f: Filter): boolean {
-  if (f === 'publicadas') return r.listing !== null
-  if (f === 'sin_publicar') return r.listing === null
-  if (f === 'diferencias') return r.diffs.length > 0 || r.state === 'revisar'
-  return true
-}
-
 // Cada producto de la tienda con su publicación de ML (una por producto).
 export default function ListingsTab() {
   const [rows, setRows] = useState<ListingRow[]>([])
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
-    'loading',
-  )
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [filter, setFilter] = useState<Filter>('todas')
   const [q, setQ] = useState('')
 
@@ -156,7 +128,11 @@ export default function ListingsTab() {
       {status === 'error' && (
         <p className="banner banner--error" role="alert">
           No se pudieron cargar las publicaciones.{' '}
-          <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={load}
+          >
             Reintentar
           </button>
         </p>
@@ -186,11 +162,12 @@ export default function ListingsTab() {
                 <dt>ML{r.mlManual ? ' (manual)' : ''}</dt>
                 <dd className="ml-price">
                   {pesos(r.priceMl)}
-                  {r.diffs.includes('precio') && r.listing?.ml_price != null && (
-                    <span className="ml-diff">
-                      publicado {pesos(r.listing.ml_price)}
-                    </span>
-                  )}
+                  {r.diffs.includes('precio') &&
+                    r.listing?.ml_price != null && (
+                      <span className="ml-diff">
+                        publicado {pesos(r.listing.ml_price)}
+                      </span>
+                    )}
                 </dd>
               </div>
               <div>
@@ -201,7 +178,9 @@ export default function ListingsTab() {
                     ? ` · se fabrica en ${r.expected.leadDays} días`
                     : ''}
                   {r.diffs.includes('stock') && r.listing?.ml_stock != null && (
-                    <span className="ml-diff">publicado {r.listing.ml_stock}</span>
+                    <span className="ml-diff">
+                      publicado {r.listing.ml_stock}
+                    </span>
                   )}
                 </dd>
               </div>

@@ -89,7 +89,8 @@ export interface PriceRule {
 // Misma cuenta que la vista v_product_prices: recargo/descuento, monto fijo y
 // redondeo hacia arriba.
 export function rulePrice(base: number, rule: PriceRule): number {
-  const raw = base * (1 + Number(rule.markup_pct) / 100) + Number(rule.fixed_add)
+  const raw =
+    base * (1 + Number(rule.markup_pct) / 100) + Number(rule.fixed_add)
   const round = Number(rule.round_to)
   if (!round) return raw
   // El épsilon evita que 13200.000000000002 suba a 13300.
@@ -116,11 +117,7 @@ export function expectedMl(
 }
 
 export type ListingState =
-  | 'sin_publicar'
-  | 'activa'
-  | 'pausada'
-  | 'revisar'
-  | 'cerrada'
+  'sin_publicar' | 'activa' | 'pausada' | 'revisar' | 'cerrada'
 
 export const LISTING_STATE_LABELS: Record<ListingState, string> = {
   sin_publicar: 'Sin publicar',
@@ -144,6 +141,31 @@ export function listingState(l: ListingLike | null | undefined): ListingState {
     return 'revisar'
   if (l.status === 'paused') return 'pausada'
   return 'activa'
+}
+
+// Una fila de la pestaña Publicaciones: un producto de la tienda y su publicación.
+export interface ListingRow {
+  productId: string
+  family: string
+  name: string
+  priceWeb: number
+  priceMl: number
+  mlManual: boolean
+  stock: number
+  expected: { stock: number; leadDays: number | null }
+  listing: (ListingLike & { permalink: string | null }) | null
+  state: ListingState
+  diffs: string[]
+}
+
+export type ListingFilter =
+  'todas' | 'publicadas' | 'sin_publicar' | 'diferencias'
+
+export function matchesFilter(r: ListingRow, f: ListingFilter): boolean {
+  if (f === 'publicadas') return r.listing !== null
+  if (f === 'sin_publicar') return r.listing === null
+  if (f === 'diferencias') return r.diffs.length > 0 || r.state === 'revisar'
+  return true
 }
 
 // Diferencias entre lo publicado y lo que debería estar (según Supabase).
