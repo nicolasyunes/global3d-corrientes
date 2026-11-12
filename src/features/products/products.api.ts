@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/database.types'
 import type { PartLine, ProductTemplate } from './parts'
@@ -275,4 +276,87 @@ export async function listProductMovements(
   })
   if (error) throw error
   return (data ?? []) as ProductMovementRow[]
+}
+
+// ---------- Contexto de catálogo para los filtros de la lista ----------
+
+// shop_families y ml_listings no están en los tipos generados.
+const untyped = supabase as unknown as SupabaseClient
+
+export interface ProductFamilyInfo {
+  id: string
+  name: string
+  slug: string
+  category: string
+  /** Subcategoría dentro de la categoría; null si no tiene. */
+  subcategory: string | null
+  saleMode: string
+  leadDays: number | null
+}
+
+export interface ProductCatalogInfo {
+  family: ProductFamilyInfo | null
+  /** Estado de la publicación de ML (active, paused…); null si no está publicado. */
+  mlStatus: string | null
+}
+
+interface FamilyLinkRow {
+  id: string
+  name: string
+  slug: string
+  category: string
+  subcategory: string | null
+  sale_mode: string
+  lead_days: number | null
+  shop_family_products: { product_id: string }[] | null
+}
+
+/**
+ * Las familias de la tienda y las publicaciones de ML, juntas por producto.
+ * Devuelve también la lista de familias (para el filtro), ordenada por nombre.
+ */
+export async function listProductCatalog(): Promise<{
+  byProduct: Record<string, ProductCatalogInfo>
+  families: ProductFamilyInfo[]
+}> {
+  const [fam, ml] = await Promise.all([
+    untyped
+      .from('shop_families')
+      .select(
+        'id, name, slug, category, subcategory, sale_mode, lead_days, shop_family_products(product_id)',
+      )
+      .order('name'),
+    untyped
+      .from('ml_listings')
+      .select('product_id, status')
+      .neq('status', 'closed')
+      .not('product_id', 'is', null),
+  ])
+  if (fam.error) throw fam.error
+  if (ml.error) throw ml.error
+
+  const byProduct: Record<string, ProductCatalogInfo> = {}
+  const slot = (id: string) =>
+    (byProduct[id] ??= { family: null, mlStatus: null })
+  const families: ProductFamilyInfo[] = []
+  for (const f of (fam.data ?? []) as FamilyLinkRow[]) {
+    const info: ProductFamilyInfo = {
+      id: f.id,
+      name: f.name,
+      slug: f.slug,
+      category: f.category,
+      subcategory: f.subcategory,
+      saleMode: f.sale_mode,
+      leadDays: f.lead_days,
+    }
+    families.push(info)
+    for (const m of f.shop_family_products ?? [])
+      slot(m.product_id).family = info
+  }
+  // Si un producto tiene más de una publicación, gana la activa.
+  for (const l of (ml.data ?? []) as { product_id: string; status: string }[]) {
+    const s = slot(l.product_id)
+    if (s.mlStatus !== 'active') s.mlStatus = l.status
+  }
+  return { byProduct, families }
 }

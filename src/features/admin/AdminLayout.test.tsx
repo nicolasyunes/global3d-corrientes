@@ -97,6 +97,7 @@ describe('AdminLayout', () => {
     expect(screen.getByText('Productos y stock')).toBeInTheDocument()
     expect(screen.getByText('Personas')).toBeInTheDocument()
     expect(screen.getByText('Números')).toBeInTheDocument()
+    expect(screen.getByText('Movimientos')).toBeInTheDocument()
     expect(screen.getByText('Conteo')).toBeInTheDocument()
   })
 
@@ -106,6 +107,7 @@ describe('AdminLayout', () => {
     expect(screen.getByText('Productos y stock')).toBeInTheDocument()
     expect(screen.queryByText('Personas')).not.toBeInTheDocument()
     expect(screen.queryByText('Números')).not.toBeInTheDocument()
+    expect(screen.queryByText('Movimientos')).not.toBeInTheDocument()
   })
 
   it('hides products from people without the permission', () => {

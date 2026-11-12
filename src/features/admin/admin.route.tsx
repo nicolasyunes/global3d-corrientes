@@ -114,6 +114,10 @@ export function Component() {
             }
           />
           <Route
+            path="actividad"
+            element={<Navigate to="/admin/productos/movimientos" replace />}
+          />
+          <Route
             path="productos/nuevo"
             element={
               <ProductsAccess>

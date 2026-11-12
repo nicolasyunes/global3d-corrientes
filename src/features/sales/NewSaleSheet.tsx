@@ -8,7 +8,6 @@ import {
 } from 'react'
 import Icon from '@/components/Icon'
 import { useOperator } from '@/features/operators/operator-context'
-import { filterProducts } from '@/features/products/list'
 import { listProducts, type ProductRow } from '@/features/products/products.api'
 import {
   ORIGIN_CHANNEL,
@@ -115,8 +114,7 @@ export default function NewSaleSheet({
     setLoading(true)
     listProducts()
       .then((rows) => {
-        if (alive)
-          setProducts(filterProducts(rows, { query: '', activeOnly: true }))
+        if (alive) setProducts(rows.filter((p) => p.active))
       })
       .catch(() => undefined) // free-text lines still work
       .finally(() => {
