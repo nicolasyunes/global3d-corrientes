@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useOperator } from '@/features/operators/operator-context'
 import { timeAgo } from './PieceRow'
+import { ORDER_STATUS_LABELS, type OrderStatus } from '@/lib/domain-constants'
 import { listEvents, type ProductionEventRow } from './production.api'
 
 const STATUS_TEXT: Record<string, string> = {
   pending: 'pendiente',
   printing: 'imprimiendo',
-  done: 'lista',
+  done: 'impresa',
 }
+
+const stageName = (status: string | null) =>
+  ORDER_STATUS_LABELS[status as OrderStatus] ?? status ?? ''
 
 export function describeEvent(e: ProductionEventRow): string {
   switch (e.kind) {
@@ -21,6 +25,14 @@ export function describeEvent(e: ProductionEventRow): string {
       return `registró una falla en “${e.label}”`
     case 'deleted':
       return `quitó “${e.label}”`
+    case 'stage':
+      return `pasó el pedido a ${stageName(e.to_status)}`
+    case 'priority':
+      return `marcó el pedido como ${e.label}`
+    case 'postprocess':
+      return `marcó el posprocesado: ${e.label}`
+    case 'payment':
+      return `registró un pago de ${e.label}`
     default:
       return e.label
   }
@@ -64,7 +76,15 @@ export default function ActivityFeed({
               >
                 <time className="activity__time">{timeAgo(e.created_at)}</time>
                 <span>
-                  <strong>{who?.name ?? 'Alguien'}</strong> {describeEvent(e)}
+                  {who || e.kind !== 'stage' ? (
+                    <>
+                      <strong>{who?.name ?? 'Alguien'}</strong>{' '}
+                      {describeEvent(e)}
+                    </>
+                  ) : (
+                    // No operator: the stage moved by itself with the pieces.
+                    <>El pedido pasó solo a {stageName(e.to_status)}</>
+                  )}
                 </span>
               </li>
             )

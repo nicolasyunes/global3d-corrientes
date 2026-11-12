@@ -20,13 +20,15 @@ const agustina = {
   color: '#0E7C66',
   role: 'operator',
   active: true,
+  can_manage_products: false,
   created_at: '',
 }
 
-function operatorState(isAdmin: boolean) {
+function operatorState(isAdmin: boolean, canManageProducts = isAdmin) {
   return {
     current: { ...agustina, role: isAdmin ? 'admin' : 'operator' },
     isAdmin,
+    canManageProducts,
     lock: vi.fn(),
     byId: () => undefined,
   }
@@ -54,17 +56,23 @@ describe('AdminLayout', () => {
   it('renders the navigation, the active person and the outlet', () => {
     renderAdminLayout()
     expect(screen.getAllByText('Hoy').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('¿Qué imprimo?').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Taller').length).toBeGreaterThan(0)
     expect(screen.getByText('Agustina')).toBeInTheDocument()
     expect(screen.getByText('Orders page')).toBeInTheDocument()
   })
 
-  it('signs the workshop account out', () => {
+  it('signs the workshop account out only after confirming', () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false)
     renderAdminLayout()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Cerrar sesión del taller' }),
-    )
+    const button = screen.getByRole('button', {
+      name: 'Cerrar sesión del taller',
+    })
+    fireEvent.click(button)
+    expect(useAuthMock().signOut).not.toHaveBeenCalled()
+    confirm.mockReturnValueOnce(true)
+    fireEvent.click(button)
     expect(useAuthMock().signOut).toHaveBeenCalledTimes(1)
+    confirm.mockRestore()
   })
 
   it('locks back to the person picker', () => {
@@ -79,6 +87,8 @@ describe('AdminLayout', () => {
     renderAdminLayout()
     expect(screen.queryByText('Productos y stock')).not.toBeInTheDocument()
     expect(screen.queryByText('Personas')).not.toBeInTheDocument()
+    expect(screen.queryByText('Números')).not.toBeInTheDocument()
+    expect(screen.getByText('Conteo')).toBeInTheDocument()
   })
 
   it('shows admin sections for admins', () => {
@@ -86,5 +96,20 @@ describe('AdminLayout', () => {
     renderAdminLayout()
     expect(screen.getByText('Productos y stock')).toBeInTheDocument()
     expect(screen.getByText('Personas')).toBeInTheDocument()
+    expect(screen.getByText('Números')).toBeInTheDocument()
+    expect(screen.getByText('Conteo')).toBeInTheDocument()
+  })
+
+  it('shows products, but not admin sections, to people allowed to load them', () => {
+    useOperatorMock.mockReturnValue(operatorState(false, true))
+    renderAdminLayout()
+    expect(screen.getByText('Productos y stock')).toBeInTheDocument()
+    expect(screen.queryByText('Personas')).not.toBeInTheDocument()
+    expect(screen.queryByText('Números')).not.toBeInTheDocument()
+  })
+
+  it('hides products from people without the permission', () => {
+    renderAdminLayout()
+    expect(screen.queryByText('Productos y stock')).not.toBeInTheDocument()
   })
 })

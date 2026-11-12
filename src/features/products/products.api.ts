@@ -2,14 +2,12 @@ import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/database.types'
 import type { PartLine, ProductTemplate } from './parts'
 
-// Thin typed helpers over Supabase, same shape as orders.api.ts / sales.api.ts
-// — no repository layer, RLS is the security boundary (products_all is
-// admin-only, see 20260825120000_product_stock_images.sql).
+// Thin typed helpers over Supabase — no repository layer, RLS is the security
+// boundary (everyone reads products; only admin writes them).
 
 export type ProductRow = Database['public']['Tables']['products']['Row']
 export type ProductInsert = Database['public']['Tables']['products']['Insert']
 export type ProductUpdate = Database['public']['Tables']['products']['Update']
-export type CategoryRow = Database['public']['Tables']['categories']['Row']
 export type ProductImageRow =
   Database['public']['Tables']['product_images']['Row']
 
@@ -138,24 +136,6 @@ export async function listProductTemplates(): Promise<ProductTemplate[]> {
   }))
 }
 
-export async function listCategories(): Promise<CategoryRow[]> {
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .order('position', { ascending: true })
-  if (error) throw error
-  return data ?? []
-}
-
-export async function bulkUpdateProducts(
-  ids: string[],
-  patch: ProductUpdate,
-): Promise<void> {
-  if (ids.length === 0) return
-  const { error } = await supabase.from('products').update(patch).in('id', ids)
-  if (error) throw error
-}
-
 const PRODUCT_IMAGES_BUCKET = 'product-images'
 
 export async function listProductImages(
@@ -234,4 +214,65 @@ export async function reorderProductImages(
     if (error) throw error
   }
   await syncCoverImage(productId)
+}
+
+export type ProductLogRow = Database['public']['Tables']['product_log']['Row']
+
+// Historial de productos (lo escribe un trigger con `updated_by`): todo el
+// catálogo o un producto, lo más nuevo primero.
+export async function listProductLog(
+  opts: { productId?: string; limit?: number } = {},
+): Promise<ProductLogRow[]> {
+  let query = supabase
+    .from('product_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(opts.limit ?? 40)
+  if (opts.productId) query = query.eq('product_id', opts.productId)
+  const { data, error } = await query
+  if (error) throw error
+  return data ?? []
+}
+
+export type ProductLogKind =
+  'created' | 'in' | 'out' | 'adjust' | 'sale' | 'edited'
+
+// Fila del registro con el tipo acotado, para el panel de movimientos.
+export type ProductMovementRow = Omit<ProductLogRow, 'kind'> & {
+  kind: ProductLogKind
+}
+
+// Suma o resta stock en un solo paso y deja la fila en el registro. Es la
+// única forma de mover stock desde los botones +/−: así dos personas tocando
+// a la vez no se pisan.
+export async function moveProductStock(
+  productId: string,
+  delta: number,
+  operatorId: string,
+  note: string | null = null,
+): Promise<ProductRow> {
+  const { data, error } = await supabase.rpc('move_product_stock', {
+    p_product: productId,
+    p_delta: delta,
+    p_operator: operatorId,
+    p_note: note,
+  })
+  if (error) throw error
+  return data as ProductRow
+}
+
+// Para el panel de movimientos: solo un admin puede leerlo (la base valida a
+// la persona) y se pagina con `before`.
+export async function listProductMovements(
+  operatorId: string,
+  before: string | null = null,
+  limit = 100,
+): Promise<ProductMovementRow[]> {
+  const { data, error } = await supabase.rpc('list_product_log', {
+    p_operator: operatorId,
+    p_before: before,
+    p_limit: limit,
+  })
+  if (error) throw error
+  return (data ?? []) as ProductMovementRow[]
 }

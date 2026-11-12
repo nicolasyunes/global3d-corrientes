@@ -1,3 +1,4 @@
+import { matchesQuery } from '@/lib/search'
 import type { ProductRow } from './products.api'
 
 // Below this quantity a product reads as "low stock" rather than plain OK —
@@ -18,33 +19,29 @@ export function stockLevel(
 export interface ProductFilter {
   query: string
   activeOnly: boolean
-  categoryId?: string // '' o ausente = todas
 }
 
 export function emptyProductFilter(): ProductFilter {
-  return { query: '', activeOnly: false, categoryId: '' }
+  return { query: '', activeOnly: false }
 }
 
-// Client-side filter over the already-loaded catalog — the list is small
-// enough (a workshop's own products) that a server-side search isn't worth
-// the round trip. Matches name/description case-insensitively.
+// Client-side filter over the already-loaded list — a workshop's own products
+// are few enough that a server-side search isn't worth the round trip.
+// Búsqueda por palabras (ver matchesQuery) sobre nombre y descripción: los
+// productos no tienen SKU, categoría ni variante propios.
+export function productMatchesQuery(
+  product: Pick<ProductRow, 'name' | 'description'>,
+  query: string,
+): boolean {
+  return matchesQuery([product.name, product.description], query)
+}
+
 export function filterProducts(
   products: readonly ProductRow[],
   filter: ProductFilter,
 ): ProductRow[] {
-  const query = filter.query.trim().toLowerCase()
-
   return products.filter((product) => {
     if (filter.activeOnly && !product.active) return false
-    if (
-      (filter.categoryId ?? '') !== '' &&
-      product.category_id !== filter.categoryId
-    )
-      return false
-    if (query === '') return true
-    return (
-      product.name.toLowerCase().includes(query) ||
-      (product.description ?? '').toLowerCase().includes(query)
-    )
+    return productMatchesQuery(product, filter.query)
   })
 }

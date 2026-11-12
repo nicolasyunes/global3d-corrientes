@@ -1,4 +1,4 @@
-import type { OriginChannel } from '@/lib/domain-constants'
+import type { OriginChannel, PaymentMethod } from '@/lib/domain-constants'
 import type { PartLine } from '@/features/products/parts'
 
 export interface ItemDraft {
@@ -21,12 +21,34 @@ export interface OrderDraft {
   total: string
   deposit: string
   channel: OriginChannel | null
+  // How the deposit was paid; only asked when creating
+  depositMethod: PaymentMethod | null
   referenceLink: string
   notes: string
+  // "En espera": not confirmed yet; reason + when to check again.
+  waiting: boolean
+  waitingReason: string
+  followUpOn: string
+  // "Sin apuro": the due date is only a guide.
+  flexible: boolean
+  // "Urgente": pinned above everything else, whatever its date.
+  urgent: boolean
+  // Postprocess for the whole order, once everything is printed.
+  ppSand: boolean
+  ppPaint: boolean
 }
 
 export type DraftErrors = Partial<
-  Record<'customerName' | 'items' | 'dueDate' | 'total' | 'deposit', string>
+  Record<
+    | 'customerName'
+    | 'items'
+    | 'dueDate'
+    | 'total'
+    | 'deposit'
+    | 'channel'
+    | 'depositMethod',
+    string
+  >
 >
 
 export function emptyItem(): ItemDraft {
@@ -43,8 +65,16 @@ export function emptyDraft(): OrderDraft {
     total: '',
     deposit: '',
     channel: null,
+    depositMethod: null,
     referenceLink: '',
     notes: '',
+    waiting: false,
+    waitingReason: '',
+    followUpOn: '',
+    flexible: false,
+    urgent: false,
+    ppSand: false,
+    ppPaint: false,
   }
 }
 
@@ -102,13 +132,18 @@ export function balanceOf(
   return Number.isNaN(deposit) ? null : Math.max(total - deposit, 0)
 }
 
-export function validateDraft(draft: OrderDraft): DraftErrors {
+export function validateDraft(
+  draft: OrderDraft,
+  opts: { creating?: boolean } = {},
+): DraftErrors {
   const errors: DraftErrors = {}
   if (!draft.customerName.trim())
     errors.customerName = 'Poné el nombre del cliente.'
   if (filledItems(draft.items).length === 0)
     errors.items = 'Agregá al menos un producto.'
-  if (!draft.dueDate) errors.dueDate = 'Elegí la fecha de entrega.'
+  // A waiting order may not have a date yet.
+  if (!draft.dueDate && !draft.waiting)
+    errors.dueDate = 'Elegí la fecha de entrega.'
   const total = parseMoney(draft.total)
   const deposit = parseMoney(draft.deposit)
   if (Number.isNaN(total) || (total !== null && total < 0))
@@ -122,5 +157,14 @@ export function validateDraft(draft: OrderDraft): DraftErrors {
     deposit > total
   )
     errors.deposit = 'La seña no puede superar el total.'
+  if (opts.creating) {
+    if (!draft.channel) errors.channel = 'Elegí el canal.'
+    if (deposit !== null && !Number.isNaN(deposit) && deposit > 0) {
+      if (!draft.depositMethod)
+        errors.depositMethod = 'Elegí cómo pagó la seña.'
+      if (total === null)
+        errors.total ??= 'Poné el total para registrar la seña.'
+    }
+  }
   return errors
 }
