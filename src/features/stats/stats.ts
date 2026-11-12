@@ -2,6 +2,7 @@ import type { PaymentMethod } from '@/lib/domain-constants'
 import type { FilamentLogRow, FilamentSale } from '@/features/filaments/filaments'
 import { itemsSummary } from '@/features/sales/sales'
 import type { SaleWithRefs } from '@/features/sales/sales.api'
+import { paymentSplit } from '@/features/filaments/take'
 
 export type PeriodKind = 'today' | 'week' | 'month' | 'year' | 'custom'
 
@@ -131,8 +132,9 @@ export function salesSummary(sales: readonly FilamentSale[]) {
     s.count++
     s.units += x.quantity
     s.total += x.total ?? 0
-    if (x.payment === 'cash') s.cash += x.total ?? 0
-    else s.transfer += x.total ?? 0
+    const split = paymentSplit(x)
+    s.cash += split.cash
+    s.transfer += split.transfer
   }
   return s
 }

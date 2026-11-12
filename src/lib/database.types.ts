@@ -353,6 +353,7 @@ export type Database = {
           color_id: string | null
           color_label: string
           created_at: string
+          cash_amount: number | null
           customer: string | null
           id: string
           line_label: string
@@ -370,6 +371,7 @@ export type Database = {
           color_id?: string | null
           color_label: string
           created_at?: string
+          cash_amount?: number | null
           customer?: string | null
           id?: string
           line_label: string
@@ -387,6 +389,7 @@ export type Database = {
           color_id?: string | null
           color_label?: string
           created_at?: string
+          cash_amount?: number | null
           customer?: string | null
           id?: string
           line_label?: string
@@ -1814,6 +1817,7 @@ export type Database = {
       }
       sell_filament: {
         Args: {
+          p_cash_amount?: number | null
           p_color: string
           p_customer?: string | null
           p_operator: string

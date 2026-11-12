@@ -69,12 +69,15 @@ describe('loadSummary', () => {
     ]
     h.data.filament_sales = [
       { id: 'f1', total: 12000, payment: 'transfer', created_at: '2026-10-04T10:00:00Z' },
+      { id: 'f2', total: 10000, payment: 'mixed', cash_amount: 4000, created_at: '2026-10-05T10:00:00Z' },
     ]
     const out = await loadSummary(RANGE, null)
     expect(out.payments).toEqual([
       { id: 't1', amount: 3000, method: 'cash', at: '2026-10-02T10:00:00Z', source: 'order' },
       { id: 't2', amount: 800, method: null, at: '2026-10-03T10:00:00Z', source: 'direct' },
       { id: 'f1', amount: 12000, method: 'transfer', at: '2026-10-04T10:00:00Z', source: 'filament' },
+      { id: 'f2:cash', amount: 4000, method: 'cash', at: '2026-10-05T10:00:00Z', source: 'filament' },
+      { id: 'f2:transfer', amount: 6000, method: 'transfer', at: '2026-10-05T10:00:00Z', source: 'filament' },
     ])
   })
 

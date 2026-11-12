@@ -33,6 +33,7 @@ function sale(over: Partial<FilamentSale>): FilamentSale {
     unit_price: 12000,
     total: 12000,
     payment: 'cash',
+    cash_amount: null,
     customer: null,
     voided_at: null,
     voided_by: null,
@@ -184,8 +185,9 @@ describe('salesSummary', () => {
       sale({ id: 'a', quantity: 2, total: 24000, payment: 'cash' }),
       sale({ id: 'b', total: 12000, payment: 'transfer' }),
       sale({ id: 'c', total: 12000, payment: 'cash', voided_at: 'x', void_reason: 'error' }),
+      sale({ id: 'd', total: 12000, payment: 'mixed', cash_amount: 5000 }),
     ])
-    expect(s).toEqual({ count: 2, units: 3, total: 36000, cash: 24000, transfer: 12000, voided: 1 })
+    expect(s).toEqual({ count: 3, units: 4, total: 48000, cash: 29000, transfer: 19000, voided: 1 })
   })
 })
 

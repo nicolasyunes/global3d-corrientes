@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { money } from '@/features/filaments/filaments'
 import { PAYMENT_METHOD_LABELS } from '@/lib/domain-constants'
+import { paymentText } from '@/features/filaments/take'
 import { useOperator } from '@/features/operators/operator-context'
 import {
   comparisonRange,
@@ -24,7 +25,6 @@ const PERIODS: [PeriodKind, string][] = [
   ['custom', 'Rango'],
 ]
 
-const PAYMENT: Record<string, string> = { cash: 'Efectivo', transfer: 'Transferencia MP' }
 
 const STAMP = new Intl.DateTimeFormat('es-AR', {
   day: 'numeric',
@@ -276,7 +276,7 @@ function Body({
                     <td className="num">{x.quantity}</td>
                     <td className="num">{money(x.unit_price)}</td>
                     <td className="num">{money(x.total)}</td>
-                    <td>{PAYMENT[x.payment] ?? x.payment}</td>
+                    <td>{paymentText(x)}</td>
                     <td>{x.customer ?? ''}</td>
                   </tr>
                 ))}

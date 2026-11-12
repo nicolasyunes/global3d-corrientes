@@ -49,9 +49,26 @@ describe('TakeSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Efectivo' }))
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
     await waitFor(() =>
-      expect(api.sellFilament).toHaveBeenCalledWith(color.id, false, 1, 'cash', 'op-1', ''),
+      expect(api.sellFilament).toHaveBeenCalledWith(color.id, false, 1, 'cash', 'op-1', '', null),
     )
     expect(onDone).toHaveBeenCalledWith(expect.stringMatching(/^Venta · 1 ×/))
+  })
+
+  it('venta con pago mixto: pide el efectivo y manda el resto como transferencia', async () => {
+    const { line, color, onDone } = setup()
+    const total = line.price!
+    fireEvent.click(screen.getByRole('button', { name: 'Mixto' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Escribí cuánto te dieron en efectivo.')
+
+    const cash = Math.floor(total / 2)
+    fireEvent.change(screen.getByLabelText('En efectivo'), { target: { value: String(cash) } })
+    expect(screen.getByText(/^Por transferencia MP:/)).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await waitFor(() =>
+      expect(api.sellFilament).toHaveBeenCalledWith(color.id, false, 1, 'mixed', 'op-1', '', cash),
+    )
+    expect(onDone).toHaveBeenCalledWith(expect.stringMatching(/efectivo \+ .* transferencia MP$/))
   })
 
   it('el precio no se puede editar', () => {
