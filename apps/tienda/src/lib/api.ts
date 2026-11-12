@@ -34,6 +34,7 @@ const ORDER_ERRORS: Record<string, string> = {
   items_invalidos: 'Tu carrito está vacío o tiene demasiados productos.',
   entrega_invalida: 'Elegí cómo querés recibir el pedido.',
   direccion_invalida: 'Escribí la dirección de entrega.',
+  email_invalido: 'Revisá tu email: Correo Argentino te manda el seguimiento ahí.',
   pago_invalido: 'Elegí si pagás la seña o el total.',
   medio_invalido: 'Elegí el medio de pago.',
   producto_invalido:

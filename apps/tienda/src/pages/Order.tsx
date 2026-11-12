@@ -7,6 +7,7 @@ import { api } from '../lib/api'
 import { useShop } from '../lib/data'
 import { ars, shortDate } from '../lib/format'
 import { writeReviewUrl } from '../lib/reviews'
+import { trackingDate } from '../lib/shipping'
 import type { OrderStatus, OrderStatusResult } from '../lib/types'
 import { usePageTitle } from '../lib/usePageTitle'
 import { DELIVERY_LABEL, waLink } from '../lib/whatsapp'
@@ -349,6 +350,30 @@ export function Order() {
             </span>
           </div>
         </section>
+
+        {order.shipment?.trackingNumber && (
+          <section className="panel" aria-labelledby="track-title">
+            <h2 id="track-title">Seguimiento del envío</h2>
+            <p className="hint">
+              Correo Argentino · N° <strong>{order.shipment.trackingNumber}</strong>
+            </p>
+            {order.shipment.events.length ? (
+              <ol className="track-events">
+                {order.shipment.events.map((e, i) => (
+                  <li key={i}>
+                    <span className="num">{trackingDate(e.date)}</span>{' '}
+                    <strong>{e.event}</strong>
+                    {e.branch ? ` · ${e.branch}` : ''}
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="hint">
+                Todavía no hay movimientos. Aparecen cuando Correo lo recibe.
+              </p>
+            )}
+          </section>
+        )}
 
         <div className="grid-2">
           {!fresh && (

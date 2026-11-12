@@ -25,6 +25,7 @@ import { logOrderEvent } from '@/features/production/workshop.api'
 import { formatDueDate } from './format'
 import OrderImages from './OrderImages'
 import OrderDesigns from '@/features/designs/OrderDesigns'
+import OrderShipment from '@/features/shipping/OrderShipment'
 import { useOrderModal } from './order-modal-context'
 import { DEFAULT_WAITING_REASON, followUpFrom, isWaiting } from './orderFlow'
 import {
@@ -709,6 +710,8 @@ export default function OrderProduction() {
           </section>
 
           <OrderDesigns orderId={order.id} />
+
+          <OrderShipment orderId={order.id} customer={order.customers ?? {}} />
 
           <ActivityFeed orderId={order.id} refreshKey={activityKey} />
         </div>

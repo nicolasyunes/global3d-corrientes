@@ -37,6 +37,50 @@ export interface ShippingChoice {
   label: string
   agencyCode?: string
   agencyName?: string
+  /** Código de provincia elegido en el cotizador (lo pide MiCorreo) */
+  province?: string
+}
+
+/** Datos del destinatario que pide MiCorreo para importar el envío. */
+export interface ShippingAddress {
+  street: string
+  number: string
+  floor: string
+  apartment: string
+  city: string
+}
+
+export const EMPTY_ADDRESS: ShippingAddress = {
+  street: '',
+  number: '',
+  floor: '',
+  apartment: '',
+  city: '',
+}
+
+/** "Vicente Lopez 448 piso 1 D, Monte Grande" */
+export function addressText(a: ShippingAddress): string {
+  return [
+    `${a.street.trim()} ${a.number.trim()}`.trim(),
+    a.floor.trim() && `piso ${a.floor.trim()}`,
+    a.apartment.trim(),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .concat(a.city.trim() ? `, ${a.city.trim()}` : '')
+}
+
+/** Error del primer dato que falta para un envío a domicilio. */
+export function addressError(a: ShippingAddress, province: string | undefined): string | null {
+  if (a.street.trim().length < 2) return 'Escribí la calle.'
+  if (!a.number.trim()) return 'Escribí la altura (número). Si no tiene, poné S/N.'
+  if (a.city.trim().length < 2) return 'Escribí la ciudad o localidad.'
+  if (!province) return 'Elegí tu provincia arriba, junto al código postal.'
+  return null
+}
+
+export function validEmail(s: string): boolean {
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s.trim())
 }
 
 /** Provincias con el código que usa Correo Argentino. */
@@ -180,4 +224,10 @@ export function saveShippingPlace(postalCode: string, province: string) {
   } catch {
     // no se pudo recordar: no pasa nada
   }
+}
+
+/** "dd-mm-aaaa hh:mm" de MiCorreo → "dd/mm hh:mm" */
+export function trackingDate(d: string): string {
+  const m = /^(\d{2})-(\d{2})-\d{4} (\d{2}:\d{2})/.exec(d)
+  return m ? `${m[1]}/${m[2]} ${m[3]}` : d
 }

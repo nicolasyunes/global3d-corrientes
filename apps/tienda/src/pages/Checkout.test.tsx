@@ -131,6 +131,9 @@ describe('Checkout con Correo Argentino', () => {
       await screen.findByLabelText('Sucursal donde lo retirás'),
       { target: { value: 'B0107' } },
     )
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'ana@mail.com' },
+    })
     fireEvent.change(screen.getByLabelText('Nombre y apellido'), {
       target: { value: 'Ana Gómez' },
     })
@@ -150,6 +153,49 @@ describe('Checkout con Correo Argentino', () => {
         agencyCode: 'B0107',
         agencyName: 'Monte Grande — Vicente Lopez 448, Esteban Echeverría',
       },
+      // El CPA B1842ZAB ya dice la provincia (B).
+      recipient: { email: 'ana@mail.com', province: 'B' },
+    })
+  })
+
+  it('a domicilio pide calle, número, ciudad y email, y los manda separados', async () => {
+    setup()
+    await quote()
+    fireEvent.click(screen.getByRole('radio', { name: /Clásico a domicilio/ }))
+    fireEvent.change(screen.getByLabelText('Nombre y apellido'), {
+      target: { value: 'Ana Gómez' },
+    })
+    fireEvent.change(screen.getByLabelText('WhatsApp'), {
+      target: { value: '3794123456' },
+    })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Confirmar pedido' })[0])
+    expect(createMock).not.toHaveBeenCalled()
+    expect(screen.getByText('Escribí la calle.')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Calle'), { target: { value: 'Vicente Lopez' } })
+    fireEvent.change(screen.getByLabelText('Número'), { target: { value: '448' } })
+    fireEvent.change(screen.getByLabelText('Piso'), { target: { value: '1' } })
+    fireEvent.change(screen.getByLabelText('Depto'), { target: { value: 'D' } })
+    fireEvent.change(screen.getByLabelText('Ciudad o localidad'), {
+      target: { value: 'Monte Grande' },
+    })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Confirmar pedido' })[0])
+    expect(createMock).not.toHaveBeenCalled()
+    expect(screen.getByText(/Escribí tu email/)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'ana@mail.com' } })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Confirmar pedido' })[0])
+    await waitFor(() => expect(createMock).toHaveBeenCalled())
+    const delivery = createMock.mock.calls[0][0].delivery
+    expect(delivery.address).toBe('Vicente Lopez 448 piso 1 D, Monte Grande')
+    expect(delivery.recipient).toEqual({
+      email: 'ana@mail.com',
+      province: 'B',
+      street: 'Vicente Lopez',
+      number: '448',
+      floor: '1',
+      apartment: 'D',
+      city: 'Monte Grande',
     })
   })
 
@@ -160,7 +206,7 @@ describe('Checkout con Correo Argentino', () => {
     expect(screen.queryByLabelText(/^Dirección/)).toBeNull()
 
     fireEvent.click(screen.getByRole('radio', { name: /Clásico a domicilio/ }))
-    expect(await screen.findByLabelText(/^Dirección/)).toBeInTheDocument()
+    expect(await screen.findByLabelText('Calle')).toBeInTheDocument()
   })
 
   it('no deja confirmar sin elegir opción ni sucursal', async () => {
