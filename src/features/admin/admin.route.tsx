@@ -30,6 +30,7 @@ import AdminLayout from './AdminLayout'
 // of the bundle every admin screen loads.
 const ToolsPage = lazy(() => import('@/features/tools/ToolsPage'))
 const StatsPage = lazy(() => import('@/features/stats/StatsPage'))
+const ShippingPage = lazy(() => import('@/features/shipping/ShippingPage'))
 const MercadoLibrePage = lazy(
   () => import('@/features/mercadolibre/MercadoLibrePage'),
 )
@@ -105,6 +106,14 @@ export function Component() {
             }
           />
           <Route path="calculadora" element={<CalculatorPage />} />
+          <Route
+            path="envios"
+            element={
+              <Suspense fallback={null}>
+                <ShippingPage />
+              </Suspense>
+            }
+          />
           <Route
             path="productos"
             element={

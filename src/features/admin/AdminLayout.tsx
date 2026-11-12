@@ -71,6 +71,7 @@ const SECONDARY: NavItem[] = [
   { to: '/admin/ventas', label: 'Ventas', icon: 'receipt' },
   { to: '/admin/mercadolibre', label: 'MercadoLibre', icon: 'cart' },
   { to: '/admin/calculadora', label: 'Calculadora', icon: 'calc' },
+  { to: '/admin/envios', label: 'Cotizar envío', icon: 'pin' },
   { to: '/admin/conteo', label: 'Conteo', icon: 'list' },
   {
     to: '/admin/productos',

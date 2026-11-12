@@ -55,6 +55,16 @@ Páginas: `index`, `llavero`, `vaso`, `letra-caja` (la principal). Usan manifold
 - Pedido a medida: adjuntos (PNG/JPG/SVG/PDF, 3 × 10 MB) al bucket `shop-quote-files`, carpeta `a-medida/AAAA-MM/`; anon solo sube, los links van en el WhatsApp. pg_cron llama a diario a la edge function `cleanup-quote-files`, que borra los de más de 30 días.
 - Fotos en producción: `/_vercel/image` (`images` en `vercel.json`), con fallback a la original.
 
+## Envíos por Correo Argentino (API MiCorreo)
+
+- Edge function `correo-cotizar`: saca el token (JWT, con caché y un reintento si vence) y llama a `/rates/packages` y `/agencies`. Secrets: `MICORREO_USER`, `MICORREO_PASSWORD`, `MICORREO_CUSTOMER_ID` y `MICORREO_ENV` (`prod` usa `api.correoargentino.com.ar`; cualquier otro valor, `apitest`). Sin credenciales responde 503 y la tienda vuelve a "a cotizar". La lógica pura está en `lib.ts`, con tests en vitest.
+- Migración `20261106180111_shop_correo_envios.sql`: cajas y CP de origen en `shop_settings.correo`; `ship_box` en `products` (si es null usa el de `shop_families`); tabla `shipping_quotes` (sin políticas: solo service role); `shop_shipping_boxes(items)` cuenta las cajas del carrito.
+- `shop_create_order` con `delivery.shipping` valida que la cotización esté vigente y sea del mismo carrito, suma el envío al total y lo agrega como ítem. El precio sale siempre de `shipping_quotes`, nunca del navegador. Sin `shipping` se comporta como antes.
+- El descuento por efectivo/transferencia es solo sobre los productos; el envío va entero y se cobra completo con la seña.
+- Tienda: `apps/tienda/src/components/CorreoShipping.tsx` (carrito y checkout) y `lib/shipping.ts`.
+- Admin: `src/features/shipping/` = pantalla **Cotizar envío** (`/admin/envios`), con cajas o medidas a mano y copiar para WhatsApp. Las cajas y el CP de origen los edita el admin desde ahí. La caja de cada producto se elige en su ficha ("Tienda online").
+- PAQ.AR es otra API (alta de envíos, rótulos, seguimiento, con `agreement` + API-Key). Todavía no se usa.
+
 ## Imagen a SVG (`src/features/tools/vectorize.ts`)
 
 - Usa `vtracer-wasm` (MIT): posteriza, luego `to_svg` en modo polygon (jerarquía cutout, `colorPrecision` 0). El modo spline de esta build está roto; `colorPrecision` 8 falla la librería.

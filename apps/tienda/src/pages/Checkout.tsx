@@ -10,7 +10,9 @@ import {
   IconTruck,
   IconWhatsApp,
 } from '../components/Icons'
+import { CorreoShipping } from '../components/CorreoShipping'
 import { api, orderErrorMessage } from '../lib/api'
+import type { ShippingChoice } from '../lib/shipping'
 import { cart, cartHasQuote, cartTotal, useCart } from '../lib/cart'
 import { useShop } from '../lib/data'
 import { ars, onlyDigits } from '../lib/format'
@@ -44,6 +46,18 @@ export interface FreshOrderState {
   payMode: PaymentMode
 }
 
+/** Hace falta escribir la dirección: envío en Corrientes, a domicilio por
+ * Correo, o "resto del país" cuando Correo no cotiza. */
+function needsAddress(
+  delivery: DeliveryMode,
+  usesCorreo: boolean,
+  shipping: ShippingChoice | null,
+): boolean {
+  if (delivery === 'retiro') return false
+  if (!usesCorreo) return true
+  return shipping?.type === 'D'
+}
+
 export function Checkout() {
   usePageTitle('Confirmar pedido')
   const items = useCart()
@@ -54,6 +68,10 @@ export function Checkout() {
   const [phone, setPhone] = useState(saved.whatsapp)
   const [delivery, setDelivery] = useState<DeliveryMode>('retiro')
   const [address, setAddress] = useState('')
+  const [shipping, setShipping] = useState<ShippingChoice | null>(null)
+  // Correo sin configurar: "resto del país" vuelve a "a cotizar" por WhatsApp.
+  const [correoOff, setCorreoOff] = useState(false)
+  const [shipRefresh, setShipRefresh] = useState(0)
   const [payMode, setPayMode] = useState<PaymentMode>('sena')
   const [method, setMethod] = useState<PaymentMethod>('transfer')
   const [notes, setNotes] = useState('')
@@ -75,11 +93,13 @@ export function Checkout() {
   // Mismo cálculo que shop_create_order: el descuento va sobre el total.
   const pct = cashDiscountPct(settings)
   const discount = discountFor(effMethod) ? cashDiscount(listTotal, pct) : 0
-  const total = listTotal - discount
-  const deposit =
-    payMode === 'sena'
-      ? Math.ceil((total * settings.sena.porcentaje) / 100)
-      : total
+  const usesCorreo = delivery === 'pais' && !correoOff
+  // El envío va entero (sin descuento) y se paga completo con la seña.
+  const ship = usesCorreo && shipping ? shipping.price : 0
+  const products = listTotal - discount
+  const total = products + ship
+  const sena = Math.ceil((products * settings.sena.porcentaje) / 100) + ship
+  const deposit = payMode === 'sena' ? sena : total
   const payNowLabel =
     effMethod === 'cash'
       ? 'Pagás al retirar'
@@ -93,12 +113,24 @@ export function Checkout() {
       onlyDigits(phone).length < 10
         ? 'Escribí tu WhatsApp con característica (ej: 379 4123456).'
         : null,
+    shipping: !usesCorreo
+      ? null
+      : !shipping
+        ? 'Cotizá el envío con tu código postal y elegí una opción.'
+        : shipping.type === 'S' && !shipping.agencyCode
+          ? 'Elegí la sucursal donde lo retirás.'
+          : null,
     address:
-      delivery !== 'retiro' && address.trim().length < 5
+      needsAddress(delivery, usesCorreo, shipping) &&
+      address.trim().length < 5
         ? 'Escribí la dirección de entrega.'
         : null,
   }
-  const valid = !errs.name && !errs.phone && !errs.address
+  const valid = !errs.name && !errs.phone && !errs.address && !errs.shipping
+  const deliveryAddress =
+    usesCorreo && shipping?.type === 'S'
+      ? `Sucursal ${shipping.agencyName ?? shipping.agencyCode ?? ''}`
+      : address.trim()
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -131,7 +163,19 @@ export function Checkout() {
         })),
         delivery: {
           mode: delivery,
-          address: delivery === 'retiro' ? undefined : address.trim(),
+          address: needsAddress(delivery, usesCorreo, shipping)
+            ? address.trim()
+            : undefined,
+          shipping:
+            usesCorreo && shipping
+              ? {
+                  quoteId: shipping.quoteId,
+                  type: shipping.type,
+                  product: shipping.product,
+                  agencyCode: shipping.agencyCode,
+                  agencyName: shipping.agencyName,
+                }
+              : undefined,
         },
         payment: { mode: payMode, method: effMethod },
         notes: notes.trim() || undefined,
@@ -149,7 +193,8 @@ export function Checkout() {
         payMode,
         method: effMethod,
         delivery,
-        address: address.trim(),
+        address: deliveryAddress,
+        shipping: usesCorreo && shipping ? shipping : undefined,
         trackingUrl,
         name: name.trim(),
       })
@@ -168,6 +213,11 @@ export function Checkout() {
       window.setTimeout(() => cart.clear(), 0)
     } catch (err) {
       setError(orderErrorMessage(err))
+      // La cotización venció o el carrito cambió: cotizar de nuevo.
+      if (String(err).includes('cotizacion_vencida')) {
+        setShipping(null)
+        setShipRefresh((n) => n + 1)
+      }
       setSending(false)
     }
   }
@@ -278,9 +328,7 @@ export function Checkout() {
                   <strong>Seña del {settings.sena.porcentaje}%</strong>
                   <small>El resto al retirar o antes del envío.</small>
                 </span>
-                <span className="end num">
-                  {ars(Math.ceil((total * settings.sena.porcentaje) / 100))}
-                </span>
+                <span className="end num">{ars(sena)}</span>
               </label>
               <label className="choice">
                 <input
@@ -355,15 +403,43 @@ export function Checkout() {
                   <IconBox />
                 </span>
                 <span>
-                  <strong>Envío al resto del país</strong>
-                  <small>{settings.envios.pais}.</small>
+                  <strong>
+                    {correoOff
+                      ? 'Envío al resto del país'
+                      : 'Correo Argentino a todo el país'}
+                  </strong>
+                  <small>
+                    {correoOff
+                      ? `${settings.envios.pais}.`
+                      : 'A sucursal o a domicilio. Lo calculás con tu código postal.'}
+                  </small>
                 </span>
-                <span className="end">A cotizar</span>
+                <span className="end">
+                  {usesCorreo && shipping ? ars(shipping.price) : 'A cotizar'}
+                </span>
               </label>
             </div>
-            {delivery !== 'retiro' && (
+            {usesCorreo && (
+              <CorreoShipping
+                items={items}
+                mode="checkout"
+                value={shipping}
+                onChange={setShipping}
+                onUnavailable={() => {
+                  setCorreoOff(true)
+                  setShipping(null)
+                }}
+                refresh={shipRefresh}
+                showErrors={tried}
+              />
+            )}
+            {needsAddress(delivery, usesCorreo, shipping) && (
               <label className="field">
-                <span className="label">Dirección, ciudad y código postal</span>
+                <span className="label">
+                  {usesCorreo
+                    ? 'Dirección (calle, número, piso/depto y ciudad)'
+                    : 'Dirección, ciudad y código postal'}
+                </span>
                 <input
                   id="direccion"
                   className="input"
@@ -376,6 +452,11 @@ export function Checkout() {
                   <span className="error-text">{errs.address}</span>
                 )}
               </label>
+            )}
+            {tried && errs.shipping && (
+              <span className="error-text" role="alert">
+                {errs.shipping}
+              </span>
             )}
           </fieldset>
 
@@ -473,10 +554,32 @@ export function Checkout() {
               <span className="num">−{ars(discount)}</span>
             </div>
           )}
+          {usesCorreo && (
+            <div
+              className="sum-row"
+              style={
+                discount > 0
+                  ? undefined
+                  : { borderTop: '1px solid var(--line)', paddingTop: 12 }
+              }
+            >
+              <span>
+                Envío
+                {shipping && (
+                  <span className="li-sub" style={{ display: 'block' }}>
+                    {shipping.label}
+                  </span>
+                )}
+              </span>
+              <span className="num">
+                {shipping ? ars(shipping.price) : 'Falta calcular'}
+              </span>
+            </div>
+          )}
           <div
             className="sum-row big"
             style={
-              discount > 0
+              discount > 0 || usesCorreo
                 ? undefined
                 : { borderTop: '1px solid var(--line)', paddingTop: 12 }
             }

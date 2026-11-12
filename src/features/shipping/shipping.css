@@ -1,0 +1,161 @@
+/* Cotizar envío: destino y paquete a la izquierda, resultado a la derecha
+   (queda a la vista en escritorio). */
+.ship {
+  display: grid;
+  gap: 16px;
+}
+.ship__main,
+.ship__side {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+@media (min-width: 1000px) {
+  .ship {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    align-items: start;
+  }
+  .ship__side {
+    position: sticky;
+    top: 16px;
+  }
+}
+.ship__cp {
+  max-width: 260px;
+}
+.ship__hint {
+  font-size: 0.8125rem;
+  color: var(--color-carbon-muted);
+  margin: 8px 0 0;
+}
+.ship .card__head {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ship-boxes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.ship-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md, 12px);
+}
+.ship-box > span:first-child {
+  min-width: 0;
+  flex: 1;
+}
+.ship-box strong,
+.ship-box small {
+  display: block;
+}
+.ship-box small {
+  color: var(--color-carbon-muted);
+  font-size: 0.8125rem;
+}
+.ship-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ship-step .input {
+  width: 56px;
+  text-align: center;
+}
+.ship-step .icon-btn {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.ship-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 700px) {
+  .ship-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+.ship-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ship-kind + .ship-kind {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-divider);
+}
+.ship-kind h3 {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-carbon-muted);
+}
+.ship-rate {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 0;
+}
+.ship-rate > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.ship-rate strong,
+.ship-rate small {
+  display: block;
+}
+.ship-rate small {
+  color: var(--color-carbon-muted);
+  font-size: 0.8125rem;
+}
+.ship-rate__price {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.ship-edit {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.ship-edit__row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.ship-edit__dims {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+.ship-edit__dims label {
+  display: grid;
+  gap: 2px;
+}
+.ship-edit__dims small {
+  font-size: 0.6875rem;
+  color: var(--color-carbon-muted);
+  text-align: center;
+}
+.ship-edit__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
