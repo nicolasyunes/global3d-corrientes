@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { CartItem } from './cart'
 import {
+  addressError,
+  addressText,
   cartShippingKey,
+  validEmail,
   cheapestByType,
   deliveryTime,
   normalizePostalCode,
@@ -114,5 +117,22 @@ describe('errores', () => {
     expect(quoteUnavailable('correo_no_configurado')).toBe(true)
     expect(quoteUnavailable('correo_caido')).toBe(false)
     expect(quoteUnavailable('cp')).toBe(false)
+  })
+})
+
+describe('dirección para Correo', () => {
+  const a = { street: 'Vicente Lopez', number: '448', floor: '', apartment: '', city: 'Monte Grande' }
+  it('arma el texto con piso y depto si hay', () => {
+    expect(addressText(a)).toBe('Vicente Lopez 448, Monte Grande')
+    expect(addressText({ ...a, floor: '1', apartment: 'D' })).toBe('Vicente Lopez 448 piso 1 D, Monte Grande')
+  })
+  it('dice qué falta', () => {
+    expect(addressError(a, 'B')).toBeNull()
+    expect(addressError({ ...a, number: '' }, 'B')).toMatch(/altura/)
+    expect(addressError(a, undefined)).toMatch(/provincia/)
+  })
+  it('valida el email', () => {
+    expect(validEmail(' ana@mail.com ')).toBe(true)
+    expect(validEmail('ana@mail')).toBe(false)
   })
 })

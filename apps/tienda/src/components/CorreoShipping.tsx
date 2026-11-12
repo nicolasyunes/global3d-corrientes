@@ -159,7 +159,10 @@ export function CorreoShipping({
   const onCpChange = (v: string) => {
     setCp(v)
     const p = provinceFromPostalCode(v)
-    if (p) setProvince(p)
+    if (p) {
+      setProvince(p)
+      if (value) onChange?.({ ...value, province: p })
+    }
   }
 
   const pickRate = (key: string) => {
@@ -171,6 +174,7 @@ export function CorreoShipping({
       product: r.productType,
       price: r.price,
       label: rateLabel(r),
+      province: province || undefined,
       // Al cambiar de tipo se vuelve a elegir sucursal.
       ...(value?.type === r.deliveredType
         ? { agencyCode: value.agencyCode, agencyName: value.agencyName }
@@ -228,6 +232,8 @@ export function CorreoShipping({
               onChange={(e) => {
                 setProvince(e.target.value)
                 saveShippingPlace(cp.trim(), e.target.value)
+                if (value)
+                  onChange?.({ ...value, province: e.target.value || undefined })
               }}
             >
               <option value="">Elegí…</option>

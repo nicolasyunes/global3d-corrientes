@@ -12,7 +12,14 @@ import {
 } from '../components/Icons'
 import { CorreoShipping } from '../components/CorreoShipping'
 import { api, orderErrorMessage } from '../lib/api'
-import type { ShippingChoice } from '../lib/shipping'
+import {
+  addressError,
+  addressText,
+  EMPTY_ADDRESS,
+  validEmail,
+  type ShippingAddress,
+  type ShippingChoice,
+} from '../lib/shipping'
 import { cart, cartHasQuote, cartTotal, useCart } from '../lib/cart'
 import { useShop } from '../lib/data'
 import { ars, onlyDigits } from '../lib/format'
@@ -69,6 +76,9 @@ export function Checkout() {
   const [delivery, setDelivery] = useState<DeliveryMode>('retiro')
   const [address, setAddress] = useState('')
   const [shipping, setShipping] = useState<ShippingChoice | null>(null)
+  // Envío por Correo: datos que pide MiCorreo para despacharlo.
+  const [shipAddr, setShipAddr] = useState<ShippingAddress>(EMPTY_ADDRESS)
+  const [email, setEmail] = useState('')
   // Correo sin configurar: "resto del país" vuelve a "a cotizar" por WhatsApp.
   const [correoOff, setCorreoOff] = useState(false)
   const [shipRefresh, setShipRefresh] = useState(0)
@@ -120,17 +130,28 @@ export function Checkout() {
         : shipping.type === 'S' && !shipping.agencyCode
           ? 'Elegí la sucursal donde lo retirás.'
           : null,
-    address:
-      needsAddress(delivery, usesCorreo, shipping) &&
-      address.trim().length < 5
-        ? 'Escribí la dirección de entrega.'
+    address: !needsAddress(delivery, usesCorreo, shipping)
+      ? null
+      : usesCorreo
+        ? addressError(shipAddr, shipping?.province)
+        : address.trim().length < 5
+          ? 'Escribí la dirección de entrega.'
+          : null,
+    email:
+      usesCorreo && shipping && !validEmail(email)
+        ? 'Escribí tu email: Correo Argentino te manda el seguimiento.'
         : null,
   }
-  const valid = !errs.name && !errs.phone && !errs.address && !errs.shipping
+  const valid =
+    !errs.name && !errs.phone && !errs.address && !errs.shipping && !errs.email
   const deliveryAddress =
     usesCorreo && shipping?.type === 'S'
       ? `Sucursal ${shipping.agencyName ?? shipping.agencyCode ?? ''}`
-      : address.trim()
+      : usesCorreo
+        ? addressText(shipAddr)
+        : address.trim()
+  const setAddr = (k: keyof ShippingAddress, v: string) =>
+    setShipAddr((a) => ({ ...a, [k]: v }))
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -164,8 +185,24 @@ export function Checkout() {
         delivery: {
           mode: delivery,
           address: needsAddress(delivery, usesCorreo, shipping)
-            ? address.trim()
+            ? deliveryAddress
             : undefined,
+          recipient:
+            usesCorreo && shipping
+              ? {
+                  email: email.trim(),
+                  province: shipping.province,
+                  ...(shipping.type === 'D'
+                    ? {
+                        street: shipAddr.street.trim(),
+                        number: shipAddr.number.trim(),
+                        floor: shipAddr.floor.trim() || undefined,
+                        apartment: shipAddr.apartment.trim() || undefined,
+                        city: shipAddr.city.trim(),
+                      }
+                    : {}),
+                }
+              : undefined,
           shipping:
             usesCorreo && shipping
               ? {
@@ -433,13 +470,87 @@ export function Checkout() {
                 showErrors={tried}
               />
             )}
-            {needsAddress(delivery, usesCorreo, shipping) && (
-              <label className="field">
-                <span className="label">
-                  {usesCorreo
-                    ? 'Dirección (calle, número, piso/depto y ciudad)'
-                    : 'Dirección, ciudad y código postal'}
+            {usesCorreo && shipping?.type === 'D' && (
+              <div className="ship-address">
+                <label className="field wide">
+                  <span className="label">Calle</span>
+                  <input
+                    className="input"
+                    autoComplete="address-line1"
+                    value={shipAddr.street}
+                    onChange={(e) => setAddr('street', e.target.value)}
+                    aria-invalid={(tried && !!errs.address && shipAddr.street.trim().length < 2) || undefined}
+                  />
+                </label>
+                <label className="field">
+                  <span className="label">Número</span>
+                  <input
+                    className="input"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={shipAddr.number}
+                    onChange={(e) => setAddr('number', e.target.value)}
+                    aria-invalid={(tried && !!errs.address && !shipAddr.number.trim()) || undefined}
+                  />
+                </label>
+                <label className="field">
+                  <span className="label">Piso</span>
+                  <input
+                    className="input"
+                    maxLength={3}
+                    value={shipAddr.floor}
+                    onChange={(e) => setAddr('floor', e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span className="label">Depto</span>
+                  <input
+                    className="input"
+                    maxLength={3}
+                    value={shipAddr.apartment}
+                    onChange={(e) => setAddr('apartment', e.target.value)}
+                  />
+                </label>
+                <label className="field wide">
+                  <span className="label">Ciudad o localidad</span>
+                  <input
+                    className="input"
+                    autoComplete="address-level2"
+                    value={shipAddr.city}
+                    onChange={(e) => setAddr('city', e.target.value)}
+                    aria-invalid={(tried && !!errs.address && shipAddr.city.trim().length < 2) || undefined}
+                  />
+                </label>
+                {tried && errs.address && (
+                  <span className="error-text wide">{errs.address}</span>
+                )}
+              </div>
+            )}
+            {usesCorreo && shipping && (
+              <div className="field">
+                <label className="label" htmlFor="envio-email">
+                  Email
+                </label>
+                <input
+                  id="envio-email"
+                  className="input"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  aria-invalid={(tried && !!errs.email) || undefined}
+                />
+                <span className="hint">
+                  Correo Argentino te avisa por mail cuando sale y llega.
                 </span>
+                {tried && errs.email && (
+                  <span className="error-text">{errs.email}</span>
+                )}
+              </div>
+            )}
+            {needsAddress(delivery, usesCorreo, shipping) && !usesCorreo && (
+              <label className="field">
+                <span className="label">Dirección, ciudad y código postal</span>
                 <input
                   id="direccion"
                   className="input"

@@ -2202,3 +2202,21 @@ p {
     flex-basis: calc((100% - 48px) / 4);
   }
 }
+
+/* Dirección para Correo a domicilio: calle y ciudad a lo ancho */
+.ship-address {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.ship-address .wide {
+  grid-column: 1 / -1;
+}
+
+/* Seguimiento de Correo en la página del pedido */
+.track-events {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}

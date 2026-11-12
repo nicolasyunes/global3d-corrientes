@@ -136,6 +136,16 @@ export interface CreateOrderInput {
       agencyCode?: string
       agencyName?: string
     }
+    /** Destinatario para importar el envío en MiCorreo */
+    recipient?: {
+      email: string
+      province?: string
+      street?: string
+      number?: string
+      floor?: string
+      apartment?: string
+      city?: string
+    }
   }
   payment: { mode: PaymentMode; method: PaymentMethod }
   notes?: string
@@ -174,6 +184,13 @@ export interface OrderStatusResult {
   customerFirstName: string
   delivery: { mode: DeliveryMode; address: string | null }
   payment: { mode: PaymentMode; method: PaymentMethod; deposit: number }
+  /** Seguimiento de Correo (solo cuando el taller cargó el número) */
+  shipment?: {
+    carrier: 'correo'
+    trackingNumber: string
+    events: Array<{ event: string; date: string; branch: string; status: string }>
+    checkedAt: string | null
+  } | null
   items: Array<{
     description: string
     personalization: string | null

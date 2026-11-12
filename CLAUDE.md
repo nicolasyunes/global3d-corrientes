@@ -63,6 +63,10 @@ Páginas: `index`, `llavero`, `vaso`, `letra-caja` (la principal). Usan manifold
 - El descuento por efectivo/transferencia es solo sobre los productos; el envío va entero y se cobra completo con la seña.
 - Tienda: `apps/tienda/src/components/CorreoShipping.tsx` (carrito y checkout) y `lib/shipping.ts`.
 - Admin: `src/features/shipping/` = pantalla **Cotizar envío** (`/admin/envios`), con cajas o medidas a mano y copiar para WhatsApp. Las cajas y el CP de origen los edita el admin desde ahí. La caja de cada producto se elige en su ficha ("Tienda online").
+- Crear el envío: edge function `correo-envio` (solo admin). `import` arma `/shipping/import` con `delivery.shipping` del pedido (+ lo que corrija el taller), apila las cajas con `/rates/calculate` (si falla: suma de pesos y la caja más grande) y declara el valor de los productos. "La orden ya fue importada" cuenta como éxito. `extOrderId` = `G3D-<código>`. El import no devuelve número de seguimiento: la etiqueta se genera y paga en MiCorreo.
+- Seguimiento: el taller pega el número en la tarjeta **Envío por Correo** del pedido (`src/features/shipping/OrderShipment.tsx`); `tracking` llama a `/shipping/tracking` (la doc lo muestra como GET con cuerpo; acá va `?shippingId=` en la query: confirmar en el ambiente de test). El cliente lo ve en `/pedido/:token` (`shop_order_status.shipment`).
+- Migración `20261112170000_shop_correo_import.sql`: tabla `shop_shipments` (lee authenticated, escribe solo la función); `shop_create_order` acepta `delivery.recipient` (email, provincia y, a domicilio, calle/número/piso/depto/ciudad), opcional; `shop_order_status` devuelve el seguimiento.
+- Checkout: con Correo pide email siempre y, a domicilio, la dirección en campos separados (MiCorreo los exige).
 - PAQ.AR es otra API (alta de envíos, rótulos, seguimiento, con `agreement` + API-Key). Todavía no se usa.
 
 ## Imagen a SVG (`src/features/tools/vectorize.ts`)

@@ -1,0 +1,46 @@
+/* Tarjeta "Envío por Correo" en el detalle del pedido */
+.shipment__summary {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+.shipment__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.shipment__field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.shipment__field--wide {
+  grid-column: 1 / -1;
+}
+.shipment__hint {
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+}
+.shipment__err {
+  margin: 8px 0;
+  color: var(--status-red);
+  font-size: 0.875rem;
+}
+.shipment__track {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.shipment__events {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 0.875rem;
+}
+.shipment__date {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-carbon-muted);
+}
