@@ -69,6 +69,7 @@ export async function sellFilament(
   payment: Payment,
   operatorId: string | null,
   customer: string,
+  cashAmount: number | null = null,
 ): Promise<FilamentSale> {
   const { data, error } = await supabase.rpc('sell_filament', {
     p_color: colorId,
@@ -77,6 +78,7 @@ export async function sellFilament(
     p_payment: payment,
     p_operator: operatorId as string, // the database accepts null
     p_customer: customer,
+    ...(payment === 'mixed' ? { p_cash_amount: cashAmount } : {}),
   })
   if (error) fail(error)
   return data as FilamentSale

@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { deliveredMoments } from './stats.api'
 import { pageAll } from './paging'
+import { paymentSplit } from '@/features/filaments/take'
 import type { Range } from './stats'
 import type { SummaryOrder, SummaryPayment } from './summary'
 
@@ -60,7 +61,7 @@ export async function loadSummary(range: Range, cmp: Range | null): Promise<Summ
     pageAll((from, to) =>
       supabase
         .from('filament_sales')
-        .select('id, total, payment, created_at')
+        .select('id, total, payment, cash_amount, created_at')
         .is('voided_at', null)
         .gte('created_at', since)
         .lt('created_at', until)
@@ -79,13 +80,30 @@ export async function loadSummary(range: Range, cmp: Range | null): Promise<Summ
       at: t.transacted_at,
       source: t.type === '3d_service' ? 'order' : 'direct',
     })),
-    ...filament.map((s): SummaryPayment => ({
-      id: s.id,
-      amount: s.total ?? 0,
-      method: s.payment,
-      at: s.created_at,
-      source: 'filament',
-    })),
+    // Un pago mixto cuenta como dos cobros: la parte en efectivo y la transferencia.
+    ...filament.flatMap((s): SummaryPayment[] => {
+      if (s.payment !== 'mixed')
+        return [
+          {
+            id: s.id,
+            amount: s.total ?? 0,
+            method: s.payment,
+            at: s.created_at,
+            source: 'filament',
+          },
+        ]
+      const { cash, transfer } = paymentSplit(s)
+      return [
+        { id: `${s.id}:cash`, amount: cash, method: 'cash', at: s.created_at, source: 'filament' },
+        {
+          id: `${s.id}:transfer`,
+          amount: transfer,
+          method: 'transfer',
+          at: s.created_at,
+          source: 'filament',
+        },
+      ]
+    }),
   ]
   return { orders, payments, deliveredAt }
 }

@@ -10,6 +10,7 @@ import {
 import { adjustFilament, sellFilament, takeFilament } from './filaments.api'
 import {
   emptyTake,
+  parseAmount,
   PAYMENT_LABEL,
   TAKE_REASONS,
   takeError,
@@ -17,6 +18,16 @@ import {
   type Payment,
   type TakeDraft,
 } from './take'
+
+// Lo que falta por transferencia en un pago mixto, a medida que se escribe.
+function mixedHint(draft: TakeDraft, price: number | null): string {
+  if (price == null) return ''
+  const total = price * (draft.qty || 0)
+  const cash = parseAmount(draft.cash)
+  if (cash == null || cash <= 0 || cash >= total)
+    return `Escribí lo que te dieron en efectivo; el resto va por transferencia MP.`
+  return `Por transferencia MP: ${money(total - cash)}`
+}
 
 // One color leaving the shelf (or, for an admin, an upward adjust): why, how
 // many, and for a sale how it was paid. The price comes from the list.
@@ -66,7 +77,15 @@ export default function TakeSheet({
     const op = current?.id ?? null
     try {
       if (draft.reason === 'sale')
-        await sellFilament(color.id, refill, draft.qty, draft.payment as Payment, op, draft.customer.trim())
+        await sellFilament(
+          color.id,
+          refill,
+          draft.qty,
+          draft.payment as Payment,
+          op,
+          draft.customer.trim(),
+          draft.payment === 'mixed' ? parseAmount(draft.cash) : null,
+        )
       else if (draft.reason === 'adjust')
         await adjustFilament(color.id, refill, adding ? draft.qty : -draft.qty, op, draft.note.trim())
       else
@@ -149,6 +168,21 @@ export default function TakeSheet({
                   </button>
                 ))}
               </div>
+              {draft.payment === 'mixed' && (
+                <>
+                  <label className="fl-field">
+                    En efectivo
+                    <input
+                      className="fl-input fl-mono"
+                      inputMode="decimal"
+                      placeholder="Ej: 20.000"
+                      value={draft.cash}
+                      onChange={(e) => set('cash', e.target.value)}
+                    />
+                  </label>
+                  <p className="fl-hint">{mixedHint(draft, price)}</p>
+                </>
+              )}
               <label className="fl-field">
                 Cliente (opcional)
                 <input

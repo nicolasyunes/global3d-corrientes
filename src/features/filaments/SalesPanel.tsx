@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useOperator } from '@/features/operators/operator-context'
 import { logStamp, money, type FilamentSale } from './filaments'
 import { listFilamentSales, voidFilamentSale } from './filaments.api'
-import { PAYMENT_LABEL, type Payment } from './take'
+import { paymentText } from './take'
 
 // Latest filament sales for the admin: who sold what, for how much and how it
 // was paid. A wrong sale is voided (with a reason), never erased.
@@ -73,7 +73,7 @@ export default function SalesPanel({
               {s.voided_at && <span>Anulada: {s.void_reason}</span>}
             </span>
             <span className="fl-sales__amount fl-mono">
-              {money(s.total)} · {PAYMENT_LABEL[s.payment as Payment]}
+              {money(s.total)} · {paymentText(s)}
             </span>
             {!s.voided_at &&
               (voiding === s.id ? (
