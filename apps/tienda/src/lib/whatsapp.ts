@@ -23,7 +23,7 @@ export function orderMessage(args: {
   method: PaymentMethod
   delivery: DeliveryMode
   address: string
-  /** Envío por Correo Argentino cotizado */
+  /** Envío cotizado; label con la empresa ("Correo Argentino, Clásico a sucursal") */
   shipping?: { label: string; price: number }
   trackingUrl: string
   name: string
@@ -48,7 +48,7 @@ export function orderMessage(args: {
     args.delivery === 'retiro'
       ? DELIVERY_LABEL.retiro
       : args.shipping
-        ? `Correo Argentino, ${args.shipping.label} (${ars(args.shipping.price)}): ${args.address}`
+        ? `${args.shipping.label} (${ars(args.shipping.price)}): ${args.address}`
         : `${DELIVERY_LABEL[args.delivery]}: ${args.address}`
   return [
     `¡Hola Global3D! Soy ${args.name} e hice el pedido #${args.code} en la web:`,

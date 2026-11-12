@@ -153,8 +153,8 @@ export function Cart() {
               <>
                 <h3>Calculá el envío</h3>
                 <p className="hint">
-                  Por Correo Argentino, a sucursal o a domicilio. Retirar en el
-                  local es gratis.
+                  Por Correo Argentino o Andreani, a sucursal o a domicilio.
+                  Retirar en el local es gratis.
                 </p>
               </>
             }

@@ -54,9 +54,13 @@ const ITEM: CartItem = {
   personalizationText: '',
 }
 
+const C = { carrier: 'correo' as const, quoteId: 'q-1' }
+const A = { carrier: 'andreani' as const, quoteId: 'q-and' }
 const RATES = [
-  { deliveredType: 'S' as const, productType: 'CP', productName: 'Correo Argentino Clasico', price: 6890, deliveryTimeMin: '2', deliveryTimeMax: '5' },
-  { deliveredType: 'D' as const, productType: 'CP', productName: 'Correo Argentino Clasico', price: 9420, deliveryTimeMin: '2', deliveryTimeMax: '5' },
+  { ...A, deliveredType: 'S' as const, productType: 'AN', productName: 'Andreani', price: 6100, deliveryTimeMin: null, deliveryTimeMax: null },
+  { ...C, deliveredType: 'S' as const, productType: 'CP', productName: 'Correo Argentino Clasico', price: 6890, deliveryTimeMin: '2', deliveryTimeMax: '5' },
+  { ...C, deliveredType: 'D' as const, productType: 'CP', productName: 'Correo Argentino Clasico', price: 9420, deliveryTimeMin: '2', deliveryTimeMax: '5' },
+  { ...A, deliveredType: 'D' as const, productType: 'AN', productName: 'Andreani', price: 9900, deliveryTimeMin: null, deliveryTimeMax: null },
 ]
 
 const AGENCY = {
@@ -76,9 +80,9 @@ function setup() {
   )
 }
 
-/** Elige "Correo Argentino", cotiza y espera las opciones. */
+/** Elige "Envío a todo el país", cotiza y espera las opciones. */
 async function quote(cp = 'B1842ZAB') {
-  fireEvent.click(screen.getByRole('radio', { name: /Correo Argentino/ }))
+  fireEvent.click(screen.getByRole('radio', { name: /todo el país/ }))
   fireEvent.change(screen.getByLabelText('Código postal'), {
     target: { value: cp },
   })
@@ -93,7 +97,7 @@ beforeEach(() => {
   cart.add(ITEM)
   quoteMock.mockResolvedValue({
     ok: true,
-    quote: { quoteId: 'q-1', postalCode: '1842', rates: RATES },
+    quote: { postalCode: '1842', rates: RATES },
   })
   agenciesMock.mockResolvedValue([AGENCY])
   createMock.mockResolvedValue({
@@ -107,7 +111,7 @@ beforeEach(() => {
   })
 })
 
-describe('Checkout con Correo Argentino', () => {
+describe('Checkout con Correo Argentino y Andreani', () => {
   it('suma el envío al total y cobra el envío entero con la seña', async () => {
     setup()
     await quote()
@@ -153,6 +157,48 @@ describe('Checkout con Correo Argentino', () => {
     })
   })
 
+  it('Andreani a sucursal: busca sus sucursales por CP y manda su cotización', async () => {
+    agenciesMock.mockResolvedValue([
+      { code: '42', name: 'Monte Grande', address: 'Alem 100', city: 'Monte Grande', postalCode: '1842', hours: null },
+    ])
+    setup()
+    await quote()
+    fireEvent.click(screen.getByRole('radio', { name: /Andreani a sucursal/ }))
+    await waitFor(() =>
+      expect(document.querySelector('.summary')?.textContent).toContain('Andreani a sucursal'),
+    )
+    // 9.000 de productos + 6.100 de Andreani
+    expect(document.querySelector('.summary')?.textContent).toContain('$ 15.100')
+    fireEvent.change(await screen.findByLabelText('Sucursal donde lo retirás'), {
+      target: { value: '42' },
+    })
+    expect(agenciesMock).toHaveBeenCalledWith('andreani', expect.any(String), '1842')
+    fireEvent.change(screen.getByLabelText('Nombre y apellido'), {
+      target: { value: 'Ana Gómez' },
+    })
+    fireEvent.change(screen.getByLabelText('WhatsApp'), {
+      target: { value: '3794123456' },
+    })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Confirmar pedido' })[0])
+
+    await waitFor(() => expect(createMock).toHaveBeenCalled())
+    expect(createMock.mock.calls[0][0].delivery.shipping).toEqual({
+      quoteId: 'q-and',
+      type: 'S',
+      product: 'AN',
+      agencyCode: '42',
+      agencyName: 'Monte Grande — Alem 100',
+    })
+  })
+
+  it('Andreani a domicilio pide la dirección', async () => {
+    setup()
+    await quote()
+    fireEvent.click(screen.getByRole('radio', { name: /Andreani a domicilio/ }))
+    expect(await screen.findByLabelText(/^Dirección/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('Sucursal donde lo retirás')).toBeNull()
+  })
+
   it('a sucursal no pide dirección; a domicilio sí', async () => {
     setup()
     await quote()
@@ -185,7 +231,7 @@ describe('Checkout con Correo Argentino', () => {
   it('sin Correo configurado vuelve a "a cotizar" con dirección', async () => {
     quoteMock.mockResolvedValue({ ok: false, error: 'correo_no_configurado' })
     setup()
-    fireEvent.click(screen.getByRole('radio', { name: /Correo Argentino/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /todo el país/ }))
     fireEvent.change(screen.getByLabelText('Código postal'), {
       target: { value: '1842' },
     })

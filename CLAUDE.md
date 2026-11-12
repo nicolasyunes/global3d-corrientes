@@ -65,6 +65,15 @@ Páginas: `index`, `llavero`, `vaso`, `letra-caja` (la principal). Usan manifold
 - Admin: `src/features/shipping/` = pantalla **Cotizar envío** (`/admin/envios`), con cajas o medidas a mano y copiar para WhatsApp. Las cajas y el CP de origen los edita el admin desde ahí. La caja de cada producto se elige en su ficha ("Tienda online").
 - PAQ.AR es otra API (alta de envíos, rótulos, seguimiento, con `agreement` + API-Key). Todavía no se usa.
 
+## Envíos por Andreani
+
+- Edge function `andreani-quote`, junto a `correo-cotizar`: la tienda cotiza las dos a la vez (`api.quoteShipping` → `mergeQuotes`) y alcanza con que una responda. Si ninguna está configurada, vuelve a "a cotizar".
+- API (confirmada en el plugin oficial `andreani-publico/magento-2.3`; la doc de developers.andreani.com es una SPA): `GET /login` con Basic Auth → token en el header `x-authorization-token` (24 h, se guarda en memoria y se reintenta una vez si da 401). `GET /v1/tarifas?cpDestino&contrato&cliente&sucursalOrigen&bultos[0][kilos|volumen|valorDeclarado]` → precio en `tarifaConIva.total`. Sucursales: `GET /v2/sucursales?canal=B2C&seHaceAtencionAlCliente=true` (pública).
+- Bulto: usa las mismas cajas que Correo (`shop_shipping_boxes` + `shop_settings.correo.cajas`); suma kg y cm³ en un solo bulto. Valor declarado = precio del carrito según la base.
+- Secrets: `ANDREANI_USER`, `ANDREANI_PASSWORD`, `ANDREANI_CLIENTE`, `ANDREANI_CONTRATO_DOMICILIO` y/o `ANDREANI_CONTRATO_SUCURSAL` (sin uno, esa opción no aparece), `ANDREANI_ENV` (`prod` = `apis.andreani.com`; otro valor = `apisqa`). Opcionales: `ANDREANI_SUCURSAL_ORIGEN`, `ANDREANI_BASE_URL`.
+- Migración `20261112150000_shop_andreani_envios.sql`: `shipping_quotes.carrier` (`correo` | `andreani`); `shop_create_order` toma la empresa de la cotización guardada. Tarifas de Andreani con `productType` `AN`.
+- Tienda: cada tarifa trae `carrier` y su `quoteId`; el componente sigue siendo `CorreoShipping.tsx`. Sucursales de Correo por provincia, las de Andreani por CP.
+
 ## Imagen a SVG (`src/features/tools/vectorize.ts`)
 
 - Usa `vtracer-wasm` (MIT): posteriza, luego `to_svg` en modo polygon (jerarquía cutout, `colorPrecision` 0). El modo spline de esta build está roto; `colorPrecision` 8 falla la librería.
