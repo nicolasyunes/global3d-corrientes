@@ -42,6 +42,8 @@ export interface ProductFilter {
   query: string
   /** Categoría de la familia; '' = todas, NO_FAMILY = sin familia. */
   category: string
+  /** Subcategoría de la familia; '' = todas, NO_FAMILY = sin subcategoría. */
+  subcategory: string
   /** id de la familia; '' = todas, NO_FAMILY = sin familia. */
   family: string
   active: ActiveFilter
@@ -55,6 +57,7 @@ export function emptyProductFilter(): ProductFilter {
   return {
     query: '',
     category: '',
+    subcategory: '',
     family: '',
     active: 'all',
     stock: 'all',
@@ -72,8 +75,8 @@ export function activeFilterCount(filter: ProductFilter): number {
 }
 
 // Búsqueda por palabras (ver matchesQuery): cada palabra tiene que aparecer
-// en el nombre o la descripción del producto, o en el nombre, slug o
-// categoría de su familia. Sin mayúsculas ni acentos, en cualquier orden.
+// en el nombre o la descripción del producto, o en el nombre, slug,
+// categoría o subcategoría de su familia. Sin mayúsculas ni acentos, en cualquier orden.
 export function productMatchesQuery(
   product: Pick<ProductRow, 'name' | 'description'>,
   query: string,
@@ -88,6 +91,7 @@ export function productMatchesQuery(
       f?.slug,
       f?.slug.replace(/-/g, ' '),
       f?.category,
+      f?.subcategory,
     ],
     query,
   )
@@ -128,6 +132,8 @@ export function filterProducts(
     if (filter.active === 'active' && !product.active) return false
     if (filter.active === 'inactive' && product.active) return false
     if (!matchesGroup(family?.category, filter.category)) return false
+    if (!matchesGroup(family?.subcategory ?? undefined, filter.subcategory))
+      return false
     if (!matchesGroup(family?.id, filter.family)) return false
     if (!matchesGroup(family?.saleMode, filter.saleMode)) return false
     if (filter.stock !== 'all' && stockStatus(product, info) !== filter.stock)
@@ -142,6 +148,7 @@ export function filterProducts(
 const PARAM: Record<keyof ProductFilter, string> = {
   query: 'q',
   category: 'cat',
+  subcategory: 'sub',
   family: 'fam',
   active: 'estado',
   stock: 'stock',
@@ -163,6 +170,7 @@ export function filterFromParams(params: URLSearchParams): ProductFilter {
   return {
     query: params.get(PARAM.query) ?? '',
     category: params.get(PARAM.category) ?? '',
+    subcategory: params.get(PARAM.subcategory) ?? '',
     family: params.get(PARAM.family) ?? '',
     saleMode: params.get(PARAM.saleMode) ?? '',
     active: pick(

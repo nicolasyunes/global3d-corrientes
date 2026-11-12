@@ -133,6 +133,7 @@ describe('ProductsList', () => {
       name: 'Vasos Pistón',
       slug: 'vasos-piston',
       category: 'vasos',
+      subcategory: 'Ferneteros',
       saleMode: 'stock',
       leadDays: 3,
     }
@@ -169,5 +170,25 @@ describe('ProductsList', () => {
     renderList()
     await screen.findByText('Llavero Zelda')
     expect(screen.queryByRole('region', { name: 'Actividad' })).toBeNull()
+  })
+
+  it('cambia a vista de cards y la recuerda', async () => {
+    window.localStorage.removeItem('admin.productos.vista')
+    const { unmount } = renderList()
+    await screen.findByText('Llavero Zelda')
+    expect(document.querySelector('.pcards')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Cards' }))
+    expect(screen.getByRole('button', { name: 'Cards' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(document.querySelector('.pcards')).not.toBeNull()
+    expect(screen.getByText('Llavero Zelda')).toBeVisible()
+    unmount()
+    renderList()
+    await screen.findByText('Llavero Zelda')
+    expect(document.querySelector('.pcards')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Lista' }))
+    expect(document.querySelector('.prod-rows')).not.toBeNull()
   })
 })

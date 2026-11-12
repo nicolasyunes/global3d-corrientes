@@ -60,9 +60,110 @@ function FilterSelect({
   )
 }
 
+type View = 'list' | 'cards'
+const VIEW_KEY = 'admin.productos.vista'
+
+// La vista (lista o cards) es una preferencia de este dispositivo.
+function readView(): View {
+  try {
+    return window.localStorage.getItem(VIEW_KEY) === 'cards' ? 'cards' : 'list'
+  } catch {
+    return 'list'
+  }
+}
+
+function saveView(view: View) {
+  try {
+    window.localStorage.setItem(VIEW_KEY, view)
+  } catch {
+    // Sin almacenamiento (modo privado): la vista dura hasta recargar.
+  }
+}
+
+function formatPrice(product: ProductRow) {
+  return product.base_price === null ? '—' : formatMoney(product.base_price)
+}
+
+function ProductImage({
+  product,
+  size,
+}: {
+  product: ProductRow
+  size: number
+}) {
+  return product.image_url ? (
+    <img src={product.image_url} alt="" loading="lazy" />
+  ) : (
+    <Icon name="box" size={size} />
+  )
+}
+
+function ProductTags({
+  product,
+  info,
+}: {
+  product: ProductRow
+  info: ProductCatalogInfo | undefined
+}) {
+  const status = stockStatus(product, info)
+  return (
+    <span className="prow__tags">
+      {info?.family && <span className="muted">{info.family.name}</span>}
+      {info?.mlStatus === 'active' && (
+        <span className="badge badge--ready">ML activo</span>
+      )}
+      {info?.mlStatus && info.mlStatus !== 'active' && (
+        <span className="badge">ML pausado</span>
+      )}
+      {status === 'a_pedido' && (
+        <span className="badge badge--new">
+          A pedido
+          {info?.family?.leadDays ? ` · ${info.family.leadDays} días` : ''}
+        </span>
+      )}
+    </span>
+  )
+}
+
+function StockStepper({
+  product,
+  busy,
+  onMove,
+}: {
+  product: ProductRow
+  busy: boolean
+  onMove: (delta: number) => void
+}) {
+  return (
+    <div className="prow__stock" aria-label="Stock armado">
+      <button
+        type="button"
+        className="icon-btn"
+        aria-label={`Restar stock de ${product.name}`}
+        disabled={busy || product.stock_quantity <= 0}
+        onClick={() => onMove(-1)}
+      >
+        −
+      </button>
+      <span className="num" title="Stock armado">
+        {product.stock_quantity}
+      </span>
+      <button
+        type="button"
+        className="icon-btn"
+        aria-label={`Sumar stock de ${product.name}`}
+        disabled={busy}
+        onClick={() => onMove(1)}
+      >
+        +
+      </button>
+    </div>
+  )
+}
+
 // `/admin/productos`: los productos que se repiten, con sus piezas. Tocar uno
-// abre la ficha; el stock se ajusta desde la fila. La actividad está en
-// `/admin/actividad`.
+// abre la ficha; el stock se ajusta desde la fila o la card. Lo que se hizo
+// con el stock está en Movimientos (solo admin).
 export default function ProductsList() {
   const { current, isAdmin } = useOperator()
   const [products, setProducts] = useState<ProductRow[]>([])
@@ -77,6 +178,12 @@ export default function ProductsList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [view, setViewState] = useState<View>(readView)
+
+  function setView(next: View) {
+    setViewState(next)
+    saveView(next)
+  }
 
   useEffect(() => {
     Promise.all([listProducts(), listAllParts()])
@@ -128,12 +235,28 @@ export default function ProductsList() {
     () => [...new Set(families.map((f) => f.category))].sort(),
     [families],
   )
-  const familyOptions = useMemo(
+  const inCategory = useMemo(
     () =>
       filter.category && filter.category !== NO_FAMILY
         ? families.filter((f) => f.category === filter.category)
         : families,
     [families, filter.category],
+  )
+  const subcategories = useMemo(
+    () =>
+      [
+        ...new Set(
+          inCategory.flatMap((f) => (f.subcategory ? [f.subcategory] : [])),
+        ),
+      ].sort((a, b) => a.localeCompare(b, 'es')),
+    [inCategory],
+  )
+  const familyOptions = useMemo(
+    () =>
+      filter.subcategory && filter.subcategory !== NO_FAMILY
+        ? inCategory.filter((f) => f.subcategory === filter.subcategory)
+        : inCategory,
+    [inCategory, filter.subcategory],
   )
 
   const visible = useMemo(
@@ -198,7 +321,9 @@ export default function ProductsList() {
           <FilterSelect
             label="Categoría"
             value={filter.category}
-            onChange={(category) => setFilter({ category, family: '' })}
+            onChange={(category) =>
+              setFilter({ category, subcategory: '', family: '' })
+            }
           >
             <option value="">Todas</option>
             {categories.map((c) => (
@@ -207,6 +332,19 @@ export default function ProductsList() {
               </option>
             ))}
             <option value={NO_FAMILY}>Sin familia</option>
+          </FilterSelect>
+          <FilterSelect
+            label="Subcategoría"
+            value={filter.subcategory}
+            onChange={(subcategory) => setFilter({ subcategory, family: '' })}
+          >
+            <option value="">Todas</option>
+            {subcategories.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+            <option value={NO_FAMILY}>Sin subcategoría</option>
           </FilterSelect>
           <FilterSelect
             label="Familia"
@@ -280,6 +418,30 @@ export default function ProductsList() {
               · No se pudieron cargar familias ni MercadoLibre.
             </span>
           )}
+          <div
+            className="pview"
+            role="group"
+            aria-label="Cómo ver los productos"
+          >
+            <button
+              type="button"
+              className={`pview__btn${view === 'list' ? ' is-on' : ''}`}
+              aria-pressed={view === 'list'}
+              onClick={() => setView('list')}
+            >
+              <Icon name="list" size={16} />
+              Lista
+            </button>
+            <button
+              type="button"
+              className={`pview__btn${view === 'cards' ? ' is-on' : ''}`}
+              aria-pressed={view === 'cards'}
+              onClick={() => setView('cards')}
+            >
+              <Icon name="layers" size={16} />
+              Cards
+            </button>
+          </div>
           {(filterCount > 0 || text) && (
             <button
               type="button"
@@ -323,12 +485,11 @@ export default function ProductsList() {
         </div>
       )}
 
-      {!loading && visible.length > 0 && (
+      {!loading && visible.length > 0 && view === 'list' && (
         <ul className="card prod-rows">
           {visible.map((product) => {
             const list = parts[product.id] ?? []
             const info = catalog[product.id]
-            const status = stockStatus(product, info)
             return (
               <li
                 key={product.id}
@@ -339,11 +500,7 @@ export default function ProductsList() {
                   className="prow__main"
                 >
                   <span className="prow__thumb" aria-hidden="true">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt="" />
-                    ) : (
-                      <Icon name="box" size={20} />
-                    )}
+                    <ProductImage product={product} size={20} />
                   </span>
                   <span className="prow__info">
                     <span className="prow__name">
@@ -352,25 +509,7 @@ export default function ProductsList() {
                         <span className="badge">Inactivo</span>
                       )}
                     </span>
-                    <span className="prow__tags">
-                      {info?.family && (
-                        <span className="muted">{info.family.name}</span>
-                      )}
-                      {info?.mlStatus === 'active' && (
-                        <span className="badge badge--ready">ML activo</span>
-                      )}
-                      {info?.mlStatus && info.mlStatus !== 'active' && (
-                        <span className="badge">ML pausado</span>
-                      )}
-                      {status === 'a_pedido' && (
-                        <span className="badge badge--new">
-                          A pedido
-                          {info?.family?.leadDays
-                            ? ` · ${info.family.leadDays} días`
-                            : ''}
-                        </span>
-                      )}
-                    </span>
+                    <ProductTags product={product} info={info} />
                     <span className="prow__parts">
                       {list.slice(0, 8).map((p, i) => {
                         const hex = colorSwatch(p.color)
@@ -389,35 +528,51 @@ export default function ProductsList() {
                     </span>
                   </span>
                   <span className="prow__price num">
-                    {product.base_price === null
-                      ? '—'
-                      : formatMoney(product.base_price)}
+                    {formatPrice(product)}
                   </span>
                 </Link>
-                <div className="prow__stock" aria-label="Stock armado">
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label={`Restar stock de ${product.name}`}
-                    disabled={
-                      busyId === product.id || product.stock_quantity <= 0
-                    }
-                    onClick={() => void moveStock(product, -1)}
-                  >
-                    −
-                  </button>
-                  <span className="num" title="Stock armado">
-                    {product.stock_quantity}
+                <StockStepper
+                  product={product}
+                  busy={busyId === product.id}
+                  onMove={(delta) => void moveStock(product, delta)}
+                />
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {!loading && visible.length > 0 && view === 'cards' && (
+        <ul className="pcards">
+          {visible.map((product) => {
+            const info = catalog[product.id]
+            return (
+              <li
+                key={product.id}
+                className={`card pcard${product.active ? '' : ' pcard--off'}`}
+              >
+                <Link
+                  to={`/admin/productos/${product.id}`}
+                  className="pcard__main"
+                >
+                  <span className="pcard__img" aria-hidden="true">
+                    <ProductImage product={product} size={36} />
                   </span>
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label={`Sumar stock de ${product.name}`}
-                    disabled={busyId === product.id}
-                    onClick={() => void moveStock(product, 1)}
-                  >
-                    +
-                  </button>
+                  <span className="pcard__name">
+                    {product.name}
+                    {!product.active && <span className="badge">Inactivo</span>}
+                  </span>
+                  <ProductTags product={product} info={info} />
+                </Link>
+                <div className="pcard__foot">
+                  <span className="pcard__price num">
+                    {formatPrice(product)}
+                  </span>
+                  <StockStepper
+                    product={product}
+                    busy={busyId === product.id}
+                    onMove={(delta) => void moveStock(product, delta)}
+                  />
                 </div>
               </li>
             )

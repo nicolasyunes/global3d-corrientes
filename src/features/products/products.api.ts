@@ -288,6 +288,8 @@ export interface ProductFamilyInfo {
   name: string
   slug: string
   category: string
+  /** Subcategoría dentro de la categoría; null si no tiene. */
+  subcategory: string | null
   saleMode: string
   leadDays: number | null
 }
@@ -303,6 +305,7 @@ interface FamilyLinkRow {
   name: string
   slug: string
   category: string
+  subcategory: string | null
   sale_mode: string
   lead_days: number | null
   shop_family_products: { product_id: string }[] | null
@@ -320,7 +323,7 @@ export async function listProductCatalog(): Promise<{
     untyped
       .from('shop_families')
       .select(
-        'id, name, slug, category, sale_mode, lead_days, shop_family_products(product_id)',
+        'id, name, slug, category, subcategory, sale_mode, lead_days, shop_family_products(product_id)',
       )
       .order('name'),
     untyped
@@ -342,6 +345,7 @@ export async function listProductCatalog(): Promise<{
       name: f.name,
       slug: f.slug,
       category: f.category,
+      subcategory: f.subcategory,
       saleMode: f.sale_mode,
       leadDays: f.lead_days,
     }

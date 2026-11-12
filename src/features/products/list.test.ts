@@ -115,6 +115,7 @@ const fam = (
   name: 'Mates Boca',
   slug: 'mates-boca',
   category: 'regalos',
+  subcategory: 'Mate y bebidas' as string | null,
   saleMode: 'stock',
   leadDays: 3,
   ...over,
@@ -187,6 +188,7 @@ describe('filtros combinados', () => {
     expect(ids({ ...f, query: 'mates-boca' })).toEqual(['a', 'b'])
     expect(ids({ ...f, query: 'piston' })).toEqual(['c'])
     expect(ids({ ...f, query: 'regal' })).toEqual(['a', 'b'])
+    expect(ids({ ...f, query: 'bebidas' })).toEqual(['a', 'b'])
   })
 
   it('combina categoría, stock, ML y estado', () => {
@@ -201,10 +203,28 @@ describe('filtros combinados', () => {
     expect(ids({ ...f, saleMode: 'stock', active: 'inactive' })).toEqual([])
   })
 
+  it('filtra por subcategoría', () => {
+    const f = emptyProductFilter()
+    expect(ids({ ...f, subcategory: 'Mate y bebidas' })).toEqual(['a', 'b'])
+    expect(ids({ ...f, subcategory: 'Varios' })).toEqual([])
+    expect(ids({ ...f, subcategory: '__none__' })).toEqual(['c'])
+    const sinSub = filterProducts(
+      products,
+      { ...f, subcategory: '__none__' },
+      { a: { family: fam({ subcategory: null }), mlStatus: null } },
+    ).map((p) => p.id)
+    expect(sinSub).toEqual(['a', 'b', 'c'])
+  })
+
   it('los filtros van y vuelven de la URL', () => {
-    const f = { ...emptyProductFilter(), query: 'mate', ml: 'none' as const }
+    const f = {
+      ...emptyProductFilter(),
+      query: 'mate',
+      subcategory: 'Pádel',
+      ml: 'none' as const,
+    }
     const params = filterToParams(f)
-    expect(params.toString()).toBe('q=mate&ml=none')
+    expect(params.toString()).toBe('q=mate&sub=P%C3%A1del&ml=none')
     expect(filterFromParams(params)).toEqual(f)
     expect(filterFromParams(new URLSearchParams('ml=raro'))).toEqual(
       emptyProductFilter(),
