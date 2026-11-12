@@ -79,6 +79,12 @@ const SECONDARY: NavItem[] = [
     productsOnly: true,
   },
   {
+    to: '/admin/actividad',
+    label: 'Actividad',
+    icon: 'sand',
+    productsOnly: true,
+  },
+  {
     to: '/admin/estadisticas',
     label: 'Números',
     icon: 'spark',

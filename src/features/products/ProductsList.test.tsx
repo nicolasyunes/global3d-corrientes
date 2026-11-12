@@ -8,8 +8,10 @@ const {
   listAllPartsMock,
   moveProductStockMock,
   listProductLogMock,
+  listProductCatalogMock,
   operator,
 } = vi.hoisted(() => ({
+  listProductCatalogMock: vi.fn(),
   listProductsMock: vi.fn(),
   listAllPartsMock: vi.fn(),
   moveProductStockMock: vi.fn(),
@@ -22,6 +24,7 @@ vi.mock('./products.api', () => ({
   listAllParts: listAllPartsMock,
   moveProductStock: moveProductStockMock,
   listProductLog: listProductLogMock,
+  listProductCatalog: listProductCatalogMock,
 }))
 
 vi.mock('@/features/operators/operator-context', () => ({
@@ -68,6 +71,7 @@ beforeEach(() => {
     ],
   })
   operator.isAdmin = false
+  listProductCatalogMock.mockResolvedValue({ byProduct: {}, families: [] })
   moveProductStockMock.mockResolvedValue(row({ stock_quantity: 3 }))
 })
 
@@ -92,7 +96,9 @@ describe('ProductsList', () => {
     fireEvent.change(screen.getByLabelText('Buscar producto'), {
       target: { value: 'zelda' },
     })
-    expect(screen.queryByText('Vaso milkshake Spiderman')).toBeNull()
+    await waitFor(() =>
+      expect(screen.queryByText('Vaso milkshake Spiderman')).toBeNull(),
+    )
   })
 
   it('suma stock desde la fila, a nombre de quien está trabajando', async () => {
@@ -121,33 +127,47 @@ describe('ProductsList', () => {
     expect(screen.getByText('Movimientos')).toBeVisible()
   })
 
-  it('muestra quién creó o cambió cada producto', async () => {
-    listProductsMock.mockResolvedValue([row()])
-    listAllPartsMock.mockResolvedValue({})
-    listProductLogMock.mockResolvedValue([
-      {
-        id: 'l1',
-        created_at: new Date().toISOString(),
-        operator_id: 'op-1',
-        kind: 'created',
-        product_id: 'p1',
-        product_label: 'Vaso milkshake Spiderman',
-        delta: 2,
-        stock_after: 2,
-        note: null,
-      },
+  it('busca por familia sin acentos y combina con los filtros', async () => {
+    const vasos = {
+      id: 'f1',
+      name: 'Vasos Pistón',
+      slug: 'vasos-piston',
+      category: 'vasos',
+      saleMode: 'stock',
+      leadDays: 3,
+    }
+    listProductsMock.mockResolvedValue([
+      row(),
+      row({ id: 'p2', name: 'Llavero Zelda' }),
+      row({ id: 'p3', name: 'Vaso rojo', stock_quantity: 0 }),
     ])
-    render(
-      <MemoryRouter>
-        <ProductsList />
-      </MemoryRouter>,
-    )
-    const activity = await screen.findByRole('region', { name: 'Actividad' })
-    await waitFor(() =>
-      expect(activity.textContent).toContain(
-        'nicolas creó Vaso milkshake Spiderman',
-      ),
-    )
-    expect(activity.textContent).toContain('Stock inicial 2')
+    listProductCatalogMock.mockResolvedValue({
+      byProduct: {
+        p1: { family: vasos, mlStatus: 'active' },
+        p3: { family: vasos, mlStatus: null },
+      },
+      families: [vasos],
+    })
+    renderList()
+    await screen.findByText('Llavero Zelda')
+    fireEvent.change(screen.getByLabelText('Buscar producto'), {
+      target: { value: 'PISTON' },
+    })
+    await waitFor(() => expect(screen.queryByText('Llavero Zelda')).toBeNull())
+    expect(screen.getByText('Vaso rojo')).toBeVisible()
+    fireEvent.change(screen.getByLabelText('MercadoLibre'), {
+      target: { value: 'active' },
+    })
+    expect(screen.queryByText('Vaso rojo')).toBeNull()
+    expect(screen.getByText('Vaso milkshake Spiderman')).toBeVisible()
+    expect(screen.getByText('1 de 3 productos')).toBeVisible()
+    fireEvent.click(screen.getAllByText('Limpiar filtros')[0])
+    expect(await screen.findByText('Llavero Zelda')).toBeVisible()
+  })
+
+  it('ya no muestra la actividad abajo de la lista', async () => {
+    renderList()
+    await screen.findByText('Llavero Zelda')
+    expect(screen.queryByRole('region', { name: 'Actividad' })).toBeNull()
   })
 })

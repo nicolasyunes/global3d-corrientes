@@ -46,16 +46,22 @@ function describeLog(
 
 // Quién creó o cambió productos y cuándo. Con `productId` muestra solo ese
 // producto (en la ficha); sin él, lo último de todo el catálogo.
+// Con `pageable` aparece "Ver más", que trae `limit` filas más cada vez.
 export default function ProductActivity({
   productId,
-  limit = 15,
+  limit: pageSize = 15,
+  pageable = false,
+  title,
 }: {
   productId?: string
   limit?: number
+  pageable?: boolean
+  title?: string
 }) {
   const { byId } = useOperator()
   const [rows, setRows] = useState<ProductLogRow[] | null>(null)
   const [failed, setFailed] = useState(false)
+  const [limit, setLimit] = useState(pageSize)
 
   useEffect(() => {
     let cancelled = false
@@ -75,7 +81,7 @@ export default function ProductActivity({
     <section className="card prod-activity" aria-label="Actividad">
       <div className="card__head">
         <h2 className="card__title">
-          {productId ? 'Historial' : 'Actividad reciente'}
+          {title ?? (productId ? 'Historial' : 'Actividad reciente')}
         </h2>
       </div>
       {failed && <p className="muted">No se pudo cargar la actividad.</p>}
@@ -127,6 +133,15 @@ export default function ProductActivity({
             )
           })}
         </ul>
+      )}
+      {pageable && rows && rows.length === limit && (
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm prod-activity__more"
+          onClick={() => setLimit((n) => n + pageSize)}
+        >
+          Ver más
+        </button>
       )}
     </section>
   )

@@ -14,6 +14,7 @@ import OrderProduction from '@/features/orders/OrderProduction'
 import ProductForm from '@/features/products/ProductForm'
 import ProductsList from '@/features/products/ProductsList'
 import MovementsPage from '@/features/products/MovementsPage'
+import ActivityPage from '@/features/products/ActivityPage'
 import TodayPage from '@/features/production/TodayPage'
 import WeekPage from '@/features/production/WeekPage'
 import WorkshopPage from '@/features/production/WorkshopPage'
@@ -110,6 +111,14 @@ export function Component() {
             element={
               <ProductsAccess>
                 <ProductsList />
+              </ProductsAccess>
+            }
+          />
+          <Route
+            path="actividad"
+            element={
+              <ProductsAccess>
+                <ActivityPage />
               </ProductsAccess>
             }
           />
