@@ -128,7 +128,7 @@ export interface CreateOrderInput {
   delivery: {
     mode: DeliveryMode
     address?: string
-    /** Envío por Correo Argentino cotizado (correo-cotizar) */
+    /** Envío cotizado (correo-cotizar o andreani-quote); la empresa sale de la cotización */
     shipping?: {
       quoteId: string
       type: 'S' | 'D'
@@ -146,7 +146,7 @@ export interface CreateOrderResult {
   code: string
   total: number
   deposit: number
-  /** Costo del envío por Correo incluido en el total (0 si no hay) */
+  /** Costo del envío cotizado incluido en el total (0 si no hay) */
   shipping?: number
   quote: boolean
   dueDate: string

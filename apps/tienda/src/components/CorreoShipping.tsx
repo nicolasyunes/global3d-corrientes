@@ -1,15 +1,11 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { api } from '../lib/api'
 import type { CartItem } from '../lib/cart'
 import { ars } from '../lib/format'
 import {
+  CARRIER_NAME,
   cartShippingKey,
+  choiceKey,
   deliveryTime,
   loadShippingPlace,
   normalizePostalCode,
@@ -32,7 +28,7 @@ interface Props {
   mode: 'checkout' | 'preview'
   value?: ShippingChoice | null
   onChange?: (choice: ShippingChoice | null) => void
-  /** Correo no está configurado: el checkout vuelve a "a cotizar" */
+  /** Ninguna empresa está configurada: el checkout vuelve a "a cotizar" */
   onUnavailable?: () => void
   /** Cambiarlo fuerza a cotizar de nuevo (p. ej. si la cotización venció) */
   refresh?: number
@@ -44,7 +40,10 @@ interface Props {
 
 type Status = 'idle' | 'loading' | 'done' | 'error'
 
-/** Cotizador de Correo Argentino: CP → sucursal y domicilio con precio. */
+/**
+ * Cotizador de envíos (Correo Argentino y Andreani): CP → sucursal y
+ * domicilio de cada empresa con precio.
+ */
 export function CorreoShipping({
   items,
   mode,
@@ -75,7 +74,7 @@ export function CorreoShipping({
 
   const cpOk = normalizePostalCode(cp)
   const selectedRate = value
-    ? quote?.rates.find((r) => rateKey(r) === `${value.type}-${value.product}`)
+    ? quote?.rates.find((r) => rateKey(r) === choiceKey(value))
     : undefined
 
   const run = useCallback(
@@ -107,13 +106,13 @@ export function CorreoShipping({
       // Si ya había una opción elegida, se mantiene con el precio nuevo.
       if (value) {
         const same = res.quote.rates.find(
-          (r) => rateKey(r) === `${value.type}-${value.product}`,
+          (r) => rateKey(r) === choiceKey(value),
         )
         onChange?.(
           same
             ? {
                 ...value,
-                quoteId: res.quote.quoteId,
+                quoteId: same.quoteId,
                 price: same.price,
                 label: rateLabel(same),
               }
@@ -135,15 +134,18 @@ export function CorreoShipping({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartKey])
 
-  // Sucursales: al elegir "a sucursal" con provincia.
-  const wantsAgencies = checkout && value?.type === 'S' && !!province
+  // Sucursales: al elegir "a sucursal". Correo las busca por provincia;
+  // Andreani, por el código postal ya cotizado.
+  const agencyCarrier = checkout && value?.type === 'S' ? value.carrier : null
+  const needsProvince = agencyCarrier === 'correo' && !province
+  const wantsAgencies = !!agencyCarrier && !needsProvince
   useEffect(() => {
     if (!wantsAgencies) return
     let alive = true
     setAgencyStatus('loading')
     setAgencies(null)
     api
-      .agencies(province, normalizePostalCode(cp) ?? '')
+      .agencies(agencyCarrier!, province, normalizePostalCode(cp) ?? '')
       .then((list) => {
         if (!alive) return
         setAgencies(list)
@@ -154,7 +156,7 @@ export function CorreoShipping({
       alive = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wantsAgencies, province, quote?.postalCode])
+  }, [wantsAgencies, agencyCarrier, province, quote?.postalCode])
 
   const onCpChange = (v: string) => {
     setCp(v)
@@ -164,15 +166,16 @@ export function CorreoShipping({
 
   const pickRate = (key: string) => {
     const r = quote?.rates.find((x) => rateKey(x) === key)
-    if (!r || !quote) return
+    if (!r) return
     onChange?.({
-      quoteId: quote.quoteId,
+      carrier: r.carrier,
+      quoteId: r.quoteId,
       type: r.deliveredType,
       product: r.productType,
       price: r.price,
       label: rateLabel(r),
-      // Al cambiar de tipo se vuelve a elegir sucursal.
-      ...(value?.type === r.deliveredType
+      // Al cambiar de tipo o de empresa se vuelve a elegir sucursal.
+      ...(value?.type === r.deliveredType && value.carrier === r.carrier
         ? { agencyCode: value.agencyCode, agencyName: value.agencyName }
         : {}),
     })
@@ -192,8 +195,9 @@ export function CorreoShipping({
 
   const selectedAgency = agencies?.find((a) => a.code === value?.agencyCode)
   const stale = status === 'done' && quotedKey !== cartKey
-  // Sin Correo configurado, en el carrito no se muestra nada.
-  if (!checkout && status === 'error' && quoteUnavailable(errorCode)) return null
+  // Sin ninguna empresa configurada, en el carrito no se muestra nada.
+  if (!checkout && status === 'error' && quoteUnavailable(errorCode))
+    return null
 
   return (
     <div className={checkout ? 'ship-quote' : 'ship-quote cart-ship'}>
@@ -215,7 +219,9 @@ export function CorreoShipping({
                 void run(cp)
               }
             }}
-            aria-invalid={(status === 'error' && errorCode === 'cp') || undefined}
+            aria-invalid={
+              (status === 'error' && errorCode === 'cp') || undefined
+            }
           />
         </label>
         {checkout && (
@@ -245,7 +251,11 @@ export function CorreoShipping({
           onClick={() => void run(cp)}
           disabled={status === 'loading' || !cpOk}
         >
-          {status === 'loading' ? 'Calculando…' : status === 'done' ? 'Recalcular' : 'Calcular'}
+          {status === 'loading'
+            ? 'Calculando…'
+            : status === 'done'
+              ? 'Recalcular'
+              : 'Calcular'}
         </button>
       </div>
 
@@ -263,9 +273,10 @@ export function CorreoShipping({
                     <strong>{rateLabel(r)}</strong>
                     <small>
                       {r.deliveredType === 'S'
-                        ? 'Lo retirás en una sucursal de Correo'
-                        : 'Te lo llevan a tu casa'}
-                      {deliveryTime(r) && ` · ${deliveryTime(r)} desde el despacho`}
+                        ? `Lo retirás en una sucursal de ${CARRIER_NAME[r.carrier]}`
+                        : `${CARRIER_NAME[r.carrier]} te lo lleva a tu casa`}
+                      {deliveryTime(r) &&
+                        ` · ${deliveryTime(r)} desde el despacho`}
                     </small>
                   </span>
                   <span className="end num">{ars(r.price)}</span>
@@ -291,11 +302,13 @@ export function CorreoShipping({
         )}
       </div>
 
-      {wantsAgencies || (checkout && value?.type === 'S' && !province) ? (
+      {agencyCarrier ? (
         <label className="field">
           <span className="label">Sucursal donde lo retirás</span>
-          {!province ? (
-            <span className="hint">Elegí tu provincia para ver las sucursales.</span>
+          {needsProvince ? (
+            <span className="hint">
+              Elegí tu provincia para ver las sucursales.
+            </span>
           ) : agencyStatus === 'loading' ? (
             <span className="hint">Buscando sucursales…</span>
           ) : agencyStatus === 'error' ? (
@@ -304,7 +317,9 @@ export function CorreoShipping({
             </span>
           ) : agencies && agencies.length === 0 ? (
             <span className="error-text">
-              No hay sucursales de retiro en esa provincia. Elegí envío a domicilio.
+              {agencyCarrier === 'andreani'
+                ? 'No encontramos sucursales de Andreani. Elegí otra opción.'
+                : 'No hay sucursales de retiro en esa provincia. Elegí envío a domicilio.'}
             </span>
           ) : (
             <select

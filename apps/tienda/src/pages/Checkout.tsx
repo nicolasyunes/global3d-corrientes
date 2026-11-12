@@ -12,7 +12,7 @@ import {
 } from '../components/Icons'
 import { CorreoShipping } from '../components/CorreoShipping'
 import { api, orderErrorMessage } from '../lib/api'
-import type { ShippingChoice } from '../lib/shipping'
+import { choiceText, type ShippingChoice } from '../lib/shipping'
 import { cart, cartHasQuote, cartTotal, useCart } from '../lib/cart'
 import { useShop } from '../lib/data'
 import { ars, onlyDigits } from '../lib/format'
@@ -47,7 +47,7 @@ export interface FreshOrderState {
 }
 
 /** Hace falta escribir la dirección: envío en Corrientes, a domicilio por
- * Correo, o "resto del país" cuando Correo no cotiza. */
+ * Correo o Andreani, o "resto del país" cuando ninguna cotiza. */
 function needsAddress(
   delivery: DeliveryMode,
   usesCorreo: boolean,
@@ -121,8 +121,7 @@ export function Checkout() {
           ? 'Elegí la sucursal donde lo retirás.'
           : null,
     address:
-      needsAddress(delivery, usesCorreo, shipping) &&
-      address.trim().length < 5
+      needsAddress(delivery, usesCorreo, shipping) && address.trim().length < 5
         ? 'Escribí la dirección de entrega.'
         : null,
   }
@@ -194,7 +193,10 @@ export function Checkout() {
         method: effMethod,
         delivery,
         address: deliveryAddress,
-        shipping: usesCorreo && shipping ? shipping : undefined,
+        shipping:
+          usesCorreo && shipping
+            ? { label: choiceText(shipping), price: shipping.price }
+            : undefined,
         trackingUrl,
         name: name.trim(),
       })
@@ -406,12 +408,12 @@ export function Checkout() {
                   <strong>
                     {correoOff
                       ? 'Envío al resto del país'
-                      : 'Correo Argentino a todo el país'}
+                      : 'Envío a todo el país'}
                   </strong>
                   <small>
                     {correoOff
                       ? `${settings.envios.pais}.`
-                      : 'A sucursal o a domicilio. Lo calculás con tu código postal.'}
+                      : 'A sucursal o a domicilio, por Correo Argentino o Andreani. Lo calculás con tu código postal.'}
                   </small>
                 </span>
                 <span className="end">
@@ -567,7 +569,7 @@ export function Checkout() {
                 Envío
                 {shipping && (
                   <span className="li-sub" style={{ display: 'block' }}>
-                    {shipping.label}
+                    {choiceText(shipping)}
                   </span>
                 )}
               </span>

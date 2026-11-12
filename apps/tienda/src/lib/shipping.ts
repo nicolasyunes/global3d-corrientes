@@ -1,10 +1,22 @@
-// Envíos por Correo Argentino: tipos y ayudas para la cotización que hace la
-// edge function correo-cotizar. El precio que se cobra lo pone el servidor
-// (shop_create_order lee la cotización guardada), acá solo se muestra.
+// Envíos por Correo Argentino y Andreani: tipos y ayudas para las
+// cotizaciones que hacen las edge functions correo-cotizar y andreani-quote.
+// Cada empresa guarda su cotización aparte (shipping_quotes) y el precio que
+// se cobra lo pone el servidor (shop_create_order lee la cotización guardada);
+// acá solo se muestra.
 
 import type { CartItem } from './cart'
 
+export type Carrier = 'correo' | 'andreani'
+
+export const CARRIER_NAME: Record<Carrier, string> = {
+  correo: 'Correo Argentino',
+  andreani: 'Andreani',
+}
+
 export interface ShippingRate {
+  carrier: Carrier
+  /** Cotización guardada de la que sale esta tarifa */
+  quoteId: string
   deliveredType: 'S' | 'D'
   productType: string
   productName: string
@@ -13,11 +25,21 @@ export interface ShippingRate {
   deliveryTimeMax: string | null
 }
 
+/** Tarifas de todas las empresas que cotizaron, juntas. */
 export interface ShippingQuote {
-  quoteId: string
   postalCode: string
   rates: ShippingRate[]
 }
+
+/** Lo que devuelve cada edge function al cotizar. */
+export interface CarrierQuote {
+  quoteId: string
+  postalCode: string
+  rates: Omit<ShippingRate, 'carrier' | 'quoteId'>[]
+}
+
+export type QuoteResult =
+  { ok: true; quote: ShippingQuote } | { ok: false; error: string | null }
 
 export interface Agency {
   code: string
@@ -30,6 +52,7 @@ export interface Agency {
 
 /** Lo que el checkout manda a shop_create_order en delivery.shipping */
 export interface ShippingChoice {
+  carrier: Carrier
   quoteId: string
   type: 'S' | 'D'
   product: string
@@ -104,11 +127,14 @@ export function deliveryTime(r: ShippingRate): string {
   const max = r.deliveryTimeMax
   if (min && max && min !== max) return `${min} a ${max} días hábiles`
   const d = max ?? min
-  return d ? `${d} día${d === '1' ? '' : 's'} hábil${d === '1' ? '' : 'es'}` : ''
+  return d
+    ? `${d} día${d === '1' ? '' : 's'} hábil${d === '1' ? '' : 'es'}`
+    : ''
 }
 
 export function rateLabel(r: ShippingRate): string {
   const kind = r.deliveredType === 'S' ? 'a sucursal' : 'a domicilio'
+  if (r.carrier === 'andreani') return `Andreani ${kind}`
   const name =
     r.productName
       .replace(/^Correo Argentino\s*/i, '')
@@ -116,8 +142,26 @@ export function rateLabel(r: ShippingRate): string {
   return `${name} ${kind}`
 }
 
-export function rateKey(r: Pick<ShippingRate, 'deliveredType' | 'productType'>) {
-  return `${r.deliveredType}-${r.productType}`
+export function rateKey(
+  r: Pick<ShippingRate, 'carrier' | 'deliveredType' | 'productType'>,
+) {
+  return `${r.carrier}-${r.deliveredType}-${r.productType}`
+}
+
+/** La misma clave, para la opción elegida. */
+export function choiceKey(
+  c: Pick<ShippingChoice, 'carrier' | 'type' | 'product'>,
+) {
+  return `${c.carrier}-${c.type}-${c.product}`
+}
+
+/** Así describe el pedido la opción elegida: "Correo Argentino, Clásico a sucursal". */
+export function choiceText(
+  c: Pick<ShippingChoice, 'carrier' | 'label'>,
+): string {
+  return c.carrier === 'andreani'
+    ? c.label
+    : `${CARRIER_NAME[c.carrier]}, ${c.label}`
 }
 
 /** La más barata de cada tipo, para mostrar "desde" en el carrito. */
@@ -138,22 +182,70 @@ export function cheapestByType(rates: ShippingRate[]): {
 const QUOTE_ERRORS: Record<string, string> = {
   cp: 'Revisá el código postal: son 4 números (ej: 3400).',
   sin_cotizacion:
-    'Correo Argentino no cotizó ese código postal. Revisalo o escribinos por WhatsApp.',
+    'No pudimos cotizar ese código postal. Revisalo o escribinos por WhatsApp.',
   demasiadas: 'Muchas consultas seguidas. Probá de nuevo en un minuto.',
-  medidas: 'El pedido es muy grande para cotizarlo solo. Escribinos por WhatsApp.',
+  medidas:
+    'El pedido es muy grande para cotizarlo solo. Escribinos por WhatsApp.',
   peso: 'El pedido es muy pesado para cotizarlo solo. Escribinos por WhatsApp.',
 }
 
 export function quoteErrorMessage(code: string | null): string {
   return (
     (code && QUOTE_ERRORS[code]) ||
-    'No pudimos cotizar con Correo Argentino ahora. Probá de nuevo en un rato.'
+    'No pudimos cotizar el envío ahora. Probá de nuevo en un rato.'
   )
 }
 
 /** Errores que significan "el cotizador no está andando": volver a "a cotizar". */
 export function quoteUnavailable(code: string | null): boolean {
-  return code === 'correo_no_configurado'
+  return code === 'correo_no_configurado' || code === 'andreani_no_configurado'
+}
+
+/** Qué error mostrar cuando ninguna empresa cotizó. */
+const ERROR_RANK = [
+  'cp',
+  'items',
+  'peso',
+  'medidas',
+  'demasiadas',
+  'sin_cotizacion',
+]
+
+/**
+ * Junta las cotizaciones de cada empresa. Alcanza con que una cotice. Si
+ * ninguna cotizó: si todas están sin configurar, devuelve un error de "no
+ * configurado" (el checkout vuelve a "a cotizar"); si no, el error más útil.
+ */
+export function mergeQuotes(
+  results: Array<
+    { carrier: Carrier } & (
+      { ok: true; quote: CarrierQuote } | { ok: false; error: string | null }
+    )
+  >,
+): QuoteResult {
+  const rates: ShippingRate[] = []
+  let postalCode = ''
+  const errors: string[] = []
+  for (const r of results) {
+    if (!r.ok) {
+      errors.push(r.error ?? 'error')
+      continue
+    }
+    postalCode ||= r.quote.postalCode
+    for (const rate of r.quote.rates)
+      rates.push({ ...rate, carrier: r.carrier, quoteId: r.quote.quoteId })
+  }
+  if (rates.length) {
+    // Sucursal primero; dentro de cada tipo, la más barata primero.
+    const rank = (r: ShippingRate) => (r.deliveredType === 'S' ? 0 : 1)
+    rates.sort((a, b) => rank(a) - rank(b) || a.price - b.price)
+    return { ok: true, quote: { postalCode, rates } }
+  }
+  const real = errors.filter((e) => !quoteUnavailable(e))
+  if (!real.length)
+    return { ok: false, error: errors[0] ?? 'correo_no_configurado' }
+  const best = ERROR_RANK.find((e) => real.includes(e))
+  return { ok: false, error: best ?? real[0] }
 }
 
 const POSTAL_KEY = 'g3d.tienda.envio'

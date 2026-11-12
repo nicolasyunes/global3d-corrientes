@@ -1,7 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { quoteFilePath } from './quoteFiles'
-import type { Agency, ShippingQuote } from './shipping'
+import {
+  mergeQuotes,
+  type Agency,
+  type Carrier,
+  type CarrierQuote,
+  type QuoteResult,
+} from './shipping'
 import type {
   CreateOrderInput,
   CreateOrderResult,
@@ -66,9 +72,31 @@ async function functionErrorCode(error: unknown): Promise<string | null> {
   return null
 }
 
-export type QuoteResult =
-  | { ok: true; quote: ShippingQuote }
-  | { ok: false; error: string | null }
+export type { QuoteResult }
+
+/** Edge function que cotiza cada empresa. */
+const QUOTE_FN: Record<Carrier, string> = {
+  correo: 'correo-cotizar',
+  andreani: 'andreani-quote',
+}
+
+async function quoteCarrier(
+  carrier: Carrier,
+  items: Array<{ productId?: string; familySlug?: string; quantity: number }>,
+  postalCode: string,
+) {
+  const { data, error } = await supabase.functions.invoke<CarrierQuote>(
+    QUOTE_FN[carrier],
+    { body: { action: 'rates', items, postalCode } },
+  )
+  if (error || !data?.quoteId)
+    return {
+      carrier,
+      ok: false as const,
+      error: await functionErrorCode(error),
+    }
+  return { carrier, ok: true as const, quote: data }
+}
 
 export const api = {
   catalog: () => rpc<Family[]>('shop_catalog'),
@@ -113,24 +141,37 @@ export const api = {
     if (error || !data?.preferenceId) return null
     return data.preferenceId
   },
-  /** Cotiza el envío del carrito con Correo Argentino (edge function correo-cotizar). */
+  /**
+   * Cotiza el envío del carrito con Correo Argentino y Andreani a la vez
+   * (edge functions correo-cotizar y andreani-quote) y junta las tarifas.
+   */
   quoteShipping: async (
     items: Array<{ productId?: string; familySlug?: string; quantity: number }>,
     postalCode: string,
-  ): Promise<QuoteResult> => {
-    const { data, error } = await supabase.functions.invoke<ShippingQuote>(
-      'correo-cotizar',
-      { body: { action: 'rates', items, postalCode } },
-    )
-    if (error || !data?.quoteId)
-      return { ok: false, error: await functionErrorCode(error) }
-    return { ok: true, quote: data }
-  },
-  /** Sucursales de Correo de una provincia, las más cercanas al CP primero. */
-  agencies: async (provinceCode: string, postalCode: string): Promise<Agency[]> => {
+  ): Promise<QuoteResult> =>
+    mergeQuotes(
+      await Promise.all(
+        (Object.keys(QUOTE_FN) as Carrier[]).map((c) =>
+          quoteCarrier(c, items, postalCode).catch(() => ({
+            carrier: c,
+            ok: false as const,
+            error: null,
+          })),
+        ),
+      ),
+    ),
+  /**
+   * Sucursales donde retirar, las más cercanas al CP primero. Correo las
+   * busca por provincia; Andreani, por código postal.
+   */
+  agencies: async (
+    carrier: Carrier,
+    provinceCode: string,
+    postalCode: string,
+  ): Promise<Agency[]> => {
     const { data, error } = await supabase.functions.invoke<{
       agencies: Agency[]
-    }>('correo-cotizar', {
+    }>(QUOTE_FN[carrier], {
       body: { action: 'agencies', provinceCode, postalCode },
     })
     if (error || !data) throw new ShopError('sucursales')
