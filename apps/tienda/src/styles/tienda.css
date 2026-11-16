@@ -1903,19 +1903,23 @@ p {
   justify-items: center;
 }
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--surface-2),
-    var(--surface),
-    var(--surface-2)
-  );
-  background-size: 200% 100%;
-  animation: sk 1.2s infinite;
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
   border-radius: var(--radius);
+}
+/* Brillo que cruza: se anima con transform para que lo mueva la GPU */
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--surface), transparent);
+  transform: translateX(-100%);
+  animation: sk 1.2s infinite;
 }
 @keyframes sk {
   to {
-    background-position: -200% 0;
+    transform: translateX(100%);
   }
 }
 .swatch {

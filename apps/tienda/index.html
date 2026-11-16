@@ -31,6 +31,39 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d1d1b'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='15' text-anchor='middle' fill='%23f37021'%3E3D%3C/text%3E%3C/svg%3E"
     />
+    <!-- La base responde el catálogo: conexión abierta desde el principio -->
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
+    <script>
+      // Pide catálogo y ajustes ya, en paralelo con el JS (src/lib/early.ts).
+      // Va antes de las hojas de estilo para que no espere a que carguen.
+      try {
+        ;(function () {
+          var url = '%VITE_SUPABASE_URL%/rest/v1/rpc/'
+          var key = '%VITE_SUPABASE_ANON_KEY%'
+          if (url.charAt(0) === '%' || !window.fetch) return
+          var rpc = function (fn) {
+            var p = fetch(url + fn, {
+              method: 'POST',
+              headers: {
+                apikey: key,
+                Authorization: 'Bearer ' + key,
+                'Content-Type': 'application/json',
+              },
+              body: '{}',
+            }).then(function (r) {
+              if (!r.ok) throw new Error('HTTP ' + r.status)
+              return r.json()
+            })
+            p.catch(function () {})
+            return p
+          }
+          window.__g3dEarly = {
+            catalog: rpc('shop_catalog'),
+            settings: rpc('shop_settings'),
+          }
+        })()
+      } catch (e) {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

@@ -21,6 +21,7 @@ import { selectionForVariant } from '../lib/catalogCards'
 import { useShop } from '../lib/data'
 import { cashDiscountPct, cashPrice } from '../lib/discount'
 import { ars, businessDays } from '../lib/format'
+import { IMG_SIZES } from '../lib/img'
 import type { Family } from '../lib/types'
 import { usePageTitle } from '../lib/usePageTitle'
 import { waLink } from '../lib/whatsapp'
@@ -143,6 +144,7 @@ function ProductView({ f, related }: { f: Family; related: Family[] }) {
               alt={f.name + (variantLabel ? ` · ${variantLabel}` : '')}
               label={f.name}
               size="full"
+              sizes={IMG_SIZES.pdp}
               eager
             />
           </div>

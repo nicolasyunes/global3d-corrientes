@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { optimizedSrc } from '../lib/img'
+import { IMG_SIZES, optimizedSrc, optimizedSrcSet } from '../lib/img'
 import { Img } from './bits'
 
 // Cada cuánto cambia la foto de un recuadro. Los recuadros arrancan
@@ -36,6 +36,7 @@ export function CategoryTile({
   order?: number
 }) {
   const size = big ? 'full' : 'card'
+  const sizes = big ? IMG_SIZES.bentoBig : IMG_SIZES.bentoSmall
   const [cur, setCur] = useState(0)
   const [prev, setPrev] = useState<number | null>(null)
   const curRef = useRef(0)
@@ -60,6 +61,12 @@ export function CategoryTile({
       }
       pre.onload = show
       pre.onerror = show
+      // Igual que el <img>: con srcset el navegador baja el mismo ancho
+      const set = optimizedSrcSet(images[next], size)
+      if (set) {
+        pre.sizes = sizes
+        pre.srcset = set
+      }
       pre.src = optimizedSrc(images[next], size)
     }
     const start = setTimeout(() => {
@@ -70,7 +77,7 @@ export function CategoryTile({
       clearTimeout(start)
       if (timer) clearInterval(timer)
     }
-  }, [images, order, size])
+  }, [images, order, size, sizes])
 
   const pause = () => (paused.current = true)
   const resume = () => (paused.current = false)
@@ -87,7 +94,13 @@ export function CategoryTile({
     >
       {prev !== null && (
         <span className="bento-layer" key={`p-${images[prev]}`}>
-          <Img src={images[prev]} alt="" label={label} size={size} />
+          <Img
+            src={images[prev]}
+            alt=""
+            label={label}
+            size={size}
+            sizes={sizes}
+          />
         </span>
       )}
       <span
@@ -100,6 +113,7 @@ export function CategoryTile({
           alt=""
           label={label}
           size={size}
+          sizes={sizes}
           eager={big && cur === 0}
           priority={big && cur === 0}
         />
