@@ -6,6 +6,7 @@ import {
   minPrice,
 } from '../lib/catalog'
 import { ars } from '../lib/format'
+import { IMG_SIZES } from '../lib/img'
 import type { CatalogCard } from '../lib/catalogCards'
 import type { Family } from '../lib/types'
 import { AvailabilityBadge, Img } from './bits'
@@ -38,6 +39,7 @@ export function ProductCard({
             src={card.image}
             alt={`${f.name} · ${card.label}`}
             label={`${f.name} ${card.label}`}
+            sizes={IMG_SIZES.card}
           />
         </div>
         <div className="card-body">
@@ -61,7 +63,12 @@ export function ProductCard({
   return (
     <Link to={`/p/${f.slug}`} className="card">
       <div className="media">
-        <Img src={familyImage(f)} alt={f.name} label={f.name} />
+        <Img
+          src={familyImage(f)}
+          alt={f.name}
+          label={f.name}
+          sizes={IMG_SIZES.card}
+        />
       </div>
       <div className="card-body">
         <AvailabilityBadge

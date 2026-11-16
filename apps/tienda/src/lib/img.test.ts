@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { optimizedSrc } from './img'
+import { optimizedSrc, optimizedSrcSet, VERCEL_WIDTHS } from './img'
 
 const PHOTO =
   'https://bukjmleercxlxbexekos.supabase.co/storage/v1/object/public/product-images/abc/0-1.jpeg'
@@ -41,5 +41,30 @@ describe('optimizedSrc', () => {
     expect(
       optimizedSrc('https://x.supabase.co/rest/v1/algo', 'card', true),
     ).toBe('https://x.supabase.co/rest/v1/algo')
+  })
+})
+
+describe('optimizedSrcSet', () => {
+  it('ofrece los anchos hasta el máximo del tamaño', () => {
+    const set = optimizedSrcSet(PHOTO, 'card', true)!
+    expect(set.split(', ').map((x) => x.split(' ')[1])).toEqual([
+      '256w',
+      '384w',
+      '640w',
+    ])
+    expect(set).toContain(`url=${encodeURIComponent(PHOTO)}&w=384&q=75 384w`)
+    expect(optimizedSrcSet(PHOTO, 'full', true)!.split(', ')).toHaveLength(
+      VERCEL_WIDTHS.length,
+    )
+  })
+
+  it('no arma srcset en dev ni para fotos que no se optimizan', () => {
+    expect(optimizedSrcSet(PHOTO, 'card', false)).toBeNull()
+    expect(
+      optimizedSrcSet('https://example.com/a.jpg', 'card', true),
+    ).toBeNull()
+    expect(
+      optimizedSrcSet('/tienda/familias/../x.jpg', 'card', true),
+    ).toBeNull()
   })
 })

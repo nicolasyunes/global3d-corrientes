@@ -1,5 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
+import { takeEarly, type EarlyKey } from './early'
 import { quoteFilePath } from './quoteFiles'
 import type {
   CreateOrderInput,
@@ -11,16 +12,51 @@ import type {
   ShopSettings,
 } from './types'
 
-// Cliente propio y sin sesión: la tienda es pública y no debe tomar la sesión
-// del admin aunque se abra en el mismo dominio.
-const supabase = createClient(env.supabaseUrl, env.supabaseAnonKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-})
+// Las funciones shop_* se llaman con fetch directo a PostgREST: así la home no
+// carga supabase-js (~100 KB) para pintar. El cliente completo se baja recién
+// cuando hace falta (subir archivos o llamar a una edge function).
+let client: Promise<SupabaseClient> | null = null
+function supabase(): Promise<SupabaseClient> {
+  // Cliente propio y sin sesión: la tienda es pública y no debe tomar la
+  // sesión del admin aunque se abra en el mismo dominio.
+  client ??= import('@supabase/supabase-js').then(({ createClient }) =>
+    createClient(env.supabaseUrl, env.supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    }),
+  )
+  return client
+}
 
 async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.rpc(fn, args)
-  if (error) throw new ShopError(error.message)
-  return data as T
+  let res: Response
+  try {
+    res = await fetch(`${env.supabaseUrl}/rest/v1/rpc/${fn}`, {
+      method: 'POST',
+      headers: {
+        apikey: env.supabaseAnonKey,
+        Authorization: `Bearer ${env.supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(args ?? {}),
+    })
+  } catch (e) {
+    throw new ShopError(e instanceof Error ? e.message : String(e))
+  }
+  const body: unknown = await res.json().catch(() => null)
+  if (!res.ok) {
+    const msg =
+      body && typeof body === 'object' && 'message' in body
+        ? String((body as { message: unknown }).message)
+        : `HTTP ${res.status}`
+    throw new ShopError(msg)
+  }
+  return body as T
+}
+
+/** Usa el pedido que ya hizo index.html; si falló, lo repite. */
+function early<T>(key: EarlyKey, fn: string): Promise<T> {
+  const p = takeEarly<T>(key)
+  return p ? p.catch(() => rpc<T>(fn)) : rpc<T>(fn)
 }
 
 export class ShopError extends Error {}
@@ -51,9 +87,10 @@ export function orderErrorMessage(err: unknown): string {
 }
 
 export const api = {
-  catalog: () => rpc<Family[]>('shop_catalog'),
+  // El HTML ya las pidió antes de que cargue el JS (ver index.html)
+  catalog: () => early<Family[]>('catalog', 'shop_catalog'),
   filaments: () => rpc<FilamentLine[]>('shop_filaments'),
-  settings: () => rpc<ShopSettings>('shop_settings'),
+  settings: () => early<ShopSettings>('settings', 'shop_settings'),
   createOrder: (input: CreateOrderInput) =>
     rpc<CreateOrderResult>('shop_create_order', { p: input }),
   orderStatus: (token: string) =>
@@ -61,7 +98,7 @@ export const api = {
   /** Sube un archivo de "Pedido a medida" y devuelve su link público. */
   uploadQuoteFile: async (file: File, type: string): Promise<string> => {
     const path = quoteFilePath(type)
-    const bucket = supabase.storage.from('shop-quote-files')
+    const bucket = (await supabase()).storage.from('shop-quote-files')
     const { error } = await bucket.upload(path, file, {
       contentType: type,
       upsert: false,
@@ -75,7 +112,9 @@ export const api = {
     orderToken: string,
     formData: unknown,
   ): Promise<{ status: string | null; statusDetail: string | null }> => {
-    const { data, error } = await supabase.functions.invoke<{
+    const { data, error } = await (
+      await supabase()
+    ).functions.invoke<{
       status: string
       statusDetail: string | null
     }>('mp-pay', { body: { orderToken, formData } })
@@ -87,17 +126,25 @@ export const api = {
     orderToken: string,
     returnUrl: string,
   ): Promise<string | null> => {
-    const { data, error } = await supabase.functions.invoke<{
+    const { data, error } = await (
+      await supabase()
+    ).functions.invoke<{
       preferenceId: string
     }>('mp-preference', { body: { orderToken, returnUrl } })
     if (error || !data?.preferenceId) return null
     return data.preferenceId
   },
   instagram: async (): Promise<InstagramPost[]> => {
-    const { data, error } = await supabase.functions.invoke<{
-      posts: InstagramPost[]
-    }>('instagram-feed', { method: 'GET' })
-    if (error || !data) return []
-    return data.posts ?? []
+    try {
+      const { data, error } = await (
+        await supabase()
+      ).functions.invoke<{
+        posts: InstagramPost[]
+      }>('instagram-feed', { method: 'GET' })
+      if (error || !data) return []
+      return data.posts ?? []
+    } catch {
+      return []
+    }
   },
 }

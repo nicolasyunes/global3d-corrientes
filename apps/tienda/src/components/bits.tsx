@@ -9,7 +9,7 @@ import {
 import { Link } from 'react-router-dom'
 import type { Availability } from '../lib/catalog'
 import { businessDays } from '../lib/format'
-import { optimizedSrc, type ImgSize } from '../lib/img'
+import { optimizedSrc, optimizedSrcSet, type ImgSize } from '../lib/img'
 
 export function AvailabilityBadge({
   a,
@@ -38,6 +38,7 @@ export function Img({
   alt,
   label,
   size = 'card',
+  sizes,
   eager = false,
   priority = false,
 }: {
@@ -45,6 +46,8 @@ export function Img({
   alt: string
   label?: string
   size?: ImgSize
+  /** Ancho en pantalla (atributo `sizes`): con él se ofrecen varios anchos */
+  sizes?: string
   eager?: boolean
   /** La imagen más importante de la pantalla (LCP): carga ya y con prioridad alta */
   priority?: boolean
@@ -65,9 +68,13 @@ export function Img({
         {label ?? 'Global3D'}
       </div>
     )
+  // Varios anchos solo mientras se usa el optimizador (no en la original)
+  const srcSet =
+    sizes && src && current !== src ? optimizedSrcSet(src, size) : null
   return (
     <img
       src={current}
+      {...(srcSet ? { srcSet, sizes } : {})}
       alt={alt}
       loading={eager || priority ? 'eager' : 'lazy'}
       // React 18 solo reconoce el atributo en minúscula (el camelCase llega en 19)
