@@ -144,31 +144,7 @@ export function HomeNueva() {
         </div>
       </section>
 
-      <section
-        className="section"
-        aria-labelledby="feat-title"
-        style={{ paddingTop: 8 }}
-      >
-        <div className="container">
-          <div className="section-head">
-            <h2 id="feat-title">Los más pedidos</h2>
-            <Link to="/catalogo">Ver todo</Link>
-          </div>
-          {status === 'loading' && <GridSkeleton n={8} />}
-          {status === 'error' && <LoadError onRetry={reload} />}
-          {status === 'ready' && (
-            <div className="bl-grid">
-              {featured.map((f) => (
-                <BlisterCard key={f.slug} f={f} />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <Reels settings={settings} />
-
-      <section className="section" aria-labelledby="how-title">
+      <section className="section bl-how" aria-labelledby="how-title">
         <div className="container">
           <div className="how">
             <h2 id="how-title">Cómo comprar</h2>
@@ -214,6 +190,30 @@ export function HomeNueva() {
           </div>
         </div>
       </section>
+
+      <section
+        className="section"
+        aria-labelledby="feat-title"
+        style={{ paddingTop: 8 }}
+      >
+        <div className="container">
+          <div className="section-head">
+            <h2 id="feat-title">Los más pedidos</h2>
+            <Link to="/catalogo">Ver todo</Link>
+          </div>
+          {status === 'loading' && <GridSkeleton n={8} />}
+          {status === 'error' && <LoadError onRetry={reload} />}
+          {status === 'ready' && (
+            <div className="bl-grid">
+              {featured.map((f) => (
+                <BlisterCard key={f.slug} f={f} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <Reels settings={settings} />
 
       <section className="section" style={{ paddingTop: 8 }}>
         <div className="container">

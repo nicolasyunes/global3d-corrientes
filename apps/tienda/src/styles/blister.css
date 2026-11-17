@@ -300,3 +300,10 @@
     transition: none;
   }
 }
+
+/* "Cómo comprar" sube entre las categorías y los productos: corta las fotos */
+.bl-page .bl-how {
+  background: var(--surface-2);
+  margin-top: 28px;
+  padding: 44px 0;
+}
