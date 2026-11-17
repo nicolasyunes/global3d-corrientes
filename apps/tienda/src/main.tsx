@@ -23,6 +23,15 @@ const router = createBrowserRouter(
       element: <Layout />,
       children: [
         { index: true, element: <Home /> },
+        // Variante de prueba del inicio. Se baja aparte para no sumar peso a
+        // la home actual.
+        {
+          path: 'nueva',
+          lazy: () =>
+            import('./pages/HomeNueva').then((m) => ({
+              Component: m.HomeNueva,
+            })),
+        },
         { path: 'catalogo', element: <Catalog /> },
         { path: 'c/:cat', element: <Catalog /> },
         { path: 'p/:slug', element: <Product /> },
